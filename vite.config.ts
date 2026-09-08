@@ -54,6 +54,9 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5173,
     strictPort: true,
+    watch: {
+      ignored: ["**/release/**", "**/dist/**", "**/.git/**"],
+    },
     proxy: {
       "/api": "http://localhost:8787",
       "/auth": "http://localhost:8787",
