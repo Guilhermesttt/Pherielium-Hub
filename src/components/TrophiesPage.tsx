@@ -108,30 +108,25 @@ const PSNTierBadge = React.memo<{
 
   return (
     <motion.div
-      whileHover={{ scale: 1.05 }}
+      whileHover={{ scale: 1.03 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className="relative flex items-center justify-center shrink-0 cursor-default"
     >
       <div
-        className="absolute -inset-1.5 rounded-2xl blur-xl opacity-50 transition-all duration-500 animate-pulse"
-        style={{ background: `linear-gradient(135deg, ${tierInfo.gradientFrom}, ${tierInfo.gradientTo})` }}
-      />
-      <div
-        className={`relative flex h-20 w-20 flex-col items-center justify-center rounded-2xl border ${tierInfo.borderClass} ${tierInfo.bgClass} backdrop-blur-xl shadow-2xl overflow-hidden`}
+        className="relative flex h-20 w-20 flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-md shadow-sm overflow-hidden"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-white/15 to-transparent pointer-events-none" />
         {tier === "platinum" ? (
-          <Gem className="h-6 w-6 text-[#38bdf8] drop-shadow-[0_0_10px_rgba(56,189,248,0.9)]" />
+          <Gem className="h-6 w-6 text-[#38bdf8]" />
         ) : (
           <Trophy
-            className="h-6 w-6 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+            className="h-6 w-6"
             style={{ color: tierInfo.hexColor }}
-            strokeWidth={2.2}
+            strokeWidth={2}
           />
         )}
         <div className="mt-1 flex items-baseline gap-0.5">
-          <span className="text-[10px] font-black uppercase tracking-wider text-white/50">LV</span>
-          <span className="text-base font-black text-white leading-none tracking-tight">{level}</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-white/50">LV</span>
+          <span className="text-base font-bold text-white leading-none tracking-tight">{level}</span>
         </div>
       </div>
     </motion.div>
@@ -222,21 +217,17 @@ const GameRow = React.memo<GameRowProps>(
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         onMouseEnter={handleMouseEnter}
-        className={`group relative flex flex-col gap-3.5 rounded-2xl border p-4 sm:p-5 transition-all duration-200 cursor-pointer overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-white/60 transform-gpu will-change-transform ${hasPlatinum
-            ? "border-[#38bdf8]/35 bg-[#38bdf8]/[0.05] hover:border-[#38bdf8]/60 hover:bg-[#38bdf8]/[0.09] shadow-[0_4px_30px_rgba(56,189,248,0.1)]"
-            : "border-white/[0.08] bg-neutral-900/40 hover:border-white/20 hover:bg-neutral-800/60 shadow-lg"
+        className={`group relative flex flex-col gap-3.5 rounded-2xl border p-4 sm:p-5 transition-all duration-160 cursor-pointer overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-white/60 transform-gpu will-change-transform ${hasPlatinum
+            ? "border-[#38bdf8]/30 bg-white/[0.03] hover:border-[#38bdf8]/50 hover:bg-white/[0.05]"
+            : "border-white/[0.08] bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"
           }`}
         style={{ minHeight: `${ESTIMATED_ROW_HEIGHT}px` }}
       >
-        {hasPlatinum && (
-          <div className="absolute -top-16 -right-16 w-36 h-36 rounded-full bg-[#38bdf8]/15 blur-3xl pointer-events-none" />
-        )}
-
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div className="flex items-center gap-4 min-w-0 flex-1">
             <div
-              className={`relative h-16 w-12 sm:h-18 sm:w-13 shrink-0 overflow-hidden rounded-xl transition-all duration-300 group-hover:scale-105 ${hasPlatinum
-                  ? "ring-2 ring-[#38bdf8]/60 shadow-[0_0_15px_rgba(56,189,248,0.3)]"
+              className={`relative h-16 w-12 sm:h-18 sm:w-13 shrink-0 overflow-hidden rounded-xl transition-all duration-200 group-hover:scale-105 ${hasPlatinum
+                  ? "border border-[#38bdf8]/50 shadow-sm"
                   : "bg-neutral-800 border border-white/10"
                 }`}
             >

@@ -236,14 +236,22 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: React.Re
   </div>
 );
 
-const Section: React.FC<{ title: string; icon?: React.ReactNode; children: React.ReactNode; className?: string; compact?: boolean }> = ({
+interface SectionProps {
+  title: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  compact?: boolean;
+}
+
+const Section: React.FC<SectionProps> = ({
   title,
   icon,
   children,
   className = "",
   compact = false,
 }) => (
-  <section className={`${compact ? "rounded-[24px] p-4 md:p-5" : "rounded-[28px] p-6 md:p-7"} border border-white/10 bg-black/40 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)] ${className}`}>
+  <section className={`${compact ? "rounded-xl p-4 md:p-5" : "rounded-2xl p-6 md:p-7"} border border-white/10 bg-black/40 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)] ${className}`}>
     <div className={`${compact ? "mb-3" : "mb-5"} flex items-center gap-3`}>
       {icon && (
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white/70">
@@ -428,40 +436,39 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       className={`relative min-h-0 flex-1 overflow-y-auto thin-scrollbar ${compactProfile ? "px-5 pb-6 pt-4" : "px-8 pb-12 pt-6"}`}
     >
       <div className={`relative mx-auto max-w-6xl ${compactProfile ? "space-y-4" : "space-y-6"}`}>
-        <section className={`rounded-[28px] border border-white/10 bg-black/40 backdrop-blur-3xl shadow-[0_24px_90px_rgba(0,0,0,0.55)] ${compactProfile ? "p-5 md:p-6" : "p-7 md:p-8"}`}>
+        <section className={`rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.45)] ${compactProfile ? "p-5 md:p-6" : "p-6 md:p-7"}`}>
           <div className={`flex flex-col md:flex-row md:items-center md:justify-between ${compactProfile ? "gap-4" : "gap-6"}`}>
             <div className="flex min-w-0 items-center gap-5">
               <ProfileAvatar profile={userProfile} authPhotoURL={user?.photoURL} displayName={displayName} compact={compactProfile} />
               <div className="min-w-0">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.28em] text-white/30">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-white/60 font-body">
                   {editable ? "Seu perfil" : "Perfil do jogador"}
                 </p>
                 <div className="flex items-center gap-3">
-                  <h1 className={`${compactProfile ? "text-3xl" : "text-4xl"} truncate font-black tracking-tight text-white`}>{displayName}</h1>
-                  <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 ${compactProfile ? "scale-75 origin-left" : ""} ${playerLevel.tierInfo.borderClass} ${playerLevel.tierInfo.bgClass}`} style={{ boxShadow: playerLevel.tierInfo.glowColor }}>
-                    <Trophy className={`h-3.5 w-3.5 ${playerLevel.tierInfo.color}`} style={{ filter: `drop-shadow(0 0 6px ${playerLevel.tierInfo.hexColor}80)` }} />
-                    <span className={`text-xs font-black ${playerLevel.tierInfo.color}`}>Lv.{playerLevel.level}</span>
+                  <h1 className={`${compactProfile ? "text-2xl" : "text-3xl"} truncate font-bold tracking-tight text-white`}>{displayName}</h1>
+                  <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 ${compactProfile ? "scale-75 origin-left" : ""} ${playerLevel.tierInfo.borderClass} ${playerLevel.tierInfo.bgClass}`}>
+                    <Trophy className={`h-3.5 w-3.5 ${playerLevel.tierInfo.color}`} />
+                    <span className={`text-xs font-bold ${playerLevel.tierInfo.color}`}>Lv.{playerLevel.level}</span>
                   </div>
                 </div>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className={`text-[10px] font-bold ${playerLevel.tierInfo.color}`}>{playerLevel.tierInfo.name}</span>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <span className={`text-xs font-medium ${playerLevel.tierInfo.color}`}>{playerLevel.tierInfo.name}</span>
                   <div className="h-1.5 w-20 overflow-hidden rounded-full bg-white/[0.06] border border-white/5">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${playerLevel.progress}%` }}
-                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                      className="h-full rounded-full"
-                      style={{ background: `linear-gradient(90deg, ${playerLevel.tierInfo.gradientFrom}, ${playerLevel.tierInfo.gradientTo})`, boxShadow: `0 0 8px ${playerLevel.tierInfo.hexColor}60` }}
+                      animate={{ width: `${Math.min(100, Math.max(0, playerLevel.progress))}%` }}
+                      transition={{ duration: 0.6, ease: "easeOut" }}
+                      className="h-full rounded-full bg-white"
                     />
                   </div>
-                  <span className="text-[9px] font-bold" style={{ color: playerLevel.tierInfo.hexColor }}>{playerLevel.progress}%</span>
+                  <span className="text-xs text-white/60 font-medium">{playerLevel.progress}%</span>
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
                   {hasSteamProfile && (
                     <button
                       type="button"
                       onClick={() => void openExternalProfile(`https://steamcommunity.com/profiles/${steamId}`)}
-                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.06] px-2 py-1 text-[10px] font-black text-white transition-colors hover:bg-white/10"
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.06] px-2 py-0.5 text-xs font-medium text-white transition-colors hover:bg-white/10"
                     >
                       <FontAwesomeIcon icon={faSteam} className="h-3 w-3" />
                       {userProfile?.steamUsername || "Steam"}
@@ -482,20 +489,20 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           );
                         }).catch(() => onNotify?.(copy.copyError, "error"));
                       }}
-                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.06] px-2 py-1 text-[10px] font-black text-white transition-colors hover:bg-white/10"
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.06] px-2 py-0.5 text-xs font-medium text-white transition-colors hover:bg-white/10"
                     >
                       <FontAwesomeIcon icon={faDiscord} className="h-3 w-3" />
                       {discordDisplayName}
                     </button>
                   )}
                 </div>
-                {userProfile?.bio && <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/55">{userProfile.bio}</p>}
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-white/28">
+                {userProfile?.bio && <p className="mt-2.5 max-w-xl text-[13px] leading-relaxed text-white/70 font-body">{userProfile.bio}</p>}
+                <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-medium text-white/60">
                   {email && <span>{email}</span>}
                   {userProfile?.website && /^https:\/\//i.test(userProfile.website) && (
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 hover:text-white/65"
+                      className="inline-flex items-center gap-1 hover:text-white"
                       onClick={() => window.electronAPI?.openExternalUrl(userProfile.website as string)}
                     >
                       <ExternalLink className="h-3.5 w-3.5" /> Site
@@ -503,9 +510,9 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   )}
                 </div>
                 {Boolean(userProfile?.favoriteGenres?.length) && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
                     {userProfile?.favoriteGenres?.map((genre) => (
-                      <span key={genre} className="rounded-lg border border-white/10 bg-white/[0.05] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white/40">
+                      <span key={genre} className="rounded-md border border-white/10 bg-white/[0.05] px-2 py-0.5 text-xs font-medium text-white/70">
                         {genre}
                       </span>
                     ))}
@@ -544,12 +551,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         </section>
 
         {isPrivateProfile ? (
-          <section className="flex flex-col items-center justify-center rounded-[28px] border border-white/10 bg-black/40 backdrop-blur-3xl p-12 text-center shadow-[0_24px_90px_rgba(0,0,0,0.55)]">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.06] text-white/60 shadow-inner">
+          <section className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/40 backdrop-blur-3xl p-12 text-center shadow-[0_24px_90px_rgba(0,0,0,0.55)]">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-white/60 shadow-inner">
               <Lock className="h-8 w-8 text-white/80" />
             </div>
             <h2 className="text-xl font-black text-white">Perfil Privado</h2>
-            <p className="mt-2 max-w-md text-sm text-white/45 leading-relaxed">
+            <p className="mt-2 max-w-md text-sm text-white/70 leading-relaxed">
               Este jogador optou por manter suas estatísticas, biblioteca de jogos e troféus privados.
             </p>
           </section>

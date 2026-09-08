@@ -497,6 +497,8 @@ const adapters = [
   new GoldbergAdapter() // Fallback padrão
 ];
 
+const _loggedDetectionPaths = new Set();
+
 const getScannedEmulator = (appId, gameDir) => {
   if (!appId) return null;
 
@@ -704,7 +706,10 @@ const getScannedEmulator = (appId, gameDir) => {
   // ── Passo 1: verifica caminhos exatos da lista de candidates ─────────────────
   for (const cand of candidates) {
     if (fs.existsSync(cand.savePath)) {
-      console.log(`[EmulatorDetector] Arquivo exato encontrado: ${cand.savePath} (Emulador: ${cand.emulatorType})`);
+      if (!_loggedDetectionPaths.has(cand.savePath)) {
+        _loggedDetectionPaths.add(cand.savePath);
+        console.log(`[EmulatorDetector] Arquivo exato encontrado: ${cand.savePath} (Emulador: ${cand.emulatorType})`);
+      }
       return { ...cand, detectionSource: "known-path", confidence: "high" };
     }
   }
@@ -767,7 +772,10 @@ const getScannedEmulator = (appId, gameDir) => {
     if (!fs.existsSync(root.dir)) continue;
     const found = scanDepth(root.dir, 0, root.emulatorType);
     if (found) {
-      console.log(`[EmulatorDetector] Arquivo encontrado via busca profunda: ${found.savePath} (Emulador: ${found.emulatorType})`);
+      if (!_loggedDetectionPaths.has(found.savePath)) {
+        _loggedDetectionPaths.add(found.savePath);
+        console.log(`[EmulatorDetector] Arquivo encontrado via busca profunda: ${found.savePath} (Emulador: ${found.emulatorType})`);
+      }
       return found;
     }
   }

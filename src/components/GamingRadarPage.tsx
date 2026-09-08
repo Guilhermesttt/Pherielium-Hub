@@ -129,17 +129,17 @@ const GamingRadarPage: React.FC = () => {
     >
       <div className="relative mx-auto max-w-6xl space-y-6">
         {/* Editorial Atmospheric Header */}
-        <header className="relative overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#08090C]/90 p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+        <header className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#08090C]/90 p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl">
           <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-center">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-medium tracking-wider text-white/70 mb-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-wider text-white/70 mb-3">
                 <Radio className="h-3 w-3 text-white" />
                 <span>{copy.eyebrow}</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-display font-semibold tracking-tight text-white">
                 {copy.title}
               </h1>
-              <p className="mt-1 max-w-xl text-xs md:text-sm font-normal text-white/50">
+              <p className="mt-1 max-w-xl text-xs md:text-sm font-normal text-white/70">
                 {copy.subtitle}
               </p>
             </div>
@@ -228,10 +228,10 @@ const GamingRadarPage: React.FC = () => {
         )}
 
         {/* Communities Section */}
-        <section className="relative overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#08090C]/90 p-6 md:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+        <section className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#08090C]/90 p-6 md:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl">
           <div className="mb-4 flex items-center gap-2">
-            <Users className="h-4 w-4 text-white/40" />
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/50">
+            <Users className="h-4 w-4 text-white/60" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/70">
               {copy.communities}
             </h2>
           </div>

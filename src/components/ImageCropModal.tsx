@@ -164,10 +164,10 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
       zIndexClassName="z-[130]"
       ariaLabel="Ajustar e cortar foto de perfil"
     >
-      <div className="relative w-full overflow-hidden rounded-[28px] border border-white/12 bg-[#09090b] p-6 shadow-[0_25px_70px_rgba(0,0,0,0.85)] text-white backdrop-blur-2xl">
+      <div className="relative w-full overflow-hidden rounded-[22px] border border-white/12 bg-[#09090b] p-6 shadow-[0_25px_70px_rgba(0,0,0,0.85)] text-white backdrop-blur-2xl">
         <header className="mb-5 flex items-start justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/35">
+            <p className="text-xs font-semibold uppercase tracking-wider text-white/60">
               Personalização
             </p>
             <h2 className="mt-0.5 text-xl font-bold text-white tracking-tight">

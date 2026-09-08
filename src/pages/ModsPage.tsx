@@ -1,25 +1,20 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   ChevronDown,
   LayoutGrid,
   ListFilter,
-  Download,
-  Layers,
   Sparkles,
   MoreVertical,
-  FolderOpen,
   ArrowUpRight,
-  ExternalLink,
   PackageOpen,
   CheckCircle2,
+  FolderPlus,
 } from "lucide-react";
 import type { Game } from "../types/domain";
 import { usePreferences } from "../context/PreferencesContext";
 import { useSoundEffects } from "../hooks/useSoundEffects";
 import { useGamepadNavigation } from "../hooks/useGamepadNavigation";
-import { PHERIELIUM_LOGO_PATH } from "../constants/assets";
 import ModGameDetailPanel, {
   type InstalledModEntry,
 } from "../components/mods/ModGameDetailPanel";
@@ -125,7 +120,7 @@ const ModGameCard = React.memo<ModGameCardProps>(
         aria-label={`Gerenciar mods de ${game.title}`}
         onClick={handleCardClick}
         onKeyDown={handleKeyDown}
-        className="group relative rounded-[24px] bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/20 p-3.5 transition-all duration-200 hover:-translate-y-1 shadow-[0_15px_35px_rgba(0,0,0,0.3)] backdrop-blur-xl flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 data-[gamepad-focused=true]:ring-2 data-[gamepad-focused=true]:ring-white/60 data-[gamepad-focused=true]:border-white/30 cursor-pointer transform-gpu will-change-transform"
+        className="group relative rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.10] hover:border-white/20 p-3.5 transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-xl flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 data-[gamepad-focused=true]:ring-2 data-[gamepad-focused=true]:ring-white/60 data-[gamepad-focused=true]:border-white/30 cursor-pointer transform-gpu text-left"
       >
         <div>
           {/* Game Artwork Thumbnail */}
@@ -144,36 +139,48 @@ const ModGameCard = React.memo<ModGameCardProps>(
               </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-            <button
-              type="button"
-              title="Opções"
-              onClick={handleCardClick}
-              className="absolute top-2 right-2 h-7 w-7 rounded-lg bg-black/60 hover:bg-black/80 text-white/70 hover:text-white flex items-center justify-center backdrop-blur-md cursor-pointer"
+            <div
+              aria-hidden="true"
+              className="absolute top-2 right-2 h-8 w-8 rounded-lg bg-black/60 text-white/70 flex items-center justify-center backdrop-blur-md pointer-events-none"
             >
               <MoreVertical className="w-3.5 h-3.5" />
-            </button>
+            </div>
           </div>
 
           {/* Title & Mod Count */}
-          <h3 className="text-sm font-display font-bold text-white truncate">
+          <h3 className="text-sm font-display font-semibold text-white truncate">
             {game.title}
           </h3>
-          <p className="text-[11px] font-body text-white/60 font-medium flex items-center gap-1.5 mt-0.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-white/70 shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
-            <span>{activeModsCount ? `${activeModsCount} mods ativos` : "Nenhum mod ativo"}</span>
+          <p className="text-xs font-body text-white/70 font-medium flex items-center gap-1.5 mt-1">
+            {activeModsCount > 0 ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-white/90 shrink-0" />
+            ) : (
+              <PackageOpen className="w-3.5 h-3.5 text-white/50 shrink-0" />
+            )}
+            <span>
+              {activeModsCount
+                ? `${activeModsCount}${gameModsCount > activeModsCount ? ` de ${gameModsCount}` : ""} mods ativos`
+                : gameModsCount
+                  ? `${gameModsCount} mods instalados`
+                  : "Sem mods ativos"}
+            </span>
           </p>
         </div>
 
-        {/* Manage Button */}
+        {/* Manage Action Indicator */}
         <div className="mt-4 pt-2 border-t border-white/[0.06]">
-          <button
-            type="button"
-            onMouseEnter={handleMouseEnter}
-            onClick={handleCardClick}
-            className="cursor-pointer w-full py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 active:scale-98 text-white text-xs font-display font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1 shadow-sm"
+          <div
+            className="w-full h-10 rounded-lg border border-white/15 bg-white/[0.08] group-hover:bg-white/[0.15] active:scale-98 text-white text-xs font-semibold transition-all duration-160 flex items-center justify-center gap-1.5 shadow-sm pointer-events-none"
           >
-            <span>GERENCIAR</span>
-          </button>
+            {gameModsCount === 0 ? (
+              <>
+                <FolderPlus className="w-3.5 h-3.5 text-white/70" />
+                <span>Vincular pasta</span>
+              </>
+            ) : (
+              <span>Gerenciar</span>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -412,7 +419,7 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
         </div>
 
         {/* Hero Section Banner */}
-        <div className="relative overflow-hidden rounded-[32px] border border-white/[0.08] bg-gradient-to-r from-white/[0.04] via-white/[0.02] to-transparent p-6 sm:p-8 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+        <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-r from-white/[0.04] via-white/[0.02] to-transparent p-6 sm:p-8 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
           <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/[0.03] blur-3xl pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
@@ -468,9 +475,11 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
             <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-2 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-xl">
               {/* Search Field */}
               <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
                 <input
+                  id="mods-search-input"
                   type="text"
+                  aria-label="Pesquisar jogos com suporte a mods"
                   placeholder="Pesquisar jogos com suporte a mods..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -482,6 +491,8 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="relative">
                   <select
+                    id="mods-category-select"
+                    aria-label="Filtrar por categoria de mods"
                     data-gamepad-id="mods-category"
                     data-gamepad-nav-down="mods-status"
                     value={categoryFilter}
@@ -497,6 +508,8 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
 
                 <div className="relative">
                   <select
+                    id="mods-status-select"
+                    aria-label="Filtrar por status de mods instalados"
                     data-gamepad-id="mods-status"
                     data-gamepad-nav-up="mods-category"
                     data-gamepad-nav-down="mods-sort"
@@ -516,6 +529,8 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
 
                 <div className="relative">
                   <select
+                    id="mods-sort-select"
+                    aria-label="Ordenar jogos com mods"
                     data-gamepad-id="mods-sort"
                     data-gamepad-nav-up="mods-status"
                     data-gamepad-nav-down="mods-card-0"
@@ -573,9 +588,9 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
             </div>
 
             {/* Bottom Discovery Banner */}
-            <div className="rounded-[28px] bg-white/[0.03] border border-white/[0.08] p-5 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-xl shadow-xl">
+            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-5 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-xl shadow-xl">
               <div className="flex items-center gap-3.5">
-                <div className="h-10 w-10 rounded-2xl bg-white/[0.08] border border-white/20 flex items-center justify-center text-white shrink-0">
+                <div className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/20 flex items-center justify-center text-white shrink-0">
                   <Sparkles className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>

@@ -27,6 +27,7 @@ import LoadingState from "../components/ui/loading-state";
 import { HomeOverviewPanels } from "../components/HomeOverviewPanels";
 import DashboardContinuePlaying from "../components/DashboardContinuePlaying";
 import LibraryFilterModal, { type LibraryFilters } from "../components/LibraryFilterModal";
+import CommandPalette from "../components/CommandPalette";
 
 import { PHERIELIUM_LOGO_PATH } from "../constants/assets";
 import {
@@ -276,6 +277,22 @@ const Home: React.FC = () => {
   const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      } else if (e.ctrlKey && e.code === "Space") {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
   const [libraryFilters, setLibraryFilters] = useState<LibraryFilters>(() => {
     try {
       const stored = localStorage.getItem("checkpoint_library_filters");
@@ -361,6 +378,7 @@ const Home: React.FC = () => {
   const previousEpicAuthRef = useRef(false);
   const didInitConnectionRefs = useRef(false);
   const lastOverlayWelcomeGameRef = useRef<string | null>(null);
+  const lastGameLaunchSoundRef = useRef<{ title: string; time: number }>({ title: "", time: 0 });
 
   const {
     language: launcherLanguage,
@@ -772,7 +790,14 @@ const Home: React.FC = () => {
       const title = detail?.title?.trim();
       if (!title) return;
 
-      playSound("play");
+      const now = Date.now();
+      if (
+        lastGameLaunchSoundRef.current.title !== title ||
+        now - lastGameLaunchSoundRef.current.time > 4000
+      ) {
+        lastGameLaunchSoundRef.current = { title, time: now };
+        playSound("play");
+      }
       lastOverlayWelcomeGameRef.current = title;
       markCurrentPresence(title, detail?.executablePath || null);
       void window.electronAPI?.showGameStartOverlay({ gameTitle: title });
@@ -826,7 +851,9 @@ const Home: React.FC = () => {
             userProfile?.displayName || undefined,
             userProfile?.photoURL,
           );
-        } catch {}
+        } catch (error) {
+          console.warn("[home] Failed to sync offline presence before quit", error);
+        }
       }
       void window.electronAPI?.confirmAppQuit?.();
     });
@@ -1921,6 +1948,39 @@ const Home: React.FC = () => {
   const outgoingRequestIdSet = useMemo(() => new Set(outgoingFriendRequestIds), [outgoingFriendRequestIds]);
   const incomingRequestIdSet = useMemo(() => new Set(incomingFriendRequestIds), [incomingFriendRequestIds]);
 
+  const handleGameHydrated = React.useCallback((hydrated: Game) => {
+    setSelectedGame((prev) => {
+      if (!prev || prev.id !== hydrated.id) return hydrated;
+      if (
+        prev.totalAchievements === hydrated.totalAchievements &&
+        prev.completedAchievements === hydrated.completedAchievements &&
+        prev.image === hydrated.image &&
+        prev.cardImage === hydrated.cardImage &&
+        prev.backgroundImage === hydrated.backgroundImage
+      ) {
+        return prev;
+      }
+      return { ...prev, ...hydrated };
+    });
+    setGames((prev) => {
+      const idx = prev.findIndex((g) => g.id === hydrated.id);
+      if (idx === -1) return prev;
+      const current = prev[idx];
+      if (
+        current.totalAchievements === hydrated.totalAchievements &&
+        current.completedAchievements === hydrated.completedAchievements &&
+        current.image === hydrated.image &&
+        current.cardImage === hydrated.cardImage &&
+        current.backgroundImage === hydrated.backgroundImage
+      ) {
+        return prev;
+      }
+      const updated = [...prev];
+      updated[idx] = { ...current, ...hydrated };
+      return updated;
+    });
+  }, []);
+
   return (
     <div
       className="relative flex h-full min-h-0 w-full overflow-hidden overscroll-none text-white no-scrollbar transition-colors duration-1000"
@@ -2018,6 +2078,8 @@ const Home: React.FC = () => {
                   <Search className="w-3.5 h-3.5 text-white/40 absolute left-3 pointer-events-none" />
                   <input
                     ref={searchInputRef}
+                    id="home-library-search"
+                    aria-label="Pesquisar jogos na biblioteca"
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -2026,6 +2088,8 @@ const Home: React.FC = () => {
                   />
                   {searchTerm && (
                     <button
+                      type="button"
+                      aria-label="Limpar pesquisa"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSearchTerm("");
@@ -2059,14 +2123,17 @@ const Home: React.FC = () => {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
               <button
+                type="button"
+                aria-label={t("new") || "Adicionar novo jogo"}
                 onClick={() => {
                   openAddGameModal();
+                  playSound("showModal");
                 }}
                 onMouseEnter={() => playSound("hover")}
-                className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/10 active:scale-95 group"
+                className="cursor-pointer flex items-center gap-2 px-3.5 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/10 active:scale-95 group"
               >
-                <Plus className="w-4 h-4 text-white/40 group-hover:text-white transition-colors" />
-                <span className="text-[10px] font-black uppercase tracking-wider text-white/40 group-hover:text-white transition-colors">
+                <Plus className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
+                <span className="text-xs font-semibold text-white/70 group-hover:text-white transition-colors">
                   {t("new")}
                 </span>
               </button>
@@ -2076,10 +2143,12 @@ const Home: React.FC = () => {
               {/* STEAM PILL */}
               {resolvedSteamId ? (
                 <button
+                  type="button"
+                  aria-label="Sincronizar jogos da Steam"
                   onClick={handleSyncSteam}
                   onMouseEnter={() => playSound("hover")}
                   disabled={steamSyncing}
-                  className="cursor-pointer relative flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.06] active:scale-95 disabled:opacity-80 group/steam"
+                  className="cursor-pointer relative flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.06] active:scale-95 disabled:opacity-80 group/steam"
                   title="Sincronizar jogos da Steam"
                 >
                   {steamSyncing ? (
@@ -2087,26 +2156,28 @@ const Home: React.FC = () => {
                   ) : (
                     <>
                       <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.75)] group-hover/steam:scale-110 transition-all" />
-                      <span className="text-[10px] font-medium tracking-wider text-white/70 group-hover/steam:text-white transition-colors">
+                      <span className="text-xs font-medium text-white/80 group-hover/steam:text-white transition-colors">
                         Steam
                       </span>
-                      <RefreshCw className="w-2.5 h-2.5 text-white/30 group-hover/steam:text-white/70 transition-colors" />
+                      <RefreshCw className="w-3 h-3 text-white/40 group-hover/steam:text-white/80 transition-colors" />
                     </>
                   )}
                 </button>
               ) : (
                 <button
+                  type="button"
+                  aria-label={t("connectSteam") || "Conectar Steam"}
                   onClick={connectSteam}
                   onMouseEnter={() => playSound("hover")}
                   disabled={steamConnecting}
-                  className="cursor-pointer flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.08] active:scale-95 disabled:opacity-70 group"
+                  className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.08] active:scale-95 disabled:opacity-70 group"
                 >
                   {steamConnecting ? (
                     <LoadingState label={t("connecting") || "Conectando..."} variant="Dots" size="sm" showTimer={false} />
                   ) : (
                     <>
-                      <div className="w-2 h-2 rounded-full bg-white/25" />
-                      <span className="text-[10px] font-medium tracking-wider text-white/45 group-hover:text-white transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-white/30" />
+                      <span className="text-xs font-medium text-white/60 group-hover:text-white transition-colors">
                         {t("connectSteam")}
                       </span>
                     </>
@@ -2117,13 +2188,15 @@ const Home: React.FC = () => {
               {/* EPIC GAMES PILL */}
               {epicAuthConnected ? (
                 <button
+                  type="button"
+                  aria-label="Sincronizar jogos da Epic Games"
                   onClick={async () => {
                     await handleSyncEpic();
                     await checkEpicStatus();
                   }}
                   onMouseEnter={() => playSound("hover")}
                   disabled={epicSyncing}
-                  className="cursor-pointer relative flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.06] active:scale-95 disabled:opacity-80 group/epic"
+                  className="cursor-pointer relative flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.06] active:scale-95 disabled:opacity-80 group/epic"
                   title="Sincronizar jogos da Epic Games"
                 >
                   {epicSyncing ? (
@@ -2131,26 +2204,28 @@ const Home: React.FC = () => {
                   ) : (
                     <>
                       <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.75)] group-hover/epic:scale-110 transition-all" />
-                      <span className="text-[10px] font-medium tracking-wider text-white/70 group-hover/epic:text-white transition-colors">
+                      <span className="text-xs font-medium text-white/80 group-hover/epic:text-white transition-colors">
                         Epic
                       </span>
-                      <RefreshCw className="w-2.5 h-2.5 text-white/30 group-hover/epic:text-white/70 transition-colors" />
+                      <RefreshCw className="w-3 h-3 text-white/40 group-hover/epic:text-white/80 transition-colors" />
                     </>
                   )}
                 </button>
               ) : (
                 <button
+                  type="button"
+                  aria-label={t("connectEpic") || "Conectar Epic Games"}
                   onClick={() => setEpicConnectModalOpen(true)}
                   onMouseEnter={() => playSound("hover")}
                   disabled={epicConnecting}
-                  className="cursor-pointer flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.08] active:scale-95 disabled:opacity-70 group"
+                  className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.08] active:scale-95 disabled:opacity-70 group"
                 >
                   {epicConnecting ? (
                     <LoadingState label={t("connecting") || "Conectando..."} variant="Dots" size="sm" showTimer={false} />
                   ) : (
                     <>
-                      <div className="w-2 h-2 rounded-full bg-white/25" />
-                      <span className="text-[10px] font-medium tracking-wider text-white/45 group-hover:text-white transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-white/30" />
+                      <span className="text-xs font-medium text-white/60 group-hover:text-white transition-colors">
                         {t("connectEpic") || "Conectar Epic"}
                       </span>
                     </>
@@ -2604,10 +2679,7 @@ const Home: React.FC = () => {
           }}
           playSound={playSound}
           onLibraryChanged={refreshLibrary}
-          onGameHydrated={(hydrated) => {
-            setSelectedGame(hydrated);
-            setGames((prev) => prev.map((g) => (g.id === hydrated.id ? { ...g, ...hydrated } : g)));
-          }}
+          onGameHydrated={handleGameHydrated}
           onOpenMods={() => {
             setIsDetailOpen(false);
             selectCategory("MODS");
@@ -2625,6 +2697,39 @@ const Home: React.FC = () => {
           initialLauncherType={addModalInitialLauncherType}
         />
       </React.Suspense>
+
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        games={games}
+        friends={socialFriends}
+        onSelectGame={(game) => {
+          openDetails(game);
+          playSound("select");
+        }}
+        onPlayGame={(game) => {
+          openDetails(game);
+          playSound("select");
+        }}
+        onNavigate={(category) => {
+          selectCategory(category);
+          playSound("select");
+        }}
+        onOpenSettingsTab={(tab) => {
+          selectCategory("SETTINGS");
+          handleSettingsTabChange(tab as any);
+          playSound("select");
+        }}
+        onStartCall={(friend) => {
+          void startCall(friend, false);
+          playSound("select");
+        }}
+        onOpenChat={(friend) => {
+          setActiveChatFriend(friend);
+          playSound("select");
+        }}
+        playSound={playSound}
+      />
 
       <AddFriendModal
         isOpen={isAddFriendModalOpen}

@@ -7,6 +7,7 @@ import type {
   UserProfile,
 } from "../types/domain";
 import type { SoundEffectType } from './useSoundEffects';
+import type { NotificationType, NotificationOptions } from '../components/NotificationCenter';
 import { subscribeToUnreadMessages } from '../services/chat';
 import {
   subscribeToGlobalEventBus,
@@ -43,7 +44,7 @@ interface UseFriendsSystemProps {
   user: AuthUser | null;
   userProfile: UserProfile | null;
   playSound: (t: SoundEffectType) => void;
-  notify: (msg: string, type: 'success' | 'error' | 'info') => void;
+  notify: (msg: string, type?: NotificationType, options?: NotificationOptions) => void;
   refreshProfile: () => Promise<void>;
   localSocialStateLoaded: boolean;
   setLocalSocialStateLoaded: (loaded: boolean) => void;
@@ -157,7 +158,7 @@ export function useFriendsSystem({
               friendId: `cp-friend:${msg.senderId}`,
               contentKind: isImage ? "image" : "text",
             });
-            playSound("friendRequest");
+            playSound("chatReceived");
           }
         }
       });
@@ -418,6 +419,9 @@ export function useFriendsSystem({
         });
       },
       onFriendRequest: (req) => {
+        if (previousIncomingRequestsRef.current) {
+          previousIncomingRequestsRef.current.add(req.fromUid);
+        }
         playSound("friendRequest");
         // Renderização instantânea na tela
         setIncomingFriendRequests((current) => {
@@ -432,7 +436,7 @@ export function useFriendsSystem({
             ...current,
           ];
         });
-        notify(`Novo pedido de amizade de ${req.fromName}`, "info");
+        notify(`Novo pedido de amizade de ${req.fromName}`, "friend-request", { sound: false });
         void window.electronAPI?.showFriendRequestOverlay({
           playerName: req.fromName,
           avatarUrl: req.fromAvatar || null,
@@ -494,6 +498,7 @@ export function useFriendsSystem({
 
     if (freshRequest) {
       playSound("friendRequest");
+      notify(`Novo pedido de amizade de ${freshRequest.displayName}`, "friend-request", { sound: false });
       void window.electronAPI?.showFriendRequestOverlay({
         playerName: freshRequest.displayName,
         avatarUrl: freshRequest.photoURL || null,
@@ -502,7 +507,7 @@ export function useFriendsSystem({
     }
 
     previousIncomingRequestsRef.current = currentIncomingIds;
-  }, [playSound, userProfile?.checkpointFriendRequestsIncoming]);
+  }, [notify, playSound, userProfile?.checkpointFriendRequestsIncoming]);
 
   useEffect(() => {
     const currentFriends = new Set((userProfile?.checkpointFriends ?? []).map((friend) => friend.uid));

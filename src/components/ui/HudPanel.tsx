@@ -24,13 +24,13 @@ export const HudPanel: React.FC<HudPanelProps> = ({
 }) => {
   return (
     <section
-      className={`relative overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#08090C]/90 p-5 md:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl font-sans ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#08090C]/90 p-5 md:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl font-sans ${className}`}
     >
       {(title || tag || headerRight) && (
         <header className="relative mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
           <div className="flex items-center gap-3">
             {tag && (
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-medium tracking-wide text-white/70">
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-xs font-medium tracking-wide text-white/70">
                 {tag}
               </span>
             )}

@@ -77,15 +77,16 @@ describe("navegacao sequencial da sidebar pelo controle", () => {
       "LOCAL",
       "FRIENDS",
       "FEED",
-      "MODS",
       "PROFILE",
+      "TROPHIES",
+      "MODS",
     ]);
   });
 
   it("mantem os limites e volta uma categoria por vez com L2", () => {
     expect(getAdjacentSidebarCategory("ALL", -1)).toBeNull();
     expect(getAdjacentSidebarCategory("STEAM", -1)).toBe("FAVORITES");
-    expect(getAdjacentSidebarCategory("PROFILE", 1)).toBeNull();
+    expect(getAdjacentSidebarCategory("MODS", 1)).toBeNull();
     expect(getAdjacentSidebarCategory("SETTINGS", 1)).toBeNull();
   });
 });

@@ -50,16 +50,16 @@ const ControllerVirtualKeyboard: React.FC = () => {
       zIndexClassName="z-[300]"
       containerClassName="items-end justify-center p-2 md:items-center md:justify-end md:p-3"
       backdropClassName="pointer-events-none bg-transparent backdrop-blur-none"
-      className="rounded-[28px] border border-white/12 bg-[#08080b] p-6 shadow-2xl"
+      className="rounded-[22px] border border-white/12 bg-[#08080b] p-6 shadow-2xl"
       ariaLabel="Teclado virtual do controle"
       gamepadPriority={200}
     >
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/35">Entrada pelo controle</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Entrada pelo controle</p>
           <h2 className="mt-1 text-2xl font-black text-white">Teclado virtual</h2>
         </div>
-        <p className="text-xs font-bold text-white/35">X seleciona · O conclui</p>
+        <p className="text-xs font-medium text-white/60">X seleciona · O conclui</p>
       </div>
 
       <div className="mb-5 min-h-14 overflow-hidden rounded-2xl border border-white/10 bg-black/50 px-5 py-4 text-lg font-bold text-white">

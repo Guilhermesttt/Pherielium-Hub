@@ -7,37 +7,79 @@
 }
 
 :focus-visible {
-  outline: 2px solid rgba(var(--launcher-accent), 0.7);
-  outline-offset: 2px;
+  outline: 2px solid rgba(var(--launcher-accent), 0.96);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(var(--launcher-accent), 0.14);
 }
 
-/* Reduce animations for users who prefer reduced motion */
+/* Accessible, gentle transitions for users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.001ms !important;
+  *,
+  *::before,
+  *::after {
     animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+
+  /* Disable infinite decorative animations and continuous loops */
+  .animate-pulse,
+  .animate-spin,
+  .shimmer {
+    animation: none !important;
+  }
+
+  /* Retain brief feedback for interactive state changes without jarring disorientations */
+  * {
+    transition-duration: 100ms !important;
+  }
 }
-
-
 
 :root,
 html[data-launcher-theme="phelierium"],
 html[data-launcher-theme="checkpoint"] {
-  --background: #000000;
+  --background: #030405;
   --foreground: #FFFFFF;
-  --muted: #0c0c10;
-  --muted-foreground: #94A3B8;
-  --border: rgba(255, 255, 255, 0.12);
+  --surface-canvas: #030405;
+  --surface-card: #08090C;
+  --surface-elevated: #0E1015;
+  --muted: #08090C;
+  --muted-foreground: rgba(255, 255, 255, 0.72);
+  --text-primary: rgba(255, 255, 255, 0.96);
+  --text-secondary: rgba(255, 255, 255, 0.72);
+  --text-tertiary: rgba(255, 255, 255, 0.58);
+  --text-disabled: rgba(255, 255, 255, 0.38);
+  --border: rgba(255, 255, 255, 0.10);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.20);
   --launcher-accent: 255 255 255;
   --launcher-accent-soft: rgba(255, 255, 255, 0.22);
   --launcher-tint: rgba(255, 255, 255, 0.08);
-  --cosmos-glow: 0 0 35px rgba(255, 255, 255, 0.08);
-  --dur-fast: 120ms;
-  --dur-medium: 240ms;
+  --cosmos-glow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 9999px;
+  --radius-control: var(--radius-sm);
+  --radius-card: var(--radius-md);
+  --radius-panel: var(--radius-lg);
+  --motion-instant: 100ms;
+  --motion-fast: 160ms;
+  --motion-normal: 220ms;
+  --motion-slow: 320ms;
+  --dur-fast: var(--motion-fast);
+  --dur-medium: var(--motion-normal);
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-linear: linear;
 }
 
 html[data-launcher-theme="ps5"] {
@@ -111,10 +153,7 @@ html[data-launcher-theme="sunset"] {
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
-  --radius-card: 28px;
-  --radius-panel: 32px;
   --radius-pill: 9999px;
-  --radius-control: 16px;
   --sidebar-collapsed: 96px;
   --sidebar-expanded: 272px;
 }
@@ -258,10 +297,10 @@ html[data-launcher-theme="sunset"] {
   }
 
   :focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.75);
+    outline: 2px solid #ffffff;
     outline-offset: 3px;
-    border-radius: 6px;
-    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12), 0 0 16px rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.14);
   }
 
   /* Oculta completamente o cursor do mouse quando o controle estiver ativo */
@@ -587,18 +626,20 @@ html[data-launcher-theme="sunset"] {
   }
 
   .text-eyebrow {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.22em;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     line-height: 1.2;
+    color: var(--text-tertiary);
   }
 
   .text-meta {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     line-height: 1.4;
+    color: var(--text-secondary);
   }
 
   .shimmer {

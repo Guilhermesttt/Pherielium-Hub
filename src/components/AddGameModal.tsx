@@ -1184,15 +1184,15 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
     >
       <div
         aria-busy={isSaving || loading}
-        className="relative flex h-[calc(100dvh-2rem)] max-h-[860px] w-full flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#090909] shadow-2xl md:h-[calc(100dvh-4rem)] text-white"
+        className="relative flex h-[calc(100dvh-2rem)] max-h-[860px] w-full flex-col overflow-hidden rounded-[22px] border border-white/10 bg-[#090909] shadow-2xl md:h-[calc(100dvh-4rem)] text-white"
       >
         <header className="relative flex shrink-0 items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-4 md:px-7 md:py-5">
           <div className="flex min-w-0 items-center gap-4">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/12 bg-white/[0.06]">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/12 bg-white/[0.06]">
               <LibraryBig size={20} className="text-white/80" />
             </div>
             <div className="min-w-0">
-              <p className="mb-1 text-[10px] font-black uppercase tracking-[0.22em] text-white/32">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/60">
                 {copy.libraryKicker}
               </p>
               <h2 className="truncate text-xl font-black tracking-[-0.035em] text-white md:text-2xl">

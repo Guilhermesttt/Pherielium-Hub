@@ -37,13 +37,13 @@ export const PriceAlertsPage: React.FC<PriceAlertsPageProps> = React.memo(({
 
   return (
     <SystemPageShell eyebrow="Deals" title={t("priceAlerts")}>
-      <section className="mb-5 rounded-[28px] border border-white/10 bg-black/35 p-6 backdrop-blur-3xl">
+      <section className="mb-5 rounded-2xl border border-white/10 bg-black/35 p-6 backdrop-blur-3xl">
         <SettingsHeader
           icon={<Bell className="h-5 w-5 text-white/70" />}
           title={
             <div className="flex items-center gap-2">
               {t("priceAlerts")}
-              <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-amber-500">
+              <span className="rounded-md border border-white/20 bg-white/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-white/80">
                 Em breve
               </span>
             </div>
@@ -54,7 +54,7 @@ export const PriceAlertsPage: React.FC<PriceAlertsPageProps> = React.memo(({
           <select
             value={selectedGame?.id ?? ""}
             onChange={handleSelectGameChange}
-            className="h-11 rounded-xl border border-white/10 bg-black/40 px-3 text-sm text-white outline-none"
+            className="h-11 rounded-lg border border-white/10 bg-black/40 px-3 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             {games.map((game) => (
               <option key={game.id} value={game.id} className="bg-black">
@@ -66,7 +66,7 @@ export const PriceAlertsPage: React.FC<PriceAlertsPageProps> = React.memo(({
             type="button"
             disabled={!selectedGame}
             onClick={handleAddPriceAlert}
-            className="h-11 rounded-xl bg-white px-5 text-[10px] font-black uppercase tracking-wider text-black disabled:opacity-40"
+            className="h-11 rounded-lg bg-white px-5 text-xs font-semibold uppercase tracking-wider text-black transition hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white/40 disabled:opacity-40"
           >
             {t("addAlert")}
           </button>
@@ -75,7 +75,7 @@ export const PriceAlertsPage: React.FC<PriceAlertsPageProps> = React.memo(({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {alerts.length === 0 ? (
-          <div className="rounded-[28px] border border-white/10 bg-black/35 p-8 text-center md:col-span-2">
+          <div className="rounded-2xl border border-white/10 bg-black/35 p-8 text-center md:col-span-2">
             <BadgeDollarSign className="mx-auto mb-4 h-8 w-8 text-white/35" />
             <p className="text-sm font-bold text-white/70">{t("noAlerts")}</p>
           </div>

@@ -577,10 +577,11 @@ const LoginContent: React.FC = () => {
           >
             {/* Email Field */}
             <motion.div variants={formItemVariants} className="space-y-1.5">
-              <label className="block text-xs font-body font-medium text-white/60">
+              <label htmlFor="login-email" className="block text-xs font-body font-medium text-white/60">
                 E-mail
               </label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -592,11 +593,12 @@ const LoginContent: React.FC = () => {
 
             {/* Password Field */}
             <motion.div variants={formItemVariants} className="space-y-1.5">
-              <label className="block text-xs font-body font-medium text-white/60">
+              <label htmlFor="login-password" className="block text-xs font-body font-medium text-white/60">
                 Senha
               </label>
               <div className="relative">
                 <input
+                  id="login-password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -606,6 +608,7 @@ const LoginContent: React.FC = () => {
                 />
                 <button
                   type="button"
+                  aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors p-1"
                 >

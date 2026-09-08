@@ -390,7 +390,7 @@ export const SettingsChoice: React.FC<{
       </span>
     </div>
     {hint && (
-      <span className="text-[10px] font-medium uppercase tracking-wider text-white/40 whitespace-nowrap truncate block min-w-0">
+      <span className="text-xs font-medium text-white/60 whitespace-nowrap truncate block min-w-0">
         {hint}
       </span>
     )}
@@ -429,13 +429,13 @@ export const VolumeSettingsCard: React.FC<{
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-bold text-white leading-tight">{title}</h2>
-          {description && <p className="mt-1 text-[11px] font-medium leading-snug text-white/40 line-clamp-2">{description}</p>}
+          {description && <p className="mt-1 text-xs font-medium leading-relaxed text-white/60 line-clamp-2">{description}</p>}
         </div>
       </div>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <span className="tabular-nums text-3xl font-light text-white">{value}</span>
-          <span className="ml-1 text-xs font-bold text-white/35">%</span>
+          <span className="ml-1 text-xs font-bold text-white/40">%</span>
         </div>
         {actionLabel && onAction && (
           <button
@@ -445,7 +445,7 @@ export const VolumeSettingsCard: React.FC<{
             data-gamepad-nav-down={gamepadNavDown?.replace("-slider", "-action")}
             onClick={onAction}
             onMouseEnter={onHover}
-            className="h-8 cursor-pointer rounded-xl bg-white px-3 text-[10px] font-black uppercase tracking-wider text-black transition-all duration-200 hover:scale-105 hover:bg-white/90 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] active:scale-95"
+            className="h-8 cursor-pointer rounded-xl bg-white px-3 text-xs font-semibold text-black transition-all duration-200 hover:scale-105 hover:bg-white/90 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] active:scale-95"
           >
             {actionLabel}
           </button>
@@ -466,7 +466,7 @@ export const VolumeSettingsCard: React.FC<{
         onMouseEnter={onHover}
         className="w-full cursor-pointer accent-white transition-all hover:brightness-125"
       />
-      <div className="mt-2 flex justify-between text-[9px] font-black uppercase tracking-wider text-white/30">
+      <div className="mt-2 flex justify-between text-xs font-semibold uppercase tracking-[0.06em] text-white/50">
         <span>{t("mute")}</span>
         <span>{t("max")}</span>
       </div>
@@ -908,14 +908,14 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
     <SystemPageShell eyebrow={t("system")} title={t("settings")}>
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* Left Sub-Navigation Menu */}
-        <aside className="w-full lg:w-64 shrink-0 rounded-[28px] border border-white/10 bg-black/40 p-4 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
-          <div className="flex items-center gap-3 px-3 py-2.5 mb-3 border-b border-white/8">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white">
-              <Settings className="h-4.5 w-4.5" />
+        <aside className="w-full lg:w-[220px] shrink-0 rounded-2xl border border-white/10 bg-black/40 p-3.5 backdrop-blur-xl shadow-lg">
+          <div className="flex items-center gap-3 px-2 py-2 mb-2.5 border-b border-white/8">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white">
+              <Settings className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">{t("settings")}</h3>
-              <p className="text-[10px] font-medium text-white/40">{shellCopy.preferences}</p>
+              <h3 className="text-sm font-semibold text-white">{t("settings")}</h3>
+              <p className="text-xs text-white/50">{shellCopy.preferences}</p>
             </div>
           </div>
 
@@ -1015,11 +1015,11 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
         </aside>
 
         {/* Right Active Content Panel */}
-        <main className="flex-1 w-full min-w-0">
+        <main className="flex-1 w-full min-w-0 max-w-[760px]">
           {/* TAB 1: GERAL */}
           {activeTab === "general" && (
             <div className="space-y-6">
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<Languages className="h-5 w-5 text-white/70" />}
                   title={t("language")}
@@ -1039,7 +1039,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                 </div>
               </section>
 
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<SlidersHorizontal className="h-5 w-5 text-white/70" />}
                   title={t("appBehavior")}
@@ -1053,7 +1053,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                     >
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-white">{option.label}</p>
-                        <p className="mt-1 text-[10px] font-medium leading-relaxed text-white/40">{option.hint}</p>
+                        <p className="mt-1 text-xs font-medium leading-relaxed text-white/60">{option.hint}</p>
                       </div>
                       <Switch
                         aria-label={option.label}
@@ -1072,7 +1072,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
           {/* TAB 2: PERSONALIZAÇÃO */}
           {activeTab === "personalization" && (
             <div className="space-y-6">
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<Palette className="h-5 w-5 text-white/70" />}
                   title={t("themes")}
@@ -1100,14 +1100,14 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                         {detailCopy.moreThemes}
                       </span>
                     </div>
-                    <span className="text-[10px] font-medium text-white/40 whitespace-nowrap truncate block min-w-0">
+                    <span className="text-xs font-medium text-white/60 whitespace-nowrap truncate block min-w-0">
                       {detailCopy.comingSoon}
                     </span>
                   </div>
                 </div>
               </section>
 
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<Volume2 className="h-5 w-5 text-white/70" />}
                   title={detailCopy.audioTitle}
@@ -1170,7 +1170,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                 </div>
               </section>
 
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<Zap className="h-5 w-5 text-white/70" />}
                   title={detailCopy.performanceTitle}
@@ -1190,7 +1190,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
           {/* TAB 3: CONTA & SEGURANÇA */}
           {activeTab === "account" && (
             <div className="space-y-6">
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<User className="h-5 w-5 text-white/70" />}
                   title={detailCopy.playerProfile}
@@ -1218,7 +1218,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                 </div>
               </section>
 
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<Lock className="h-5 w-5 text-white/70" />}
                   title={detailCopy.security}
@@ -1274,7 +1274,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
           {/* TAB 4: CONTAS & PRIVACIDADE */}
           {activeTab === "connections" && (
             <div className="space-y-6">
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<Globe className="h-5 w-5 text-white/70" />}
                   title={t("connectedAccounts")}
@@ -1400,7 +1400,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   </PlatformRemovalTransition>
                 </div>
               </section>
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<ShieldCheck className="h-5 w-5 text-white/70" />}
                   title={shellCopy.privacy}
@@ -1433,7 +1433,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
           {/* TAB 5: CONTROLE & HARDWARE */}
           {activeTab === "controller" && (
-            <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+            <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
               <SettingsHeader
                 icon={<Gamepad2 className="h-5 w-5 text-white/70" />}
                 title={controllerCopy[0]}
@@ -1649,7 +1649,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
           {activeTab === "voice" && (
             <div className="space-y-6">
               {/* Dispositivos de Áudio */}
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 {(() => {
                   const defaultInputLabel =
                     voiceCallContext?.audioInputDevices.find((d) => d.deviceId === "default" && d.label)?.label ||
@@ -1865,7 +1865,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
               </section>
 
               {/* Sensibilidade, Calibração e Processamento */}
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<Activity className="h-5 w-5 text-white/70" />}
                   title="Sensibilidade e Processamento de Áudio"
@@ -2068,7 +2068,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
               </section>
 
               {/* Modo de Entrada, Rede & Auto-Teste Echo */}
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<Mic className="h-5 w-5 text-white/70" />}
                   title="Voz & Comunicação"
@@ -2178,7 +2178,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
           {/* TAB 6: NOTIFICAÇÕES & OVERLAY */}
           {activeTab === "notifications" && (
             <div className="space-y-6">
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<Bell className="h-5 w-5 text-white/70" />}
                   title={achievementNotificationCopy.title}
@@ -2238,7 +2238,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                 </div>
               </section>
 
-              <section className="rounded-[28px] border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+              <section className="rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
                 <SettingsHeader
                   icon={<Sparkles className="h-5 w-5 text-white/70" />}
                   title={detailCopy.overlayLab}

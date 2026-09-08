@@ -71,7 +71,89 @@ export interface NexusDownloadState {
   pictureUrl?: string;
   version?: string;
   error?: string;
+  errorCode?: ModErrorCode;
   updatedAt: number;
+}
+
+export type ModOperationStatus =
+  | "idle"
+  | "resolving"
+  | "downloading"
+  | "downloaded"
+  | "installing"
+  | "installed"
+  | "uninstalling"
+  | "error";
+
+export type ModErrorCode =
+  | "DESKTOP_BRIDGE_UNAVAILABLE"
+  | "NETWORK_FAILURE"
+  | "INSTALL_FAILED"
+  | "GAME_FOLDER_NOT_SET"
+  | "CHECKSUM_MISMATCH"
+  | "STORAGE_FULL"
+  | "INVALID_PATH"
+  | "UNKNOWN";
+
+export interface ModActionableError {
+  code: ModErrorCode;
+  technicalMessage: string;
+  userFriendlyMessage: string;
+  actionLabel?: string;
+  actionType?: "retry" | "chooseFolder" | "reconnect" | "openFolder";
+}
+
+export function parseModOperationError(err: unknown): ModActionableError {
+  const raw = err instanceof Error ? err.message : String(err || "");
+  const lower = raw.toLowerCase();
+
+  if (lower.includes("windows") || lower.includes("bridge") || lower.includes("electronapi")) {
+    return {
+      code: "DESKTOP_BRIDGE_UNAVAILABLE",
+      technicalMessage: raw,
+      userFriendlyMessage: "O gerenciador de mods requer o aplicativo desktop do Pherielium.",
+      actionLabel: "Reconectar",
+      actionType: "reconnect",
+    };
+  }
+
+  if (lower.includes("pasta") || lower.includes("folder") || lower.includes("diretório") || lower.includes("caminho")) {
+    return {
+      code: "GAME_FOLDER_NOT_SET",
+      technicalMessage: raw,
+      userFriendlyMessage: "A pasta de instalação do jogo não foi localizada ou está inacessível.",
+      actionLabel: "Selecionar Pasta",
+      actionType: "chooseFolder",
+    };
+  }
+
+  if (lower.includes("install") || lower.includes("extrair") || lower.includes("unzip") || lower.includes("cópia")) {
+    return {
+      code: "INSTALL_FAILED",
+      technicalMessage: raw,
+      userFriendlyMessage: "Falha na extração ou instalação dos arquivos do mod.",
+      actionLabel: "Tentar Novamente",
+      actionType: "retry",
+    };
+  }
+
+  if (lower.includes("download") || lower.includes("network") || lower.includes("fetch") || lower.includes("timeout")) {
+    return {
+      code: "NETWORK_FAILURE",
+      technicalMessage: raw,
+      userFriendlyMessage: "Não foi possível baixar o mod devido a uma instabilidade de rede.",
+      actionLabel: "Repetir Download",
+      actionType: "retry",
+    };
+  }
+
+  return {
+    code: "UNKNOWN",
+    technicalMessage: raw,
+    userFriendlyMessage: raw || "Ocorreu um erro inesperado durante a operação do mod.",
+    actionLabel: "Tentar Novamente",
+    actionType: "retry",
+  };
 }
 
 export interface NexusDownloadedFile {

@@ -47,11 +47,10 @@ import {
 } from "../services/livekitVoice";
 import sfxJoin from "../sounds/Phelierium Default/ui_call_enter.mp3";
 import sfxLeave from "../sounds/Phelierium Default/ui_leave_call.mp3";
-import sfxIncomingCall from "../sounds/Phelierium Default/Magnetophonique_-_29_03_2017_-_La_Plante_Montreal_KLICKAUD.mp3";
+import sfxIncomingCall from "../sounds/Phelierium Default/ui_call_incomming.wav";
 import sfxRingingOut from "../sounds/Phelierium Default/ui_ringing.mp3";
 import sfxMute from "../sounds/Stoat_SFX/mute-CuCJ24EB.ogg";
 import sfxUnmute from "../sounds/Stoat_SFX/unmute-CxrIl-lz.ogg";
-import sfxDeafen from "../sounds/Stoat_SFX/deafen-CCoO7jJ3.ogg";
 import sfxUndeafen from "../sounds/Stoat_SFX/undeafen-HBVfWE8u.ogg";
 import sfxStreamStart from "../sounds/Stoat_SFX/stream_start-C5XqRk1f.ogg";
 import sfxStreamEnd from "../sounds/Stoat_SFX/stream_end-CBLpDPZy.ogg";
@@ -245,7 +244,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
           return parsed;
         }
       }
-    } catch {}
+    } catch { }
     return null;
   });
 
@@ -2363,7 +2362,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
             hasVideo: withVideo,
             timestamp: Date.now(),
           }));
-        } catch {}
+        } catch { }
 
         const rawAudioStream = await acquireAudioStream();
         if (rawAudioStream) {
@@ -2537,7 +2536,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
           hasVideo: Boolean(hasVideo),
           timestamp: Date.now(),
         }));
-      } catch {}
+      } catch { }
 
       const rawAudioStream = await acquireAudioStream();
       if (rawAudioStream) {
@@ -2795,7 +2794,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     stopRingtone();
     try {
       sessionStorage.removeItem("checkpoint_last_voice_session");
-    } catch {}
+    } catch { }
     setPendingReconnectSession(null);
 
     const hasRemotePeers = peerConnectionsRef.current.size > 0 || (session?.participants && session.participants.length > 1);
@@ -2826,7 +2825,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     stopRingtone();
     try {
       sessionStorage.removeItem("checkpoint_last_voice_session");
-    } catch {}
+    } catch { }
     setPendingReconnectSession(null);
     setActiveCallsByFriend(new Map());
 
@@ -2852,7 +2851,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     setPendingReconnectSession(null);
     try {
       sessionStorage.removeItem("checkpoint_last_voice_session");
-    } catch {}
+    } catch { }
 
     const fakeFriend: SocialFriend = {
       id: `cp-friend:${targetSession.friendUid}`,
@@ -2868,7 +2867,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     setPendingReconnectSession(null);
     try {
       sessionStorage.removeItem("checkpoint_last_voice_session");
-    } catch {}
+    } catch { }
   }, []);
 
   // MUTE / UNMUTE
@@ -3120,7 +3119,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
             screenAudioTrack.enabled = false;
           }
           setRemoteStream(screenStream);
-      setIsRemoteSharingScreen(true);
+          setIsRemoteSharingScreen(true);
           setIsSharingScreen(true);
           setIsScreenPickerOpen(false);
           playSfx(sfxStreamStart);
@@ -3448,15 +3447,15 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
       setSession((prev) =>
         prev
           ? {
-              ...prev,
-              roomName: newConfig.roomName,
-              category: newConfig.category,
-              icon: newConfig.icon,
-              avatarUrl: newConfig.avatarUrl,
-              themeColor: newConfig.themeColor,
-              isPrivate: newConfig.isPrivate,
-              password: newConfig.password,
-            }
+            ...prev,
+            roomName: newConfig.roomName,
+            category: newConfig.category,
+            icon: newConfig.icon,
+            avatarUrl: newConfig.avatarUrl,
+            themeColor: newConfig.themeColor,
+            isPrivate: newConfig.isPrivate,
+            password: newConfig.password,
+          }
           : null,
       );
 

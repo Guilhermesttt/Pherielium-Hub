@@ -133,13 +133,13 @@ const ProfileEditorModal: React.FC<ProfileEditorModalProps> = ({
         zIndexClassName="z-[120]"
         ariaLabel="Editar perfil"
       >
-        <div className="relative max-h-[85vh] w-full overflow-y-auto rounded-[28px] border border-white/12 bg-[#090909] p-6 shadow-2xl thin-scrollbar text-white">
+        <div className="relative max-h-[85vh] w-full overflow-y-auto rounded-[22px] border border-white/12 bg-[#090909] p-6 shadow-2xl thin-scrollbar text-white">
           <header className="mb-6 flex items-start justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/35">Conta Phelierium</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Conta Phelierium</p>
               <h2 id="profile-editor-title" className="mt-1 text-2xl font-black text-white">Editar perfil</h2>
             </div>
-            <button type="button" onClick={onClose} className="rounded-xl border border-white/10 p-2 text-white/50 hover:bg-white/10 hover:text-white">
+            <button type="button" onClick={onClose} className="rounded-lg border border-white/10 p-2 text-white/70 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/40">
               <X className="h-5 w-5" />
             </button>
           </header>

@@ -176,24 +176,28 @@ const GameRow: React.FC<GameRowProps> = ({
       </div>
 
       <div className="flex justify-center mt-6 gap-1.5">
-        {visibleDots.map((i) => (
-          <div
-            key={i}
-            className="h-[3px] rounded-full cursor-pointer"
-            style={{
-              width: i === canonicalIndex ? 28 : 6,
-              opacity: i === canonicalIndex ? 1 : 0.22,
-              transition: "width 180ms ease, opacity 180ms ease",
-              background:
-                i === canonicalIndex
-                  ? "rgba(255,255,255,0.9)"
-                  : "rgba(255,255,255,1)",
-            }}
-            onClick={() => {
-              onSelect(i);
-            }}
-          />
-        ))}
+        {visibleDots.map((i) => {
+          const isActive = i === canonicalIndex;
+          return (
+            <button
+              type="button"
+              key={i}
+              aria-label={`Ir para jogo ${i + 1}`}
+              className="h-[3px] rounded-full cursor-pointer transition-[transform,opacity] duration-160 ease-out origin-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
+              style={{
+                width: 28,
+                transform: isActive ? "scaleX(1)" : "scaleX(0.22)",
+                opacity: isActive ? 1 : 0.35,
+                background: isActive
+                  ? "rgba(255,255,255,0.95)"
+                  : "rgba(255,255,255,0.7)",
+              }}
+              onClick={() => {
+                onSelect(i);
+              }}
+            />
+          );
+        })}
       </div>
     </div>
   );

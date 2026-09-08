@@ -690,9 +690,9 @@ const ImageLightbox: React.FC<{
     gamepadPriority={220}
   >
     {image ? (
-      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#08080a]/95 shadow-[0_32px_128px_rgba(0,0,0,0.9)]">
+      <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-[#08080a]/95 shadow-[0_32px_128px_rgba(0,0,0,0.9)]">
         <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/50">Imagem do chat</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-white/70">Imagem do chat</span>
           <button
             type="button"
             onClick={onClose}

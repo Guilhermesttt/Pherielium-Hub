@@ -163,7 +163,7 @@ const ModalShell: React.FC<ModalShellProps> = ({
             exit={{ opacity: 0 }}
             onClick={() => onClose()}
             className={cn(
-              "absolute inset-0 bg-black/60 backdrop-blur-md",
+              "absolute inset-0 bg-[#030405]/88 backdrop-blur-sm",
               backdropClassName
             )}
           />
@@ -178,7 +178,7 @@ const ModalShell: React.FC<ModalShellProps> = ({
             initial={shouldReduceEffects ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 20 }}
             animate={shouldReduceEffects ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
             exit={shouldReduceEffects ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: shouldReduceEffects ? 0.01 : 0.4, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: shouldReduceEffects ? 0.01 : 0.22, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
               "relative max-h-[calc(100dvh-2rem)] w-full overflow-hidden outline-none md:max-h-[calc(100dvh-4rem)]",
               maxWidthClassName,

@@ -87,7 +87,7 @@ export const PlatformLibrarySkeleton: React.FC<PlatformLibrarySkeletonProps> = (
                   >
                     <div
                       data-testid="platform-game-skeleton"
-                      className="relative overflow-hidden rounded-[28px] bg-[#090A0D]/90 border backdrop-blur-xl p-3 flex flex-col justify-between"
+                      className="relative overflow-hidden rounded-2xl bg-[#090A0D]/90 border backdrop-blur-xl p-3 flex flex-col justify-between"
                       style={{
                         width: CARD_WIDTH,
                         height: CARD_HEIGHT,
@@ -101,7 +101,7 @@ export const PlatformLibrarySkeleton: React.FC<PlatformLibrarySkeletonProps> = (
                       }}
                     >
                       {/* Image area */}
-                      <div className="absolute inset-0 rounded-[28px] bg-gradient-to-b from-white/[0.06] to-white/[0.02]" />
+                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.06] to-white/[0.02]" />
                       {/* Top Badges */}
                       <div className="flex items-center justify-between relative z-10">
                         <div className="h-5 w-14 rounded-full bg-white/[0.08] animate-pulse" />

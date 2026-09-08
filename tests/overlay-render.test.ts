@@ -77,13 +77,27 @@ describe("overlay de conquistas", () => {
         <input id="friend-search" /><button id="show-all-friends"></button>
         <div id="panel-friends-view"><div id="panel-friends-online"></div><div id="panel-friends-offline"></div></div>
         <div id="panel-chat-list"><div id="conversation-list"></div></div><div id="panel-chat-view"></div>
-        <div id="context-game-art"></div><span id="context-game-title"></span><span id="context-game-message"></span><span id="context-game-kicker"></span>
+        <div id="context-game-card">
+          <div id="context-game-art"></div>
+          <span id="context-game-dot"></span><span id="context-game-status-text"></span>
+          <span id="context-game-title"></span><span id="context-game-message"></span><span id="context-game-kicker"></span>
+          <button id="context-game-action"></button><button id="context-game-retry"></button>
+        </div>
+        <div class="quick-access">
+          <span id="quick-media-badge"></span><span id="quick-media-count"></span>
+          <span id="quick-achievements-badge"></span><span id="quick-achievements-ratio"></span>
+        </div>
+        <div id="overlay-status-indicator"><span class="status-dot"></span><span id="overlay-status-text"></span></div>
         <div id="game-page-art"></div><span id="game-page-title"></span><span id="game-page-message"></span><span id="game-live-status"><span id="game-live-label"></span></span>
         <span id="game-session-duration"></span><span id="game-total-playtime"></span><span id="game-achievement-ratio"></span><span id="game-friends-playing"></span>
         <span id="game-platform"></span><span id="game-executable"></span><span id="game-developer"></span><span id="game-release-date"></span><span id="game-window-mode"></span><span id="game-resolution"></span>
         <span id="panel-unlocked"></span><span id="panel-available"></span>
         <div id="panel-achievement-progress"></div><div id="panel-achievements"></div>
-        <button id="panel-close"></button><button id="panel-close-top"></button><button id="chat-back"></button><form id="chat-form"><button id="chat-attach" type="button"></button><input id="chat-input" /></form><input id="chat-image-input" type="file" />
+        <button id="panel-close"></button><button id="panel-close-top"></button>
+        <button id="panel-toggle-mode"><svg id="panel-toggle-mode-icon"><use /></svg></button>
+        <button id="sidebar-mode-toggle"><svg id="sidebar-mode-icon"><use /></svg><span id="sidebar-mode-text"></span></button>
+        <button id="sidebar-call-tab"></button>
+        <button id="chat-back"></button><form id="chat-form"><button id="chat-attach" type="button"></button><input id="chat-input" /></form><input id="chat-image-input" type="file" />
         <button id="spotify-overlay-previous"></button><button id="spotify-overlay-toggle"></button><button id="spotify-overlay-next"></button>
         <input id="spotify-overlay-seek" type="range" min="0" max="1" value="0" /><span id="spotify-overlay-current"></span>
         <input id="spotify-overlay-volume" type="range" min="0" max="100" value="55" />
@@ -638,5 +652,84 @@ describe("overlay de conquistas", () => {
     panelAction.mockClear();
     pressGamepadButton(1);
     expect(panelAction).toHaveBeenCalledWith({ kind: "close" });
+  });
+
+  it("abre inicialmente no modo quick e permite alternar para full e voltar", () => {
+    panelVisibility({ open: true, state: {} });
+    expect(document.body.dataset.overlayMode).toBe("quick");
+
+    // Alterna para Full
+    document.getElementById("panel-toggle-mode")?.click();
+    expect(document.body.dataset.overlayMode).toBe("full");
+
+    // Alterna de volta para Quick
+    document.getElementById("sidebar-mode-toggle")?.click();
+    expect(document.body.dataset.overlayMode).toBe("quick");
+
+    // Fecha o overlay
+    panelVisibility({ open: false, state: {} });
+    expect(document.body.dataset.overlayMode).toBe("passive");
+  });
+
+  it("renderiza empty state amigavel e acionavel com botao de adicionar amigo", () => {
+    panelVisibility({ open: true, state: { friends: [] } });
+
+    const emptyCard = document.querySelector(".friends-empty-card");
+    expect(emptyCard).not.toBeNull();
+    expect(emptyCard?.textContent).toContain("Nenhum amigo está jogando agora");
+    expect(emptyCard?.querySelector(".btn-add-friend")).not.toBeNull();
+
+    // Ao clicar em adicionar amigo, direciona ação
+    const addBtn = emptyCard?.querySelector<HTMLButtonElement>(".btn-add-friend");
+    addBtn?.click();
+    expect(panelAction).toHaveBeenCalledWith({ kind: "open-launcher-friends" });
+  });
+
+  it("exibe estados explicitos de deteccao de jogo no card contextual", () => {
+    // 1. Sem jogo detectado
+    panelVisibility({ open: true, state: { currentGame: null } });
+    expect(document.getElementById("context-game-title")?.textContent).toBe("Jogo não detectado");
+    expect(document.getElementById("context-game-status-text")?.textContent).toBe("Jogo não detectado");
+    expect(document.getElementById("context-game-retry")?.style.display).not.toBe("none");
+
+    // 2. Detectando jogo
+    panelVisibility({ open: true, state: { currentGame: null, gameDetecting: true } });
+    expect(document.getElementById("context-game-title")?.textContent).toBe("Detectando jogo...");
+    expect(document.getElementById("context-game-status-text")?.textContent).toBe("Detectando jogo");
+
+    // 3. Jogo detectado
+    panelVisibility({ open: true, state: { currentGame: { title: "Elden Ring", sessionSeconds: 1920 } } });
+    expect(document.getElementById("context-game-title")?.textContent).toBe("Elden Ring");
+    expect(document.getElementById("context-game-status-text")?.textContent).toBe("Jogo detectado");
+    expect(document.getElementById("context-game-message")?.textContent).toContain("Sessão iniciada há 32 min");
+  });
+
+  it("exibe status nitido no rodape e atualiza badges de acesso rapido", () => {
+    panelVisibility({
+      open: true,
+      state: {
+        currentGame: { title: "Hollow Knight" },
+        captures: [{ id: "c1", name: "boss.png" }, { id: "c2", name: "map.png" }],
+        achievements: { unlocked: 5, available: 20 },
+      },
+    });
+
+    expect(document.getElementById("overlay-status-text")?.textContent).toBe("Overlay ativo");
+    expect(document.getElementById("quick-media-badge")?.textContent).toBe("2 novas");
+    expect(document.getElementById("quick-achievements-badge")?.textContent).toBe("5/20");
+  });
+
+  it("aciona foco da busca rapida pelo atalho Ctrl+K", () => {
+    panelVisibility({ open: true, state: {} });
+    const searchInput = document.getElementById("friend-search") as HTMLInputElement;
+    const focusSpy = vi.spyOn(searchInput, "focus");
+
+    window.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "k",
+      ctrlKey: true,
+      bubbles: true,
+    }));
+
+    expect(focusSpy).toHaveBeenCalled();
   });
 });

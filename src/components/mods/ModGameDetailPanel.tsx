@@ -885,7 +885,7 @@ const ModGameDetailPanel: React.FC<ModGameDetailPanelProps> = ({
               </div>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-hidden rounded-[30px] border border-white/10 bg-black/55 shadow-[0_30px_100px_rgba(0,0,0,0.55)] backdrop-blur-3xl flex flex-col">
+            <div className="min-h-0 flex-1 overflow-hidden rounded-[22px] border border-white/10 bg-black/55 shadow-[0_30px_100px_rgba(0,0,0,0.55)] backdrop-blur-3xl flex flex-col">
               <AnimatePresence mode="wait">
                 {activeTab === "discover" && (
                   <motion.div
@@ -1182,7 +1182,7 @@ const ModGameDetailPanel: React.FC<ModGameDetailPanelProps> = ({
                                       }}
                                     />
                                   </div>
-                                  <p className="mt-1.5 text-[9px] text-white/30">
+                                  <p className="mt-1.5 text-xs text-white/60">
                                     {formatBytes(downloadState.receivedBytes || 0)}
                                     {downloadState.totalBytes
                                       ? ` de ${formatBytes(downloadState.totalBytes)}`
@@ -1191,21 +1191,61 @@ const ModGameDetailPanel: React.FC<ModGameDetailPanelProps> = ({
                                 </>
                               )}
                               {downloadState.status === "error" && (
-                                <p className="mt-1 text-[9px] leading-relaxed text-red-100/50">
-                                  {downloadState.error}
-                                </p>
+                                <div className="mt-2.5 rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 text-left">
+                                  <p className="text-xs leading-relaxed text-red-200/90 font-medium">
+                                    {downloadState.error || "Falha durante o download do mod."}
+                                  </p>
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (selectedMod && modFiles.length > 0) {
+                                          void requestFreeNexusDownload(modFiles[0]);
+                                        }
+                                      }}
+                                      className="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white/40"
+                                    >
+                                      Tentar novamente
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => void onChooseFolder()}
+                                      className="rounded-lg border border-white/15 px-2.5 py-1 text-xs font-medium text-white/80 transition hover:bg-white/10"
+                                    >
+                                      Verificar pasta
+                                    </button>
+                                  </div>
+                                </div>
                               )}
                               {downloadState.status === "completed"
                                 && downloadState.installationError && (
-                                <p className="mt-1 text-[9px] leading-relaxed text-amber-100/55">
-                                  {downloadState.installationError}
-                                </p>
+                                <div className="mt-2.5 rounded-lg border border-white/15 bg-white/5 p-2.5 text-left">
+                                  <p className="text-xs leading-relaxed text-white/85 font-medium">
+                                    {downloadState.installationError}
+                                  </p>
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => void onChooseFolder()}
+                                      className="rounded-lg bg-white/15 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-white/25"
+                                    >
+                                      Definir pasta do jogo
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => void openNexusDownloadLocation()}
+                                      className="rounded-lg border border-white/10 px-2.5 py-1 text-xs font-medium text-white/70 transition hover:text-white"
+                                    >
+                                      Abrir pasta baixada
+                                    </button>
+                                  </div>
+                                </div>
                               )}
-                              {downloadState.status === "completed" && (
+                              {downloadState.status === "completed" && !downloadState.installationError && (
                                 <button
                                   type="button"
                                   onClick={() => void openNexusDownloadLocation()}
-                                  className="mt-2 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-emerald-200/55 transition hover:text-emerald-100"
+                                  className="mt-2 flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/30"
                                 >
                                   <FolderOpen className="h-3.5 w-3.5" />
                                   Mostrar arquivo

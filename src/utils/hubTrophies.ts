@@ -25,7 +25,9 @@ export function markHubAchievement(uid: string, gameId: string, apiName: string)
     if (set.has(lower)) return;
     set.add(lower);
     localStorage.setItem(keyFor(uid, gameId), JSON.stringify([...set]));
-  } catch {}
+  } catch (err) {
+    console.warn("[hubTrophies] Falha ao marcar conquista local:", err);
+  }
 }
 
 export function isHubAchievement(uid: string, gameId: string, apiName: string): boolean {
@@ -33,8 +35,8 @@ export function isHubAchievement(uid: string, gameId: string, apiName: string): 
 }
 
 export function clearHubAchievements(uid: string, gameId: string): void {
-  try { localStorage.removeItem(keyFor(uid, gameId)); } catch {}
-  try { localStorage.removeItem(countsKeyFor(uid, gameId)); } catch {}
+  try { localStorage.removeItem(keyFor(uid, gameId)); } catch (err) { console.warn("[hubTrophies] Erro ao limpar conquistas:", err); }
+  try { localStorage.removeItem(countsKeyFor(uid, gameId)); } catch (err) { console.warn("[hubTrophies] Erro ao limpar contadores:", err); }
 }
 
 const countsKeyFor = (uid: string, gameId: string) => `hub_counts:${uid}:${gameId}`;
@@ -74,6 +76,7 @@ export function getHubCounts(uid: string, gameId: string): { platinum: number; g
 }
 
 import { calculatePlayerLevelFromXp } from "./trophyTiers";
+import { progressionEventBus } from "../services/progressionEvents";
 
 export function getAllUserHubPointsFromStorage(uid: string): number {
   try {
@@ -115,23 +118,25 @@ export function incrementHubCount(uid: string, gameId: string, tierIndex: number
     const newTotalXp = oldTotalXp + gainedXp;
     const newLevelInfo = calculatePlayerLevelFromXp(newTotalXp);
 
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("checkpoint:xp-gained", {
-        detail: { xpGained: gainedXp, totalXp: newTotalXp, levelInfo: newLevelInfo, tierIndex, gameId }
-      }));
+    progressionEventBus.emitXpGained({
+      xpGained: gainedXp,
+      totalXp: newTotalXp,
+      levelInfo: newLevelInfo,
+      tierIndex,
+      gameId,
+    });
 
-      if (newLevelInfo.level > oldLevelInfo.level) {
-        window.dispatchEvent(new CustomEvent("checkpoint:level-up", {
-          detail: {
-            oldLevel: oldLevelInfo.level,
-            newLevel: newLevelInfo.level,
-            levelInfo: newLevelInfo,
-            tierInfo: newLevelInfo.tierInfo,
-          }
-        }));
-      }
+    if (newLevelInfo.level > oldLevelInfo.level) {
+      progressionEventBus.emitLevelUp({
+        oldLevel: oldLevelInfo.level,
+        newLevel: newLevelInfo.level,
+        levelInfo: newLevelInfo,
+        tierInfo: newLevelInfo.tierInfo,
+      });
     }
-  } catch {}
+  } catch (err) {
+    console.warn("[hubTrophies] Erro ao incrementar contadores de troféus:", err);
+  }
 }
 
 export function getHubPointsForGame(uid: string, gameId: string): number {

@@ -1418,18 +1418,31 @@ const createOverlayWindow = () => {
     return overlayWindow;
   }
 
+  const initialDisplay = (overlayDisplayId
+    ? screen.getAllDisplays().find((candidate) => candidate.id === overlayDisplayId)
+    : null)
+    || (mainWindow && !mainWindow.isDestroyed()
+      ? screen.getDisplayMatching(mainWindow.getBounds())
+      : screen.getPrimaryDisplay());
+  const initialBounds = initialDisplay.bounds;
+
   overlayReady = false;
   overlayWindow = new BrowserWindow({
+    x: initialBounds.x,
+    y: initialBounds.y,
+    width: initialBounds.width,
+    height: initialBounds.height,
+    type: "toolbar",
     frame: false,
     transparent: true,
     alwaysOnTop: true,
-    fullscreen: true,
+    fullscreen: false,
     skipTaskbar: true,
     resizable: false,
     movable: false,
     minimizable: false,
     maximizable: false,
-    focusable: false,
+    focusable: true,
     hasShadow: false,
     show: false,
     webPreferences: {
@@ -1462,7 +1475,7 @@ const createOverlayWindow = () => {
   });
   createdOverlayWindow.once("ready-to-show", () => {
     if (!createdOverlayWindow.isDestroyed() && overlayPanelOpen) {
-      createdOverlayWindow.show();
+      createdOverlayWindow.showInactive();
     }
   });
   createdOverlayWindow.on("closed", () => {
@@ -1521,25 +1534,48 @@ const sendOverlayEvent = (channel, payload) => {
   }
 };
 
+let lastOverlayKeyboardToggleAt = 0;
+const OVERLAY_KEYBOARD_TOGGLE_COOLDOWN_MS = 250;
+
 const setOverlayPanelOpen = (open) => {
   createOverlayWindow();
   if (!overlayWindow || overlayWindow.isDestroyed()) return;
   overlayPanelOpen = Boolean(open);
-  overlayWindow.setFocusable(overlayPanelOpen);
+
+  const hasRunningGame = inGameOverlayActive
+    || activeGameMonitors.size > 0
+    || Boolean(overlayPanelState?.currentGame);
 
   if (overlayPanelOpen) {
+    overlayWindow.setSkipTaskbar(true);
     overlayWindow.setIgnoreMouseEvents(false);
-    overlayWindow.show();
-    overlayWindow.focus();
+    overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
+    overlayWindow.moveTop();
+    overlayWindow.showInactive();
+
+    // Se NÃO houver jogo rodando, podemos dar foco normalmente para testes no desktop.
+    // Quando HÁ jogo rodando, NÃO chamamos overlayWindow.focus(): chamar SetForegroundWindow
+    // força o Windows DWM/DirectX a minimizar o jogo (especialmente em fullscreen).
+    // O overlay usa showInactive() e aceita cliques do mouse e comandos do controle.
+    if (!hasRunningGame) {
+      overlayWindow.setFocusable(true);
+      overlayWindow.focus();
+    }
+    overlayWindow.setSkipTaskbar(true);
   } else {
     overlayWindow.setIgnoreMouseEvents(true, { forward: true });
+    overlayWindow.setFocusable(false);
     overlayWindow.blur();
+    overlayWindow.setSkipTaskbar(true);
     overlayWindow.hide();
     
-    // Devolve o foco ao Hub se ele estiver visível (ou seja, se não houver um jogo rodando)
-    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+    // Devolve o foco ao Hub SOMENTE se NÃO houver um jogo rodando
+    if (!hasRunningGame && mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
       setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
+        const stillHasGame = inGameOverlayActive
+          || activeGameMonitors.size > 0
+          || Boolean(overlayPanelState?.currentGame);
+        if (!stillHasGame && mainWindow && !mainWindow.isDestroyed() && !overlayPanelOpen) {
           if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.setAlwaysOnTop(true);
           mainWindow.show();
@@ -1573,6 +1609,15 @@ const requestOverlayPanelToggle = (source = "unknown") => {
     return overlayPanelOpen;
   }
   if (normalizedSource === "gamepad") lastOverlayGamepadToggleAt = now;
+
+  if (
+    normalizedSource === "keyboard"
+    && now - lastOverlayKeyboardToggleAt < OVERLAY_KEYBOARD_TOGGLE_COOLDOWN_MS
+  ) {
+    return overlayPanelOpen;
+  }
+  if (normalizedSource === "keyboard") lastOverlayKeyboardToggleAt = now;
+
   setOverlayPanelOpen(!overlayPanelOpen);
   return overlayPanelOpen;
 };
@@ -2042,6 +2087,13 @@ ipcMain.handle("overlay:panel-action", async (event, action) => {
     }
     return { ok: true };
   }
+  if (kind === "request-input-focus") {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.setFocusable(true);
+      overlayWindow.focus();
+    }
+    return { ok: true };
+  }
   if (kind === "open-launcher-chat" || kind === "open-launcher-friends" || kind === "open-launcher-call") {
     const payload = { kind };
     if (kind === "open-launcher-chat" || kind === "open-launcher-call") {
@@ -2100,9 +2152,14 @@ ipcMain.handle("overlay:panel-action", async (event, action) => {
     ], { windowsHide: true }, () => undefined);
     return;
   }
-  if (["select-chat", "close-chat", "send-message", "send-image", "set-typing"].includes(kind)) {
+  if (["select-chat", "close-chat", "send-message", "send-image", "set-typing", "voice-call", "voice-accept", "voice-reject", "voice-hangup", "voice-mute", "voice-deafen"].includes(kind)) {
     const payload = { kind };
-    if (kind === "select-chat") payload.friendId = String(action?.friendId || "").slice(0, 128);
+    if (kind === "select-chat" || kind === "voice-call") {
+      payload.friendId = String(action?.friendId || "").slice(0, 128);
+      if (action?.friendName) payload.friendName = String(action.friendName).slice(0, 128);
+      if (action?.friendAvatar) payload.friendAvatar = String(action.friendAvatar).slice(0, 512);
+      if (action?.friendUid) payload.friendUid = String(action.friendUid).slice(0, 128);
+    }
     if (kind === "send-message") payload.text = String(action?.text || "").trim().slice(0, 2000);
     if (kind === "set-typing") payload.typing = Boolean(action?.typing);
     if (kind === "send-image") {
@@ -2196,6 +2253,8 @@ const dispatchAchievementNotification = (payload) => {
       ...payload,
       position: achievementNotificationPosition,
     });
+  } else {
+    showNativeAchievementNotification(payload);
   }
   const rawTier = String(payload?.tier || payload?.achievement?.tier || "").toLowerCase();
   const soundName = rawTier === "platinum" || rawTier === "platina"
@@ -2325,10 +2384,24 @@ registerSecureIpcHandler("achievement:get-definitions", async (_event, gameId) =
     const definitionsPath = path.join(achievementsDir, `${gameId}.json`);
     if (fs.existsSync(definitionsPath)) {
       const content = await fs.promises.readFile(definitionsPath, "utf8");
-      return JSON.parse(content);
+      const trimmed = (content || "").trim();
+      if (!trimmed) {
+        // Arquivo vazio corrompido — remove para evitar erros repetidos de parse
+        void fs.promises.unlink(definitionsPath).catch(() => undefined);
+        return null;
+      }
+      return JSON.parse(trimmed);
     }
   } catch (error) {
-    console.error("Error reading achievement definitions:", error);
+    if (error instanceof SyntaxError) {
+      console.warn(`[achievement] Arquivo de definições corrompido para ${gameId} (descartando):`, error.message);
+      try {
+        const achievementsDir = path.join(app.getPath("userData"), "achievements");
+        await fs.promises.unlink(path.join(achievementsDir, `${gameId}.json`));
+      } catch {}
+    } else {
+      console.error("Error reading achievement definitions:", error);
+    }
   }
   return null;
 });
@@ -2338,10 +2411,22 @@ registerSecureIpcHandler("achievement:get-progress", async (_event, gameId) => {
     const progressPath = path.join(app.getPath("userData"), `user_progress_${gameId}.json`);
     if (fs.existsSync(progressPath)) {
       const content = await fs.promises.readFile(progressPath, "utf8");
-      return JSON.parse(content);
+      const trimmed = (content || "").trim();
+      if (!trimmed) {
+        void fs.promises.unlink(progressPath).catch(() => undefined);
+        return null;
+      }
+      return JSON.parse(trimmed);
     }
   } catch (error) {
-    console.error("Error reading achievement progress:", error);
+    if (error instanceof SyntaxError) {
+      console.warn(`[achievement] Progresso corrompido para ${gameId} (descartando):`, error.message);
+      try {
+        await fs.promises.unlink(path.join(app.getPath("userData"), `user_progress_${gameId}.json`));
+      } catch {}
+    } else {
+      console.error("Error reading achievement progress:", error);
+    }
   }
   return null;
 });
@@ -4892,7 +4977,19 @@ app.whenReady().then(async () => {
       console.warn("Não foi possível inicializar a System Tray:", e);
     }
 
-    globalShortcut.register("CommandOrControl+Shift+O", () => setOverlayPanelOpen(!overlayPanelOpen));
+    try {
+      const registeredShiftTab = globalShortcut.register("Shift+Tab", () => requestOverlayPanelToggle("keyboard"));
+      if (!registeredShiftTab) {
+        console.warn("[overlay] Global shortcut Shift+Tab could not be registered (may conflict), falling back to CommandOrControl+Shift+O");
+      }
+    } catch (shortcutErr) {
+      console.warn("[overlay] Falha ao registrar Shift+Tab:", shortcutErr);
+    }
+    try {
+      globalShortcut.register("CommandOrControl+Shift+O", () => requestOverlayPanelToggle("keyboard"));
+    } catch (shortcutErr) {
+      console.warn("[overlay] Falha ao registrar CommandOrControl+Shift+O:", shortcutErr);
+    }
     if (!registerCaptureShortcut(captureShortcut)) {
       console.warn(`[overlay] O atalho de captura ${captureShortcut} ja esta em uso.`);
     }

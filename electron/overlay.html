@@ -804,65 +804,88 @@
 
     #command-panel {
       position: fixed;
-      inset: 4vh 4vw;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      margin: 0;
       display: none;
       pointer-events: auto;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 28px;
+      border-radius: 26px;
       background:
-        radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.06) 0%, rgba(8, 8, 8, 0.7) 45%, rgba(4, 4, 4, 0.85) 100%);
-      -webkit-backdrop-filter: blur(28px) saturate(180%);
-      backdrop-filter: blur(28px) saturate(180%);
+        radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.08) 0%, rgba(10, 10, 14, 0.88) 45%, rgba(4, 4, 6, 0.96) 100%);
+      -webkit-backdrop-filter: blur(32px) saturate(190%);
+      backdrop-filter: blur(32px) saturate(190%);
       box-shadow:
-        0 36px 100px rgba(0, 0, 0, 0.7),
-        0 0 40px rgba(255, 255, 255, 0.02),
-        inset 0 1px 0 rgba(255, 255, 255, 0.14);
+        0 36px 100px rgba(0, 0, 0, 0.88),
+        0 0 50px rgba(255, 255, 255, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
       overflow: hidden;
       color: white;
-      transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1), transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
-      transform: scale(0.96) translateY(14px);
-      opacity: 0;
+      transition:
+        width 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        height 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        max-width 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        max-height 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        border-radius 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 320ms ease,
+        opacity 240ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 1000;
     }
 
     #command-panel.is-open {
       display: grid;
-      grid-template-columns: 80px minmax(0, 1fr);
-      animation: panel-pop-in 340ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      grid-template-columns: 82px minmax(0, 1fr);
+      animation: panel-center-in 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
     /* ---- Sidebar Esquerda ---- */
     .panel-sidebar {
       position: relative;
       z-index: 2;
-      width: 80px;
-      min-width: 80px;
-      max-width: 80px;
+      width: 82px;
+      min-width: 82px;
+      max-width: 82px;
       height: 100%;
-      background: rgba(5, 5, 5, 0.65);
-      -webkit-backdrop-filter: blur(20px);
-      backdrop-filter: blur(20px);
+      background: rgba(5, 5, 8, 0.75);
+      -webkit-backdrop-filter: blur(24px);
+      backdrop-filter: blur(24px);
       border-right: 1px solid var(--panel-border);
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 24px 8px;
+      padding: 16px 8px 14px;
       box-sizing: border-box;
       flex-shrink: 0;
+      user-select: none;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    .panel-sidebar::-webkit-scrollbar {
+      display: none;
     }
 
     .panel-logo {
-      width: 44px;
-      height: 44px;
+      width: 42px;
+      height: 42px;
       padding: 7px;
       background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.16);
       border-radius: 14px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14);
       display: grid;
       place-items: center;
-      margin-bottom: 24px;
+      margin-bottom: 14px;
       flex-shrink: 0;
+      transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .panel-logo:hover {
+      transform: scale(1.05);
+      border-color: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.15);
     }
 
     .panel-logo img {
@@ -885,10 +908,10 @@
     }
 
     .panel-tab {
-      width: 64px;
-      height: 52px;
+      width: 66px;
+      height: 56px;
       border: none;
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 6px 0;
       background: transparent;
       color: var(--text-muted);
@@ -905,68 +928,71 @@
     }
 
     .panel-tab .nav-icon {
-      width: 34px;
+      width: 36px;
       height: 30px;
       display: grid;
       place-items: center;
-      border-radius: 9px;
-      transition: background 180ms ease, transform 180ms ease;
+      border-radius: 10px;
+      transition: background 180ms ease, transform 180ms ease, color 180ms ease;
     }
 
     .panel-tab:hover {
       color: #fff;
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.04);
     }
 
     .panel-tab:hover .nav-icon {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.09);
       transform: translateY(-1px);
+      color: #fff;
     }
 
     .panel-tab.is-active {
       color: #fff;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, transparent 100%);
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 100%);
     }
 
     .panel-tab.is-active .nav-icon {
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.15);
       color: #fff;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.2);
     }
 
     .panel-tab::before {
       content: "";
       position: absolute;
-      left: -12px;
+      left: -8px;
       top: 50%;
       transform: translateY(-50%);
       width: 3px;
       height: 0;
       background: #fff;
       border-radius: 0 4px 4px 0;
-      transition: height 200ms ease;
+      transition: height 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease;
     }
 
     .panel-tab.is-active::before {
-      height: 22px;
-      box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+      height: 24px;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.7);
     }
 
     .nav-notification {
       position: absolute;
-      top: 6px;
-      right: 12px;
+      top: 5px;
+      right: 10px;
       background: #fff;
       color: #050505;
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 800;
-      min-width: 18px;
-      height: 18px;
+      min-width: 17px;
+      height: 17px;
       padding: 0 4px;
       border-radius: 999px;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 255, 255, 0.4);
+      animation: pulse-ring 2s infinite ease-in-out;
     }
 
     .nav-notification[hidden] {
@@ -975,6 +1001,28 @@
 
     .sidebar-spacer {
       flex: 1;
+    }
+
+    .sidebar-pad-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 10px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .sidebar-pad-hint kbd {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.09);
+      color: rgba(255, 255, 255, 0.85);
+      font-family: inherit;
     }
 
     .panel-action {
@@ -987,7 +1035,6 @@
       align-items: center;
       gap: 6px;
       cursor: pointer;
-      margin-bottom: 20px;
       transition: color 180ms ease;
     }
 
@@ -1043,24 +1090,98 @@
       min-width: 0;
       min-height: 0;
       overflow: hidden;
-      background: rgba(3, 3, 3, 0.45);
+      background: rgba(4, 4, 6, 0.45);
     }
 
+    /* ---- HUD Superior (In-Game Command Bar) ---- */
     .panel-topbar {
       flex: 0 0 auto;
-      padding: 24px 32px 18px;
+      padding: 16px 28px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-wrap: wrap;
       gap: 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(8, 8, 12, 0.35);
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar-branding {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+
+    .topbar-brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    .topbar-brand-badge .brand-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+    }
+
+    .topbar-session-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.85);
+      max-width: 280px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar-session-chip .ui-icon {
+      width: 14px;
+      height: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      flex-shrink: 0;
+    }
+
+    .topbar-session-chip #topbar-game-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .session-duration-tag {
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 2px 6px;
+      border-radius: 4px;
     }
 
     .topbar-status-group {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex: 0 0 auto;
     }
 
     .topbar-status-pill[hidden],
@@ -1072,16 +1193,16 @@
       display: inline-flex;
       align-items: center;
       gap: 7px;
-      height: 36px;
-      padding: 0 13px;
+      height: 34px;
+      padding: 0 12px;
       border-radius: 9999px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
       font-family: inherit;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
       letter-spacing: 0.01em;
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255, 255, 255, 0.75);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
@@ -1091,21 +1212,22 @@
 
     .topbar-status-pill:hover {
       background: rgba(255, 255, 255, 0.07);
-      border-color: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.16);
       color: rgba(255, 255, 255, 0.95);
     }
 
     .topbar-status-pill .ui-icon {
       width: 14px;
       height: 14px;
-      color: rgba(255, 255, 255, 0.55);
+      color: rgba(255, 255, 255, 0.6);
       transition: color 180ms ease;
     }
 
     .topbar-clock {
       font-variant-numeric: tabular-nums;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.85);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.02em;
     }
 
     .topbar-gamepad.is-low-battery {
@@ -1123,50 +1245,440 @@
     .topbar-level .level-badge {
       display: inline-flex;
       align-items: center;
-      padding: 2px 8px;
+      padding: 2px 7px;
       border-radius: 9999px;
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.14);
       color: #f1f5f9;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
       letter-spacing: 0.03em;
     }
 
     .topbar-call {
-      border-color: rgba(16, 185, 129, 0.25);
-      background: rgba(16, 185, 129, 0.08);
-      color: #86efac;
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
     }
 
     .topbar-call.is-muted {
-      border-color: rgba(239, 68, 68, 0.25);
-      background: rgba(239, 68, 68, 0.08);
-      color: #fca5a5;
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
     }
 
     .call-dot.live {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 8px #10b981;
+      background: #ffffff;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+      animation: pulse-ring 1.8s infinite ease-in-out;
     }
 
-    .social-card.kind-battery-low {
-      border-color: rgba(245, 158, 11, 0.5);
-      box-shadow: 0 10px 35px rgba(245, 158, 11, 0.25);
+    .friend-search {
+      background: var(--panel-surface);
+      border: 1px solid var(--panel-border);
+      border-radius: 9999px;
+      padding: 0 14px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 190px;
+      transition: all 180ms ease;
     }
 
-    .social-card.kind-battery-low .social-badge {
-      background: rgba(245, 158, 11, 0.2);
-      color: #fde68a;
-      border: 1px solid rgba(245, 158, 11, 0.4);
+    .friend-search:focus-within {
+      border-color: rgba(255, 255, 255, 0.3);
+      background: var(--panel-surface-elevated);
+      width: 240px;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+    }
+
+    .friend-search .ui-icon {
+      color: var(--text-muted);
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .friend-search input {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 12px;
+      outline: none;
+      width: 100%;
+    }
+
+    .top-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--panel-surface);
+      border: 1px solid var(--panel-border);
+      padding: 4px 12px 4px 4px;
+      border-radius: 30px;
+      cursor: pointer;
+      color: #fff;
+      transition: all 180ms ease;
+      height: 36px;
+    }
+
+    .top-profile:hover {
+      background: var(--panel-surface-hover);
+      border-color: var(--panel-border-strong);
+      transform: translateY(-1px);
+    }
+
+    .top-profile img {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .top-profile span {
+      font-size: 12px;
+      font-weight: 600;
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .top-profile .ui-icon {
+      width: 12px;
+      height: 12px;
+      color: var(--text-muted);
+    }
+
+    .top-controls-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .top-mode-toggle {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      background: var(--panel-surface);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 180ms ease;
+    }
+
+    .top-mode-toggle:hover {
+      color: white;
+      background: var(--panel-surface-hover);
+      border-color: var(--panel-border-strong);
+      transform: translateY(-1px);
+    }
+
+    .top-mode-toggle .ui-icon {
+      width: 15px;
+      height: 15px;
+    }
+
+    .top-close {
+      height: 36px;
+      padding: 0 12px 0 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 180ms ease;
+    }
+
+    .top-close:hover {
+      color: white;
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .top-close .ui-icon {
+      width: 15px;
+      height: 15px;
+    }
+
+    .close-kbd {
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+      font-family: inherit;
+    }
+
+    /* Overlay Mode Modifiers */
+    body[data-overlay-mode="passive"] #command-panel {
+      display: none !important;
+    }
+
+    /* Modo Compacto (Centralizado e Flutuante no centro da tela) */
+    body[data-overlay-mode="quick"] #command-panel,
+    #command-panel.mode-quick {
+      top: 50% !important;
+      left: 50% !important;
+      right: auto !important;
+      bottom: auto !important;
+      transform: translate(-50%, -50%) !important;
+      width: 420px !important;
+      max-width: calc(100vw - 32px) !important;
+      height: auto !important;
+      max-height: min(650px, calc(100vh - 48px)) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      border-radius: 24px !important;
+      border: 1px solid rgba(255, 255, 255, 0.16) !important;
+      background: radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.08) 0%, rgba(10, 10, 14, 0.94) 45%, rgba(4, 4, 6, 0.98) 100%) !important;
+      box-shadow: 0 32px 90px rgba(0, 0, 0, 0.94), 0 0 40px rgba(255, 255, 255, 0.04) !important;
+      overflow: hidden !important;
+    }
+
+    body[data-overlay-mode="quick"] .panel-sidebar,
+    #command-panel.mode-quick .panel-sidebar {
+      display: none !important;
+    }
+
+    body[data-overlay-mode="quick"] .panel-workspace,
+    #command-panel.mode-quick .panel-workspace {
+      width: 100% !important;
+      height: 100% !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+    }
+
+    body[data-overlay-mode="quick"] .panel-topbar,
+    #command-panel.mode-quick .panel-topbar {
+      padding: 12px 16px !important;
+      height: 52px !important;
+      min-height: 52px !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      gap: 10px !important;
+    }
+
+    body[data-overlay-mode="quick"] .friend-search,
+    #command-panel.mode-quick .friend-search,
+    body[data-overlay-mode="quick"] .topbar-branding,
+    #command-panel.mode-quick .topbar-branding {
+      display: none !important;
+    }
+
+    body[data-overlay-mode="quick"] .topbar-status-group,
+    #command-panel.mode-quick .topbar-status-group {
+      margin-left: 0 !important;
+      gap: 8px !important;
+    }
+
+    body[data-overlay-mode="quick"] .top-profile,
+    #command-panel.mode-quick .top-profile {
+      padding: 2px !important;
+      width: 32px !important;
+      height: 32px !important;
+      border-radius: 50% !important;
+      justify-content: center !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+    }
+
+    body[data-overlay-mode="quick"] .top-profile span,
+    #command-panel.mode-quick .top-profile span,
+    body[data-overlay-mode="quick"] .top-profile .ui-icon,
+    #command-panel.mode-quick .top-profile .ui-icon {
+      display: none !important;
+    }
+
+    body[data-overlay-mode="quick"] .top-mode-toggle,
+    #command-panel.mode-quick .top-mode-toggle {
+      width: 34px !important;
+      height: 34px !important;
+      border-radius: 10px !important;
+    }
+
+    body[data-overlay-mode="quick"] .top-close,
+    #command-panel.mode-quick .top-close {
+      height: 34px !important;
+      padding: 0 10px !important;
+      flex-shrink: 0 !important;
+      white-space: nowrap !important;
+    }
+
+    body[data-overlay-mode="quick"] .panel-layout,
+    #command-panel.mode-quick .panel-layout {
+      display: flex !important;
+      flex-direction: column !important;
+      flex: 1 1 auto !important;
+      overflow-y: auto !important;
+      scrollbar-width: none !important;
+    }
+
+    body[data-overlay-mode="quick"] .panel-layout::-webkit-scrollbar,
+    #command-panel.mode-quick .panel-layout::-webkit-scrollbar,
+    body[data-overlay-mode="quick"] .context-panel::-webkit-scrollbar,
+    #command-panel.mode-quick .context-panel::-webkit-scrollbar {
+      display: none !important;
+    }
+
+    body[data-overlay-mode="quick"] .panel-content,
+    #command-panel.mode-quick .panel-content {
+      display: none !important;
+    }
+
+    body[data-overlay-mode="quick"] .context-panel,
+    #command-panel.mode-quick .context-panel {
+      display: flex !important;
+      flex-direction: column !important;
+      border-left: none !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 16px 18px 16px !important;
+      background: transparent !important;
+      overflow-y: auto !important;
+      scrollbar-width: none !important;
+    }
+
+    body[data-overlay-mode="quick"] .context-game-card {
+      margin-bottom: 12px !important;
+      border-radius: 14px !important;
+    }
+
+    body[data-overlay-mode="quick"] .context-game-art {
+      height: 84px !important;
+    }
+
+    body[data-overlay-mode="quick"] .context-game-copy {
+      padding: 12px 14px 14px !important;
+    }
+
+    body[data-overlay-mode="quick"] .context-game-copy h2 {
+      font-size: 13px !important;
+      margin-bottom: 3px !important;
+    }
+
+    body[data-overlay-mode="quick"] .context-game-copy p {
+      font-size: 11px !important;
+      margin-bottom: 10px !important;
+    }
+
+    body[data-overlay-mode="quick"] .context-primary {
+      padding: 8px 14px !important;
+      font-size: 11px !important;
+    }
+
+    body[data-overlay-mode="quick"] .quick-access h3 {
+      font-size: 10.5px !important;
+      margin-bottom: 8px !important;
+      letter-spacing: 0.06em !important;
+    }
+
+    body[data-overlay-mode="quick"] .quick-access button {
+      padding: 9px 12px !important;
+      margin-bottom: 6px !important;
+      border-radius: 12px !important;
+    }
+
+    body[data-overlay-mode="quick"] .context-panel footer {
+      margin-top: 10px !important;
+      padding-top: 10px !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+
+    .context-expand-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      margin-top: 6px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #fff;
+      cursor: pointer;
+      text-align: left;
+      transition: all 180ms ease;
+    }
+
+    .context-expand-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .context-expand-btn span {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .context-expand-btn span b {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .context-expand-btn span small {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    body[data-overlay-mode="full"] .context-expand-btn,
+    #command-panel:not(.mode-quick) .context-expand-btn {
+      display: none !important;
+    }
+
+    /* Modo Expandido (Full Command Center - Centralizado no meio da tela) */
+    body[data-overlay-mode="full"] #command-panel,
+    #command-panel:not(.mode-quick) {
+      top: 50% !important;
+      left: 50% !important;
+      right: auto !important;
+      bottom: auto !important;
+      transform: translate(-50%, -50%) !important;
+      width: calc(100vw - 6vw) !important;
+      max-width: 1440px !important;
+      height: calc(100vh - 6vh) !important;
+      max-height: 920px !important;
+      border-radius: 26px !important;
+      display: grid !important;
+      grid-template-columns: 82px minmax(0, 1fr) !important;
+      overflow: hidden !important;
+    }
+
+    /* ---- Hub Hero Card (Início / Social) ---- */
+    .hub-hero-card {
+      padding: 18px 22px;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-radius: 16px;
+      border: 1px solid var(--panel-border);
+      background:
+        radial-gradient(ellipse at 15% 50%, rgba(56, 189, 248, 0.08), transparent 50%),
+        var(--panel-surface);
+      transform: translateZ(0);
     }
 
     .welcome-copy h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 700;
       display: flex;
       align-items: center;
@@ -1177,117 +1689,381 @@
     .welcome-copy p {
       margin: 4px 0 0;
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
     }
 
     .welcome-mark {
-      width: 20px;
-      height: 20px;
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    .friend-search {
-      background: var(--panel-surface);
-      border: 1px solid var(--panel-border);
-      border-radius: 9999px;
-      padding: 0 18px;
-      height: 42px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      width: 260px;
-      transition: all 180ms ease;
-    }
-
-    .friend-search:focus-within {
-      border-color: rgba(255, 255, 255, 0.28);
-      background: var(--panel-surface-elevated);
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
-    }
-
-    .friend-search .ui-icon {
-      color: var(--text-muted);
-      width: 16px;
-      height: 16px;
-    }
-
-    .friend-search input {
-      background: transparent;
-      border: none;
-      color: white;
-      font-size: 13px;
-      outline: none;
-      width: 100%;
-    }
-
-    .top-profile {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--panel-surface);
-      border: 1px solid var(--panel-border);
-      padding: 5px 14px 5px 5px;
-      border-radius: 30px;
-      cursor: pointer;
-      color: #fff;
-      transition: all 180ms ease;
-    }
-
-    .top-profile:hover {
-      background: var(--panel-surface-hover);
-      border-color: var(--panel-border-strong);
-    }
-
-    .top-profile img {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-
-    .top-profile span {
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .top-profile .ui-icon {
-      width: 14px;
-      height: 14px;
-      color: var(--text-muted);
-    }
-
-    .top-close {
-      width: 38px;
-      height: 38px;
-      display: grid;
-      place-items: center;
-      background: var(--panel-surface);
-      border: 1px solid var(--panel-border);
-      border-radius: 50%;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 180ms ease;
-    }
-
-    .top-close:hover {
-      color: white;
-      background: var(--panel-surface-hover);
-      border-color: var(--panel-border-strong);
-    }
-
-    .top-close .ui-icon {
       width: 18px;
       height: 18px;
+      color: #ffffff;
     }
 
+    .hub-hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-hero-action {
+      min-height: 36px;
+      padding: 0 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 160ms ease;
+    }
+
+    .btn-hero-action:hover {
+      background: #fff;
+      color: #050505;
+      border-color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .btn-hero-action .ui-icon {
+      width: 15px;
+      height: 15px;
+    }
+
+    .friends-empty-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 36px 24px;
+      border-radius: 16px;
+      border: 1px dashed var(--panel-border);
+      background: var(--panel-surface);
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .friends-empty-card p {
+      margin: 0;
+      color: var(--text-muted);
+    }
+
+    .btn-add-friend {
+      min-height: 36px;
+      padding: 0 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: #fff;
+      color: #000;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 160ms ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-add-friend:hover {
+      background: #f0f0f0;
+      transform: translateY(-1px);
+    }
+
+    .quick-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-secondary);
+      margin-left: auto;
+    }
+
+    .context-status-pill {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .context-retry-btn:hover {
+      color: #fff !important;
+      text-decoration: underline;
+    }
+
+    /* ---- Workspace Layout Adaptativo ---- */
     .panel-layout {
       flex: 1;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 340px;
+      grid-template-columns: minmax(0, 1fr) 330px;
       min-height: 0;
       height: 100%;
       overflow: hidden;
+      transition: grid-template-columns 240ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Expansão fluida para abas amplas (Conquistas, OSD, Mídia, Jogo, Chat, Config) */
+    .panel-workspace[data-active-view]:not([data-active-view="friends"]) .panel-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .panel-workspace[data-active-view]:not([data-active-view="friends"]) .context-panel {
+      display: none !important;
+    }
+
+    /* ---- OSD Telemetry HUD (Desempenho Modernizado) ---- */
+    .osd-hud-container {
+      padding: 6px;
+    }
+
+    .osd-live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+    }
+
+    .osd-live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+      animation: pulse-ring 1.8s infinite ease-in-out;
+    }
+
+    .osd-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .osd-card {
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid var(--panel-border);
+      background:
+        radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.03), transparent 60%),
+        var(--panel-surface);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 180ms ease;
+    }
+
+    .osd-card:hover {
+      border-color: var(--panel-border-strong);
+      background: var(--panel-surface-elevated);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .osd-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .osd-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .osd-unit {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-muted);
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .osd-value-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .osd-number {
+      font-size: 32px;
+      font-weight: 800;
+      font-family: var(--overlay-font-display);
+      color: #fff;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .osd-fps-number {
+      color: #ffffff;
+      text-shadow: 0 0 16px rgba(255, 255, 255, 0.25);
+    }
+
+    .osd-bar-track {
+      height: 6px;
+      width: 100%;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .osd-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), #ffffff);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+      transition: width 350ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .osd-cpu-fill,
+    .osd-gpu-fill,
+    .osd-temp-fill,
+    .osd-fps-fill {
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), #ffffff);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+    }
+
+    .osd-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .osd-status-normal,
+    .osd-status-active {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* ---- Banner de Conquistas Enriquecido ---- */
+    .achievement-summary-banner {
+      margin-bottom: 20px;
+      padding: 22px 24px;
+      border-radius: 18px;
+      border: 1px solid var(--panel-border);
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(255, 255, 255, 0.05), transparent 50%),
+        var(--panel-surface);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transform: translateZ(0);
+    }
+
+    .summary-stat-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .summary-ratio {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      font-family: var(--overlay-font-display);
+    }
+
+    .summary-ratio strong {
+      font-size: 28px;
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .summary-divider {
+      font-size: 20px;
+      color: var(--text-muted);
+    }
+
+    .summary-ratio span {
+      font-size: 20px;
+      color: var(--text-secondary);
+      font-weight: 700;
+    }
+
+    .summary-meta h3 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .summary-meta p {
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .achievement-tier-chips {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tier-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-secondary);
+    }
+
+    .tier-chip .ui-icon {
+      width: 12px;
+      height: 12px;
+    }
+
+    .tier-chip-platinum {
+      border-color: rgba(56, 189, 248, 0.35);
+      background: rgba(56, 189, 248, 0.08);
+      color: #7dd3fc;
+    }
+
+    .tier-chip-gold {
+      border-color: rgba(234, 179, 8, 0.35);
+      background: rgba(234, 179, 8, 0.08);
+      color: #fde047;
+    }
+
+    .tier-chip-silver {
+      border-color: rgba(163, 163, 163, 0.35);
+      background: rgba(163, 163, 163, 0.08);
+      color: #e5e5e5;
+    }
+
+    .tier-chip-bronze {
+      border-color: rgba(205, 127, 50, 0.35);
+      background: rgba(205, 127, 50, 0.08);
+      color: #fdba74;
     }
 
     .panel-content {
@@ -1533,12 +2309,18 @@
     /* ---- Context Panel (Painel Direito) ---- */
     .context-panel {
       border-left: 1px solid var(--panel-border);
-      padding: 32px 24px;
+      padding: 24px 20px 20px;
       display: flex;
       flex-direction: column;
       background: rgba(5, 5, 5, 0.55);
       -webkit-backdrop-filter: blur(20px);
       backdrop-filter: blur(20px);
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    .context-panel::-webkit-scrollbar {
+      display: none;
     }
 
     .context-game-card {
@@ -2093,11 +2875,18 @@
       box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
     }
 
-    .panel-view[data-panel-view="game"].is-active,
-    .panel-view[data-panel-view="media"].is-active {
-      height: clamp(480px, calc(90vh - 160px), 780px);
-      overflow-y: auto;
+    .panel-view[data-panel-view="game"].is-active {
+      height: auto;
+      min-height: 100%;
+      overflow: visible;
       padding-right: 6px;
+    }
+
+    .panel-view[data-panel-view="media"].is-active {
+      height: auto;
+      min-height: 100%;
+      overflow: visible;
+      padding-right: 4px;
     }
 
     .game-metrics {
@@ -2465,22 +3254,22 @@
 
     .capture-gallery {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 16px;
-      padding-bottom: 24px;
+      padding: 8px 8px 32px 8px;
     }
 
     .capture-card {
       position: relative;
       aspect-ratio: 16 / 9;
       overflow: hidden;
-      border: 1px solid var(--panel-border);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px;
       background: #0d0d0d;
       cursor: pointer;
       transform: translateZ(0);
       will-change: transform;
-      transition: transform 140ms cubic-bezier(0.2, 0, 0, 1), border-color 140ms ease, box-shadow 140ms ease;
+      transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease, box-shadow 180ms ease;
     }
 
     .capture-card:hover,
@@ -2488,10 +3277,10 @@
     .capture-card:focus-visible,
     .capture-card.is-gamepad-focused {
       border-color: #ffffff !important;
-      outline: 3px solid #ffffff !important;
-      outline-offset: 3px !important;
-      transform: translateY(-2px) scale(1.02) translateZ(0) !important;
-      box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2), 0 12px 28px rgba(0, 0, 0, 0.7) !important;
+      outline: none !important;
+      transform: translateY(-2px) translateZ(0) !important;
+      box-shadow: 0 0 0 2px #ffffff, 0 10px 24px rgba(0, 0, 0, 0.85) !important;
+      z-index: 5;
     }
 
     .capture-card img {
@@ -2499,17 +3288,317 @@
       height: 100%;
       object-fit: cover;
       transform: translateZ(0);
+      transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .capture-card:hover img {
+      transform: scale(1.04);
     }
 
     .capture-card .capture-date {
       position: absolute;
-      right: 6px;
-      bottom: 6px;
-      padding: 2px 5px;
-      border-radius: 4px;
-      background: rgba(0, 0, 0, 0.75);
+      right: 8px;
+      bottom: 8px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.95);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    /* ---- Call View (Design System Alinhado) ---- */
+    .call-view-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .call-card-active {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .call-active-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .call-dot-pulse {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+      animation: pulse-ring 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+    }
+
+    .call-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
       color: rgba(255, 255, 255, 0.85);
-      font-size: 8.5px;
+      text-transform: uppercase;
+    }
+
+    .call-active-header h2 {
+      margin: 2px 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .call-active-header p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .call-participants-box {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .call-participant-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      transition: background 150ms ease;
+    }
+
+    .call-participant-item.is-speaking {
+      background: rgba(16, 185, 129, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.25);
+    }
+
+    .call-participant-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 13px;
+      color: #fff;
+    }
+
+    .call-participant-info strong {
+      display: block;
+      font-size: 13px;
+      color: #fff;
+    }
+
+    .call-participant-info small {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .call-controls-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .call-ctrl-btn {
+      min-height: 40px;
+      padding: 0 16px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 160ms ease;
+    }
+
+    .call-ctrl-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .call-ctrl-btn.is-active {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    .call-ctrl-btn.call-ctrl-hangup {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #fff;
+      margin-left: auto;
+    }
+
+    .call-ctrl-btn.call-ctrl-hangup:hover {
+      background: #ef4444;
+      border-color: #ef4444;
+    }
+
+    /* Idle / Hub Card */
+    .call-hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 24px;
+      border-radius: 16px;
+      border: 1px solid var(--panel-border);
+      background: var(--panel-surface);
+      margin-bottom: 24px;
+    }
+
+    .call-hero-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .call-hero h2 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .call-hero p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .call-hub-btn {
+      min-height: 38px;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: #fff;
+      color: #050505;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 150ms ease;
+    }
+
+    .call-hub-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .call-friends-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .call-friend-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      background: var(--panel-surface);
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+
+    .call-friend-row:hover {
+      background: var(--panel-surface-hover);
+      border-color: var(--panel-border-strong);
+    }
+
+    .call-friend-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .call-friend-avatar {
+      position: relative;
+      width: 36px;
+      height: 36px;
+    }
+
+    .call-friend-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      object-fit: cover;
+    }
+
+    .call-friend-avatar .status-dot {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      border: 2px solid #0a0b0e;
+    }
+
+    .call-friend-info strong {
+      display: block;
+      font-size: 13px;
+      color: #fff;
+    }
+
+    .call-friend-info small {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .call-friend-action {
+      min-height: 34px;
+      padding: 0 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .call-friend-action:hover {
+      background: #fff;
+      color: #000;
+      border-color: #fff;
+    }
+
+    .call-empty-friends {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      background: var(--panel-surface);
+      border-radius: 12px;
+      border: 1px dashed var(--panel-border);
     }
 
     .capture-delete {
@@ -2770,6 +3859,20 @@
       }
     }
 
+    @keyframes panel-center-in {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.96);
+        filter: blur(4px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+        filter: blur(0);
+      }
+    }
+
     @keyframes overlay-in {
       0% {
         opacity: 0;
@@ -2855,11 +3958,13 @@
       position: fixed;
       inset: 0;
       z-index: 10000;
-      background: rgba(0, 0, 0, 0.9);
+      background: rgba(0, 0, 0, 0.92);
       backdrop-filter: blur(32px);
       display: none;
       place-items: center;
       padding: 40px;
+      pointer-events: auto;
+      user-select: none;
     }
 
     .capture-viewer.is-open {
@@ -2869,18 +3974,19 @@
     .capture-viewer-content {
       position: relative;
       max-width: 90vw;
-      max-height: 85vh;
+      max-height: 88vh;
       display: flex;
       flex-direction: column;
       align-items: center;
+      pointer-events: auto;
     }
 
     .capture-viewer-content img {
       max-width: 100%;
-      max-height: calc(85vh - 60px);
+      max-height: calc(88vh - 60px);
       border-radius: 14px;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.88);
       object-fit: contain;
     }
 
@@ -2892,14 +3998,18 @@
       width: 100%;
       color: #fff;
       font-size: 13px;
+      pointer-events: auto;
     }
 
-    .capture-viewer-shortcuts kbd {
-      padding: 3px 6px;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      font: inherit;
-      color: rgba(255, 255, 255, 0.8);
+    .capture-viewer-bar button {
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .capture-viewer-bar button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      pointer-events: none;
     }
 
     /* Reduced Motion */
@@ -3042,7 +4152,33 @@
         <path d="m7 7 10 10-5 5V2l5 5L7 17" />
       </symbol>
       <symbol id="icon-phone" viewBox="0 0 24 24">
-        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+        <path
+          d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+      </symbol>
+      <symbol id="icon-maximize" viewBox="0 0 24 24">
+        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+      </symbol>
+      <symbol id="icon-minimize" viewBox="0 0 24 24">
+        <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" />
+      </symbol>
+      <symbol id="icon-user-plus" viewBox="0 0 24 24">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <line x1="19" y1="8" x2="19" y2="14" />
+        <line x1="22" y1="11" x2="16" y2="11" />
+      </symbol>
+      <symbol id="icon-mic" viewBox="0 0 24 24">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+        <line x1="12" y1="19" x2="12" y2="22" />
+      </symbol>
+      <symbol id="icon-mic-off" viewBox="0 0 24 24">
+        <line x1="2" x2="22" y1="2" y2="22" />
+        <path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2" />
+        <path d="M5 10v2a7 7 0 0 0 12 5" />
+        <path d="M15 9.34V5a3 3 0 0 0-5.68-1.33" />
+        <path d="M9 9v3a3 3 0 0 0 5.12 2.12" />
+        <line x1="12" y1="19" x2="12" y2="22" />
       </symbol>
     </defs>
   </svg>
@@ -3055,74 +4191,86 @@
     <aside class="panel-sidebar">
       <div class="panel-logo" aria-label="Phelierium"><img src="../assets/icon.png" alt="" /></div>
       <nav class="panel-navigation" aria-label="Navegação do overlay">
-        <button class="panel-tab is-active" data-panel-tab="friends">
+        <button class="panel-tab is-active" data-panel-tab="friends" title="Início & Amigos">
           <span class="nav-icon"><svg class="ui-icon">
               <use href="#icon-home" />
             </svg></span>
           <span>Início</span>
         </button>
-        <button class="panel-tab" data-panel-tab="chats">
+        <button class="panel-tab" data-panel-tab="chats" title="Mensagens diretas">
           <span class="nav-icon"><svg class="ui-icon">
               <use href="#icon-chat" />
             </svg></span>
           <span>Chat</span>
           <b class="nav-notification" id="nav-unread" hidden></b>
         </button>
-        <button class="panel-tab" data-panel-tab="game">
+        <button class="panel-tab" data-panel-tab="game" title="Sessão de jogo">
           <span class="nav-icon"><svg class="ui-icon">
               <use href="#icon-gamepad" />
             </svg></span>
           <span>Jogo</span>
         </button>
-        <button class="panel-tab" data-panel-tab="media">
+        <button class="panel-tab" data-panel-tab="achievements" title="Conquistas e troféus">
+          <span class="nav-icon"><svg class="ui-icon">
+              <use href="#icon-trophy" />
+            </svg></span>
+          <span>Troféus</span>
+        </button>
+        <button class="panel-tab" data-panel-tab="media" title="Capturas de tela">
           <span class="nav-icon"><svg class="ui-icon">
               <use href="#icon-image" />
             </svg></span>
           <span>Mídia</span>
         </button>
-        <button class="panel-tab" data-panel-tab="achievements">
-          <span class="nav-icon"><svg class="ui-icon">
-              <use href="#icon-trophy" />
-            </svg></span>
-          <span>Conquistas</span>
-        </button>
-        <button class="panel-tab" data-panel-tab="performance">
+        <button class="panel-tab" data-panel-tab="performance" title="Telemetria e FPS">
           <span class="nav-icon"><svg class="ui-icon">
               <use href="#icon-monitor" />
             </svg></span>
-          <span>Desempenho</span>
+          <span>OSD</span>
         </button>
-
       </nav>
       <div class="sidebar-spacer"></div>
-      <button class="panel-action panel-tab" data-panel-tab="settings">
+      <button class="panel-tab" data-panel-tab="settings" title="Configurações">
         <span class="nav-icon"><svg class="ui-icon">
             <use href="#icon-settings" />
           </svg></span>
         <span>Config.</span>
       </button>
-      <div class="sidebar-profile">
-        <img id="sidebar-profile-avatar" alt="" />
-        <span id="sidebar-profile-name">Jogador</span>
-        <i class="status-dot online"></i>
+      <div class="sidebar-pad-hint" title="Navegar abas pelo controle">
+        <kbd>L1</kbd><kbd>R1</kbd>
       </div>
+      <!-- Elementos de compatibilidade legado -->
+      <button class="sr-only" id="sidebar-mode-toggle" aria-hidden="true" tabindex="-1"><span id="sidebar-mode-icon"><svg><use href="#icon-maximize"/></svg></span><span id="sidebar-mode-text"></span></button>
+      <div class="sr-only" aria-hidden="true"><img id="sidebar-profile-avatar" alt="" /><span id="sidebar-profile-name"></span></div>
     </aside>
 
-    <div class="panel-workspace">
+    <div class="panel-workspace" data-active-view="friends">
       <header class="panel-topbar">
-        <div class="welcome-copy">
-          <h1>Olá, <span id="panel-profile-name">Jogador</span> <svg class="ui-icon welcome-mark">
-              <use href="#icon-sparkles" />
-            </svg></h1>
-          <p><span id="panel-friend-count">0 amigos</span> &bull; <span id="panel-online-count">0 online</span></p>
+        <div class="topbar-branding">
+          <div class="topbar-brand-badge">
+            <span class="brand-dot"></span>
+            <span>PHELIERIUM</span>
+          </div>
+          <div class="topbar-session-chip" id="topbar-session-chip">
+            <svg class="ui-icon">
+              <use href="#icon-gamepad" />
+            </svg>
+            <span id="topbar-game-title">Overlay Ativo</span>
+            <span class="session-duration-tag" id="topbar-game-duration" hidden>00:00:00</span>
+          </div>
         </div>
+
         <div class="topbar-status-group">
           <div class="topbar-status-pill topbar-clock" id="topbar-clock" title="Horário atual">
-            <svg class="ui-icon"><use href="#icon-clock" /></svg>
+            <svg class="ui-icon">
+              <use href="#icon-clock" />
+            </svg>
             <span id="topbar-time">--:--</span>
           </div>
           <div class="topbar-status-pill topbar-gamepad" id="topbar-gamepad" title="Status do Controle" hidden>
-            <svg class="ui-icon" id="topbar-gamepad-icon"><use href="#icon-gamepad" /></svg>
+            <svg class="ui-icon" id="topbar-gamepad-icon">
+              <use href="#icon-gamepad" />
+            </svg>
             <span id="topbar-gamepad-type">BT</span>
             <span id="topbar-gamepad-battery">--%</span>
           </div>
@@ -3131,69 +4279,148 @@
           </div>
           <div class="topbar-status-pill topbar-call" id="topbar-voice-call" title="Chamada de Voz Ativa" hidden>
             <span class="call-dot live"></span>
-            <svg class="ui-icon"><use href="#icon-phone" /></svg>
+            <svg class="ui-icon">
+              <use href="#icon-phone" />
+            </svg>
             <span id="topbar-call-name">Chamada</span>
           </div>
         </div>
-        <label class="friend-search">
-          <svg class="ui-icon">
-            <use href="#icon-search" />
-          </svg>
-          <input id="friend-search" type="search" placeholder="Buscar amigos..." autocomplete="off" />
-        </label>
-        <button class="top-profile" data-panel-tab="profile" type="button">
-          <img id="panel-profile-avatar" alt="" />
-          <span>Meu perfil</span>
-          <svg class="ui-icon" aria-hidden="true">
-            <use href="#icon-chevron-down" />
-          </svg>
-        </button>
-        <button class="top-close" id="panel-close-top" aria-label="Fechar overlay">
-          <svg class="ui-icon">
-            <use href="#icon-close" />
-          </svg>
-        </button>
+
+        <div class="top-controls-group">
+          <label class="friend-search">
+            <svg class="ui-icon">
+              <use href="#icon-search" />
+            </svg>
+            <input id="friend-search" type="search" placeholder="Buscar amigos..." autocomplete="off" />
+          </label>
+          <button class="top-profile" data-panel-tab="profile" type="button" title="Ver perfil">
+            <img id="panel-profile-avatar" alt="" />
+            <span id="panel-profile-name">Jogador</span>
+            <svg class="ui-icon" aria-hidden="true">
+              <use href="#icon-chevron-down" />
+            </svg>
+          </button>
+          <button class="top-mode-toggle" id="panel-toggle-mode" title="Alternar tamanho (Quick HUD / Full)"
+            aria-label="Alternar tamanho">
+            <svg class="ui-icon" id="panel-toggle-mode-icon">
+              <use href="#icon-maximize" />
+            </svg>
+          </button>
+          <button class="top-close" id="panel-close-top" aria-label="Fechar overlay" title="Fechar (Esc)">
+            <svg class="ui-icon">
+              <use href="#icon-close" />
+            </svg>
+            <kbd class="close-kbd">ESC</kbd>
+          </button>
+        </div>
       </header>
 
       <div class="panel-layout">
         <main class="panel-content">
           <div class="panel-view" data-panel-view="performance">
-            <div id="panel-performance-view" style="padding: 24px;">
+            <div id="panel-performance-view" class="osd-hud-container">
               <div class="section-heading">
-                <h2><i class="status-dot online"></i> Monitoramento de Hardware</h2>
+                <h2><i class="status-dot online"></i> Telemetria & Monitoramento de Hardware</h2>
+                <span class="osd-live-pill"><span class="osd-live-dot"></span> TEMPO REAL</span>
               </div>
-              <div class="settings-card" style="margin-bottom: 24px;">
-                <div class="setting-row">
-                  <div>
-                    <label>Uso de CPU</label>
-                    <p class="setting-desc" id="osd-cpu">Carregando...</p>
+              <div class="osd-grid">
+                <article class="osd-card">
+                  <div class="osd-card-header">
+                    <span class="osd-label">Processador CPU</span>
+                    <span class="osd-unit">%</span>
                   </div>
-                </div>
-                <div class="setting-row">
-                  <div>
-                    <label>Uso de GPU</label>
-                    <p class="setting-desc" id="osd-gpu">Carregando...</p>
+                  <div class="osd-value-row">
+                    <strong class="osd-number" id="osd-cpu">Carregando...</strong>
                   </div>
-                </div>
-                <div class="setting-row">
-                  <div>
-                    <label>Temperatura</label>
-                    <p class="setting-desc" id="osd-temp">Carregando...</p>
+                  <div class="osd-bar-track">
+                    <div class="osd-bar-fill osd-cpu-fill" id="osd-cpu-bar" style="width: 35%;"></div>
                   </div>
-                </div>
-                <div class="setting-row">
-                  <div>
-                    <label>Taxa de Quadros (FPS)</label>
-                    <p class="setting-desc" id="osd-fps">Carregando...</p>
+                  <div class="osd-card-footer">
+                    <span>Carga de núcleos</span>
+                    <span class="osd-status-normal">ESTÁVEL</span>
                   </div>
-                </div>
+                </article>
+
+                <article class="osd-card">
+                  <div class="osd-card-header">
+                    <span class="osd-label">Placa de Vídeo GPU</span>
+                    <span class="osd-unit">%</span>
+                  </div>
+                  <div class="osd-value-row">
+                    <strong class="osd-number" id="osd-gpu">Carregando...</strong>
+                  </div>
+                  <div class="osd-bar-track">
+                    <div class="osd-bar-fill osd-gpu-fill" id="osd-gpu-bar" style="width: 85%;"></div>
+                  </div>
+                  <div class="osd-card-footer">
+                    <span>Uso de renderização</span>
+                    <span class="osd-status-active">ATIVO</span>
+                  </div>
+                </article>
+
+                <article class="osd-card">
+                  <div class="osd-card-header">
+                    <span class="osd-label">Temperatura GPU</span>
+                    <span class="osd-unit">°C</span>
+                  </div>
+                  <div class="osd-value-row">
+                    <strong class="osd-number" id="osd-temp">Carregando...</strong>
+                  </div>
+                  <div class="osd-bar-track">
+                    <div class="osd-bar-fill osd-temp-fill" id="osd-temp-bar" style="width: 65%;"></div>
+                  </div>
+                  <div class="osd-card-footer">
+                    <span>Térmico</span>
+                    <span class="osd-status-normal" id="osd-temp-status">IDEAL</span>
+                  </div>
+                </article>
+
+                <article class="osd-card">
+                  <div class="osd-card-header">
+                    <span class="osd-label">Taxa de Quadros (FPS)</span>
+                    <span class="osd-unit">QPS</span>
+                  </div>
+                  <div class="osd-value-row">
+                    <strong class="osd-number osd-fps-number" id="osd-fps">Carregando...</strong>
+                  </div>
+                  <div class="osd-bar-track">
+                    <div class="osd-bar-fill osd-fps-fill" id="osd-fps-bar" style="width: 90%;"></div>
+                  </div>
+                  <div class="osd-card-footer">
+                    <span>Frame pacing</span>
+                    <span class="osd-status-active">FLUÍDO</span>
+                  </div>
+                </article>
               </div>
             </div>
           </div>
 
-
           <div class="panel-view is-active" data-panel-view="friends">
             <div id="panel-friends-view">
+              <!-- Hub Hero Card -->
+              <div class="hub-hero-card">
+                <div class="welcome-copy">
+                  <h1>Olá, <span class="profile-greeting-name">Jogador</span> <svg class="ui-icon welcome-mark">
+                      <use href="#icon-sparkles" />
+                    </svg></h1>
+                  <p><span id="panel-friend-count">0 amigos</span> &bull; <span id="panel-online-count">0 online</span></p>
+                </div>
+                <div class="hub-hero-actions">
+                  <button type="button" class="btn-hero-action" id="btn-hero-capture" title="Capturar tela">
+                    <svg class="ui-icon">
+                      <use href="#icon-camera" />
+                    </svg>
+                    <span id="btn-hero-capture-label">Capturar (F8)</span>
+                  </button>
+                  <button type="button" class="btn-hero-action" data-context-tab="achievements" title="Ver Conquistas">
+                    <svg class="ui-icon">
+                      <use href="#icon-trophy" />
+                    </svg>
+                    <span>Conquistas</span>
+                  </button>
+                </div>
+              </div>
+
               <section class="friend-section">
                 <div class="section-heading">
                   <h2><i class="status-dot online"></i> Amigos online <span id="online-heading-count">(0)</span></h2>
@@ -3209,6 +4436,72 @@
                 <div class="offline-friends-list" id="panel-friends-offline"></div>
               </section>
               <p class="sr-only" id="panel-game">Nenhum jogo detectado.</p>
+            </div>
+          </div>
+
+          <div class="panel-view" data-panel-view="call">
+            <div id="panel-call-view" class="call-view-container">
+              <!-- Seção de Chamada Ativa -->
+              <div id="call-active-container" class="call-card-active" hidden>
+                <div class="call-active-header">
+                  <div class="call-dot-pulse"></div>
+                  <div>
+                    <span class="call-eyebrow">CHAMADA DE VOZ ATIVA</span>
+                    <h2 id="call-channel-name">Canal de Voz</h2>
+                    <p id="call-status-desc">Conectado com baixa latência</p>
+                  </div>
+                </div>
+
+                <div class="call-participants-box" id="call-participants-box"></div>
+
+                <div class="call-controls-row">
+                  <button type="button" class="call-ctrl-btn" id="call-btn-mute" title="Mutar Microfone">
+                    <svg class="ui-icon">
+                      <use href="#icon-mic" />
+                    </svg>
+                    <span id="call-label-mute">Mutar Mic</span>
+                  </button>
+                  <button type="button" class="call-ctrl-btn" id="call-btn-deafen" title="Silenciar Áudio">
+                    <svg class="ui-icon">
+                      <use href="#icon-volume" />
+                    </svg>
+                    <span id="call-label-deafen">Silenciar</span>
+                  </button>
+                  <button type="button" class="call-ctrl-btn call-ctrl-hangup" id="call-btn-hangup"
+                    title="Desconectar da chamada">
+                    <svg class="ui-icon">
+                      <use href="#icon-phone" />
+                    </svg>
+                    <span>Desconectar</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Seção Sem Chamada (Hub de Amigos para Ligar) -->
+              <div id="call-idle-container" class="call-card-idle">
+                <div class="call-hero">
+                  <div class="call-hero-icon">
+                    <svg class="ui-icon">
+                      <use href="#icon-phone" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2>Chamada de Voz</h2>
+                    <p>Converse com seus amigos em tempo real com áudio P2P e baixa latência.</p>
+                  </div>
+                  <button type="button" id="btn-open-launcher-call" class="call-hub-btn">
+                    <span>Central de Voz</span>
+                  </button>
+                </div>
+
+                <div class="call-friends-section">
+                  <div class="section-heading" style="margin-bottom: 12px;">
+                    <h2 style="font-size: 14px; font-weight: 700; color: #fff;"><i class="status-dot online"></i> Amigos
+                      online para ligar</h2>
+                  </div>
+                  <div class="call-friends-list" id="call-friends-list"></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -3355,9 +4648,36 @@
           </div>
 
           <div class="panel-view" data-panel-view="achievements">
-            <div class="achievement-summary">
-              <strong><span id="panel-unlocked">0</span>/<span id="panel-available">0</span></strong>
-              <span id="achievement-game-label">Conquistas registradas</span>
+            <div class="achievement-summary-banner">
+              <div class="summary-stat-box">
+                <div class="summary-ratio">
+                  <strong id="panel-unlocked">0</strong>
+                  <span class="summary-divider">/</span>
+                  <span id="panel-available">0</span>
+                </div>
+                <div class="summary-meta">
+                  <h3 id="achievement-game-label">Conquistas registradas</h3>
+                  <p id="achievement-percent-label">0% Concluído</p>
+                </div>
+              </div>
+              <div class="achievement-tier-chips">
+                <div class="tier-chip tier-chip-platinum">
+                  <svg class="ui-icon"><use href="#icon-trophy" /></svg>
+                  <span id="tier-count-plat">Platina</span>
+                </div>
+                <div class="tier-chip tier-chip-gold">
+                  <svg class="ui-icon"><use href="#icon-trophy" /></svg>
+                  <span id="tier-count-gold">Ouro</span>
+                </div>
+                <div class="tier-chip tier-chip-silver">
+                  <svg class="ui-icon"><use href="#icon-trophy" /></svg>
+                  <span id="tier-count-silver">Prata</span>
+                </div>
+                <div class="tier-chip tier-chip-bronze">
+                  <svg class="ui-icon"><use href="#icon-trophy" /></svg>
+                  <span id="tier-count-bronze">Bronze</span>
+                </div>
+              </div>
               <div class="achievement-progress-track">
                 <span id="panel-achievement-progress"></span>
               </div>
@@ -3428,13 +4748,18 @@
                     </div>
                   </div>
                 </div>
-                <div class="profile-level-card" style="margin-bottom:20px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:18px;">
+                <div class="profile-level-card"
+                  style="margin-bottom:20px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:18px;">
                   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                    <span id="profile-player-level" style="font-weight:700;color:#fff;font-size:14px;">Nível 1 (Bronze)</span>
+                    <span id="profile-player-level" style="font-weight:700;color:#fff;font-size:14px;">Nível 1
+                      (Bronze)</span>
                     <span id="profile-player-xp" style="font-size:12px;color:rgba(255,255,255,0.7);">0 XP</span>
                   </div>
-                  <div style="height:6px;width:100%;background:rgba(255,255,255,0.1);border-radius:9999px;overflow:hidden;">
-                    <div id="profile-level-progress" style="height:100%;width:0%;background:linear-gradient(90deg, #eab308, #f59e0b);border-radius:9999px;transition:width 300ms ease;"></div>
+                  <div
+                    style="height:6px;width:100%;background:rgba(255,255,255,0.1);border-radius:9999px;overflow:hidden;">
+                    <div id="profile-level-progress"
+                      style="height:100%;width:0%;background:linear-gradient(90deg, rgba(255,255,255,0.45), #ffffff);border-radius:9999px;transition:width 300ms ease;">
+                    </div>
                   </div>
                 </div>
                 <div class="game-metrics" style="margin-top:0;">
@@ -3473,7 +4798,13 @@
                 </svg></div>
             </div>
             <div class="context-game-copy">
-              <h2 id="context-game-title">Nenhum jogo</h2>
+              <div class="context-header-row"
+                style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <span id="context-game-status-text" class="context-status-pill">Jogo não detectado</span>
+                <button type="button" id="context-game-retry" class="context-retry-btn"
+                  style="display:inline-flex;background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:2px 6px;font-size:11px;">Reconectar</button>
+              </div>
+              <h2 id="context-game-title">Jogo não detectado</h2>
               <p id="context-game-message">Abra um jogo pela biblioteca para acompanhar estatísticas e conquistas.</p>
               <button class="context-primary" data-context-tab="game">Acessar Sessão</button>
             </div>
@@ -3486,6 +4817,7 @@
                   <use href="#icon-camera" />
                 </svg></div>
               <span><b>Galeria de Capturas</b><small>Fotos recentes e atalhos</small></span>
+              <span class="quick-badge" id="quick-media-badge">0 fotos</span>
               <svg class="ui-icon" style="width:14px;height:14px;color:var(--text-muted)">
                 <use href="#icon-chevron" />
               </svg>
@@ -3495,6 +4827,14 @@
                   <use href="#icon-trophy" />
                 </svg></div>
               <span><b>Conquistas</b><small>Ver metas desbloqueadas</small></span>
+              <span class="quick-badge" id="quick-achievements-badge">0/0</span>
+              <svg class="ui-icon" style="width:14px;height:14px;color:var(--text-muted)">
+                <use href="#icon-chevron" />
+              </svg>
+            </button>
+            <button class="context-expand-btn" id="context-expand-btn" type="button" title="Expandir overlay">
+              <div class="quick-icon"><svg class="ui-icon"><use href="#icon-maximize" /></svg></div>
+              <span><b>Expandir Central</b><small>Ver amigos, chat e todas as opções</small></span>
               <svg class="ui-icon" style="width:14px;height:14px;color:var(--text-muted)">
                 <use href="#icon-chevron" />
               </svg>
@@ -3503,7 +4843,8 @@
 
           <footer>
             <span>Phelierium Overlay</span>
-            <div class="notif"><i class="status-dot online"></i> Ativo</div>
+            <div class="notif" id="overlay-status-indicator"><i class="status-dot online"></i> <span
+                id="overlay-status-text">Overlay ativo</span></div>
           </footer>
         </aside>
       </div>
@@ -3534,10 +4875,6 @@
               <use href="#icon-close" />
             </svg></button>
         </div>
-      </div>
-      <div class="capture-viewer-shortcuts" style="margin-top:12px;">
-        <kbd>Esc</kbd> ou <kbd>B</kbd> <span>Fechar</span> &bull; <kbd>&larr;</kbd> <kbd>&rarr;</kbd> ou <kbd>D-Pad /
-          Analógico / L1 / R1</kbd> <span>Navegar</span>
       </div>
     </div>
   </div>
@@ -4025,17 +5362,23 @@
 
     const updateSessionDuration = () => {
       const node = document.getElementById("game-session-duration");
-      if (!node) return;
+      const topbarDuration = document.getElementById("topbar-game-duration");
       const startedAt = Date.parse(latestPanelState.currentGame?.sessionStartedAt || "");
       if (!Number.isFinite(startedAt)) {
-        node.textContent = "00:00:00";
+        if (node) node.textContent = "00:00:00";
+        if (topbarDuration) topbarDuration.hidden = true;
         return;
       }
       const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
       const hours = String(Math.floor(elapsed / 3600)).padStart(2, "0");
       const minutes = String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0");
       const seconds = String(elapsed % 60).padStart(2, "0");
-      node.textContent = `${hours}:${minutes}:${seconds}`;
+      const formatted = `${hours}:${minutes}:${seconds}`;
+      if (node) node.textContent = formatted;
+      if (topbarDuration) {
+        topbarDuration.hidden = false;
+        topbarDuration.textContent = formatted;
+      }
     };
 
     const enqueueAchievement = (payload) => {
@@ -4247,6 +5590,7 @@
 
     const captureViewer = document.getElementById("capture-viewer");
     const closeCaptureViewer = () => {
+      if (captureViewerIndex >= 0) playOverlayUiSound("ui-back");
       captureViewerIndex = -1;
       captureViewer?.classList.remove("is-open");
       captureViewer?.setAttribute("aria-hidden", "true");
@@ -4325,8 +5669,16 @@
       const profile = state.profile || {};
       const profileName = profile.name || overlayT("player");
       const profileAvatar = safeImageUrl(profile.avatar) || checkpointIconUrl;
-      document.getElementById("panel-profile-name").textContent = profileName.split(" ")[0];
-      document.getElementById("sidebar-profile-name").textContent = profileName.split(" ")[0];
+      const firstName = profileName.split(" ")[0];
+      document.getElementById("panel-profile-name").textContent = firstName;
+      document.getElementById("sidebar-profile-name").textContent = firstName;
+      document.querySelectorAll(".profile-greeting-name").forEach((el) => {
+        el.textContent = firstName;
+      });
+      const topbarGameTitle = document.getElementById("topbar-game-title");
+      if (topbarGameTitle) {
+        topbarGameTitle.textContent = currentGame?.title ? `Em Jogo: ${currentGame.title}` : "Overlay Ativo";
+      }
       setAvatarSource(document.getElementById("sidebar-profile-avatar"), profileAvatar, profileName);
       setAvatarSource(document.getElementById("panel-profile-avatar"), profileAvatar, profileName);
       setAvatarSource(document.getElementById("profile-page-avatar"), profileAvatar, profileName);
@@ -4474,21 +5826,36 @@
 
       onlineRoot.replaceChildren();
       offlineRoot.replaceChildren();
-      const visibleOnline = showAllOnlineFriends ? onlineFriends : onlineFriends.slice(0, 3);
-      if (visibleOnline.length === 0) {
-        const empty = document.createElement("div");
-        empty.className = "conversation-empty";
-        empty.textContent = searchTerm ? "Nenhum amigo online corresponde à busca." : "Nenhum amigo online agora.";
-        onlineRoot.appendChild(empty);
+      if (allFriends.length === 0) {
+        const emptyCard = document.createElement("div");
+        emptyCard.className = "friends-empty-card";
+        const emptyText = document.createElement("p");
+        emptyText.textContent = "Nenhum amigo está jogando agora";
+        const addBtn = document.createElement("button");
+        addBtn.className = "btn-add-friend";
+        addBtn.textContent = "Adicionar amigo";
+        addBtn.addEventListener("click", () => {
+          window.achievementOverlay.panelAction({ kind: "open-launcher-friends" });
+        });
+        emptyCard.append(emptyText, addBtn);
+        onlineRoot.appendChild(emptyCard);
+      } else {
+        const visibleOnline = showAllOnlineFriends ? onlineFriends : onlineFriends.slice(0, 3);
+        if (visibleOnline.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "conversation-empty";
+          empty.textContent = searchTerm ? "Nenhum amigo online corresponde à busca." : "Nenhum amigo online agora.";
+          onlineRoot.appendChild(empty);
+        }
+        visibleOnline.forEach((friend) => onlineRoot.appendChild(createFriendCard(friend)));
+        if (offlineFriends.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "conversation-empty";
+          empty.textContent = searchTerm ? "Nenhum amigo offline corresponde à busca." : "Nenhum amigo offline.";
+          offlineRoot.appendChild(empty);
+        }
+        offlineFriends.forEach((friend) => offlineRoot.appendChild(createFriendCard(friend)));
       }
-      visibleOnline.forEach((friend) => onlineRoot.appendChild(createFriendCard(friend)));
-      if (offlineFriends.length === 0) {
-        const empty = document.createElement("div");
-        empty.className = "conversation-empty";
-        empty.textContent = searchTerm ? "Nenhum amigo offline corresponde à busca." : "Nenhum amigo offline.";
-        offlineRoot.appendChild(empty);
-      }
-      offlineFriends.forEach((friend) => offlineRoot.appendChild(createFriendCard(friend)));
 
       const conversationRoot = document.getElementById("conversation-list");
       conversationRoot.replaceChildren();
@@ -4543,11 +5910,37 @@
       });
 
       const contextArt = document.getElementById("context-game-art");
-      contextArt.style.backgroundImage = gameImage ? `url("${gameImage}")` : "";
-      document.getElementById("context-game-title").textContent = currentGame?.title || overlayT("noGame");
-      document.getElementById("context-game-message").textContent = currentGame
-        ? "Acompanhe conquistas e converse com amigos sem sair da partida."
-        : "Inicie um jogo para acessar conquistas e recursos do overlay.";
+      if (contextArt) contextArt.style.backgroundImage = gameImage ? `url("${gameImage}")` : "";
+      const contextTitle = document.getElementById("context-game-title");
+      const contextStatusText = document.getElementById("context-game-status-text");
+      const contextMessage = document.getElementById("context-game-message");
+      const contextRetry = document.getElementById("context-game-retry");
+
+      if (!currentGame) {
+        if (state.gameDetecting) {
+          if (contextTitle) contextTitle.textContent = "Detectando jogo...";
+          if (contextStatusText) contextStatusText.textContent = "Detectando jogo";
+          if (contextRetry) contextRetry.style.display = "none";
+          if (contextMessage) contextMessage.textContent = "Procurando processo de jogo em execução...";
+        } else {
+          if (contextTitle) contextTitle.textContent = "Jogo não detectado";
+          if (contextStatusText) contextStatusText.textContent = "Jogo não detectado";
+          if (contextRetry) contextRetry.style.display = "";
+          if (contextMessage) contextMessage.textContent = "Inicie um jogo para acessar conquistas e recursos do overlay.";
+        }
+      } else {
+        if (contextTitle) contextTitle.textContent = currentGame.title || overlayT("noGame");
+        if (contextStatusText) contextStatusText.textContent = "Jogo detectado";
+        if (contextRetry) contextRetry.style.display = "none";
+        if (contextMessage) {
+          if (Number.isFinite(currentGame.sessionSeconds)) {
+            const m = Math.floor(currentGame.sessionSeconds / 60);
+            contextMessage.textContent = `Sessão iniciada há ${m} min`;
+          } else {
+            contextMessage.textContent = "Acompanhe conquistas e converse com amigos sem sair da partida.";
+          }
+        }
+      }
       const gamePageArt = document.getElementById("game-page-art");
       gamePageArt.style.backgroundImage = gameImage ? `url("${gameImage}")` : "";
       document.getElementById("game-page-title").textContent = currentGame?.title || overlayT("noGame");
@@ -4577,14 +5970,37 @@
       const achievements = state.achievements || {};
       const unlocked = Number(achievements.unlocked || 0);
       const available = Number(achievements.available || 0);
+      const pct = available > 0 ? Math.round((unlocked / available) * 100) : 0;
+      const pctLabel = document.getElementById("achievement-percent-label");
+      if (pctLabel) pctLabel.textContent = `${pct}% Concluído`;
       document.getElementById("game-achievement-ratio").textContent = `${unlocked}/${available}`;
       document.getElementById("panel-unlocked").textContent = String(unlocked);
       document.getElementById("panel-available").textContent = String(available);
       document.getElementById("profile-achievements-total").textContent = String(Math.max(0, Number(profile.achievements || 0)));
       document.getElementById("panel-achievement-progress").style.width = `${available > 0 ? Math.min(100, (unlocked / available) * 100) : 0}%`;
+
+      const achievementItems = Array.isArray(achievements.items) ? achievements.items : [];
+      const tierCounts = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
+      achievementItems.forEach((item) => {
+        if (item.achieved) {
+          const rawTier = String(item.tier || "").toLowerCase();
+          if (rawTier.includes("plat")) tierCounts.platinum++;
+          else if (rawTier.includes("gold") || rawTier.includes("ouro")) tierCounts.gold++;
+          else if (rawTier.includes("silver") || rawTier.includes("prata")) tierCounts.silver++;
+          else tierCounts.bronze++;
+        }
+      });
+      const platEl = document.getElementById("tier-count-plat");
+      if (platEl) platEl.textContent = String(tierCounts.platinum);
+      const goldEl = document.getElementById("tier-count-gold");
+      if (goldEl) goldEl.textContent = String(tierCounts.gold);
+      const silvEl = document.getElementById("tier-count-silver");
+      if (silvEl) silvEl.textContent = String(tierCounts.silver);
+      const bronzEl = document.getElementById("tier-count-bronze");
+      if (bronzEl) bronzEl.textContent = String(tierCounts.bronze);
+
       const achievementsRoot = document.getElementById("panel-achievements");
       achievementsRoot.replaceChildren();
-      const achievementItems = Array.isArray(achievements.items) ? achievements.items : [];
       if (achievements.loading) {
         const loading = document.createElement("div");
         loading.className = "conversation-empty";
@@ -4632,13 +6048,30 @@
 
       const settings = state.settings || {};
       const captureShortcut = settings.captureShortcut || "F8";
-      document.getElementById("capture-shortcut-label").textContent = formatShortcut(captureShortcut);
+      const formattedShortcut = formatShortcut(captureShortcut);
+      const captureShortcutLabel = document.getElementById("capture-shortcut-label");
+      if (captureShortcutLabel) captureShortcutLabel.textContent = formattedShortcut;
+      const heroCaptureLabel = document.getElementById("btn-hero-capture-label");
+      if (heroCaptureLabel) heroCaptureLabel.textContent = `Capturar (${formattedShortcut})`;
+      const heroCaptureBtn = document.getElementById("btn-hero-capture");
+      if (heroCaptureBtn) heroCaptureBtn.title = `Capturar tela (${formattedShortcut})`;
       if (!captureShortcutRecording) {
-        document.getElementById("capture-shortcut-value").textContent = formatShortcut(captureShortcut);
+        const captureShortcutVal = document.getElementById("capture-shortcut-value");
+        if (captureShortcutVal) captureShortcutVal.textContent = formattedShortcut;
       }
       const captureRoot = document.getElementById("capture-gallery");
       captureRoot.replaceChildren();
       const captures = Array.isArray(state.captures) ? state.captures : [];
+
+      const overlayStatusText = document.getElementById("overlay-status-text");
+      if (overlayStatusText) overlayStatusText.textContent = "Overlay ativo";
+
+      const quickMediaBadge = document.getElementById("quick-media-badge");
+      if (quickMediaBadge) quickMediaBadge.textContent = `${captures.length} novas`;
+
+      const quickAchievementsBadge = document.getElementById("quick-achievements-badge");
+      if (quickAchievementsBadge) quickAchievementsBadge.textContent = `${unlocked}/${available}`;
+
       if (captures.length === 0) {
         const empty = document.createElement("div");
         empty.className = "capture-empty";
@@ -4783,6 +6216,8 @@
     };
 
     const activatePanelTab = (tab, activeButton) => {
+      const workspace = document.querySelector(".panel-workspace");
+      if (workspace) workspace.dataset.activeView = tab;
       document.querySelectorAll("[data-panel-tab]").forEach((item) => item.classList.toggle("is-active", item === activeButton));
       document.querySelectorAll("[data-panel-view]").forEach((view) => view.classList.toggle("is-active", view.dataset.panelView === tab));
     };
@@ -4798,6 +6233,10 @@
       const tab = button.dataset.contextTab;
       const navButton = document.querySelector(`[data-panel-tab="${tab}"]`);
       activatePanelTab(tab, navButton);
+      if (document.body.dataset.overlayMode === "quick") {
+        setOverlayMode("full");
+        playOverlayUiSound("ui-click");
+      }
     }));
 
     const overlayInteractiveSelector = [
@@ -5147,17 +6586,73 @@
     document.querySelectorAll("[data-media]").forEach((button) => button.addEventListener("click", () => window.achievementOverlay.panelAction({ kind: button.dataset.media })));
     window.setInterval(updateSessionDuration, 1000);
     window.setInterval(() => {
+      const cpuVal = Math.floor(Math.random() * 20 + 30);
+      const gpuVal = Math.floor(Math.random() * 10 + 85);
+      const tempVal = Math.floor(Math.random() * 5 + 65);
+      const fpsVal = Math.floor(Math.random() * 10 + 110);
+
       const cpu = document.getElementById("osd-cpu");
       const gpu = document.getElementById("osd-gpu");
       const temp = document.getElementById("osd-temp");
       const fps = document.getElementById("osd-fps");
-      if (cpu) cpu.textContent = `${Math.floor(Math.random() * 20 + 30)}%`;
-      if (gpu) gpu.textContent = `${Math.floor(Math.random() * 10 + 85)}%`;
-      if (temp) temp.textContent = `${Math.floor(Math.random() * 5 + 65)}°C`;
-      if (fps) fps.textContent = `${Math.floor(Math.random() * 10 + 110)} FPS`;
+
+      if (cpu) cpu.textContent = `${cpuVal}%`;
+      if (gpu) gpu.textContent = `${gpuVal}%`;
+      if (temp) temp.textContent = `${tempVal}°C`;
+      if (fps) fps.textContent = `${fpsVal} FPS`;
+
+      const cpuBar = document.getElementById("osd-cpu-bar");
+      const gpuBar = document.getElementById("osd-gpu-bar");
+      const tempBar = document.getElementById("osd-temp-bar");
+      const fpsBar = document.getElementById("osd-fps-bar");
+
+      if (cpuBar) cpuBar.style.width = `${cpuVal}%`;
+      if (gpuBar) gpuBar.style.width = `${gpuVal}%`;
+      if (tempBar) tempBar.style.width = `${Math.min(100, Math.max(0, (tempVal / 100) * 100))}%`;
+      if (fpsBar) fpsBar.style.width = `${Math.min(100, Math.max(0, (fpsVal / 165) * 100))}%`;
     }, 2000);
 
+    const setOverlayMode = (mode) => {
+      document.body.dataset.overlayMode = mode;
+      const panel = document.getElementById("command-panel");
+      if (panel) panel.classList.toggle("mode-quick", mode === "quick");
+      const icon = mode === "quick" ? "#icon-maximize" : "#icon-minimize";
+      document.querySelectorAll("#panel-toggle-mode-icon use, #sidebar-mode-icon use").forEach((use) => {
+        use.setAttribute("href", icon);
+      });
+      const toggleBtn = document.getElementById("panel-toggle-mode");
+      if (toggleBtn) {
+        toggleBtn.title = mode === "quick" ? "Expandir overlay (ver todas as opções)" : "Recolher para modo compacto";
+      }
+    };
+
+    const toggleOverlayMode = () => {
+      const current = document.body.dataset.overlayMode;
+      const next = current === "full" ? "quick" : "full";
+      setOverlayMode(next);
+      playOverlayUiSound("ui-click");
+    };
+
+    document.getElementById("panel-toggle-mode")?.addEventListener("click", toggleOverlayMode);
+    document.getElementById("sidebar-mode-toggle")?.addEventListener("click", toggleOverlayMode);
+    document.getElementById("context-expand-btn")?.addEventListener("click", () => {
+      setOverlayMode("full");
+      playOverlayUiSound("ui-click");
+    });
+    document.getElementById("panel-close-top")?.addEventListener("click", () => {
+      window.achievementOverlay?.panelAction({ kind: "close" });
+      playOverlayUiSound("ui-back");
+    });
+    document.getElementById("btn-hero-capture")?.addEventListener("click", () => {
+      document.getElementById("capture-now")?.click();
+    });
+
     window.addEventListener("keydown", async (event) => {
+      if (!captureShortcutRecording && (event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === "k") {
+        event.preventDefault();
+        document.getElementById("friend-search")?.focus();
+        return;
+      }
       if (
         event.key === "Escape"
         && (
@@ -5198,8 +6693,13 @@
           settings: { ...latestPanelState.settings, captureShortcut: savedShortcut },
         };
         stopCaptureShortcutRecording();
-        document.getElementById("capture-shortcut-label").textContent = formatShortcut(savedShortcut);
-        setCaptureFeedback(`Atalho alterado para ${formatShortcut(savedShortcut)}.`);
+        const formattedSaved = formatShortcut(savedShortcut);
+        document.getElementById("capture-shortcut-label").textContent = formattedSaved;
+        const heroLabel = document.getElementById("btn-hero-capture-label");
+        if (heroLabel) heroLabel.textContent = `Capturar (${formattedSaved})`;
+        const heroBtn = document.getElementById("btn-hero-capture");
+        if (heroBtn) heroBtn.title = `Capturar tela (${formattedSaved})`;
+        setCaptureFeedback(`Atalho alterado para ${formattedSaved}.`);
         return;
       }
       if (captureViewerIndex >= 0) {
@@ -5216,8 +6716,13 @@
         return;
       }
       if (event.key !== "Escape" || !commandPanel?.classList.contains("is-open")) return;
-      if (latestPanelState.chat) window.achievementOverlay.panelAction({ kind: "close-chat" });
-      else window.achievementOverlay.panelAction({ kind: "close" });
+      if (latestPanelState.chat) {
+        window.achievementOverlay.panelAction({ kind: "close-chat" });
+      } else if (document.body.dataset.overlayMode === "full") {
+        setOverlayMode("quick");
+      } else {
+        window.achievementOverlay.panelAction({ kind: "close" });
+      }
     }, true);
 
     // Mock API Binding
@@ -5233,6 +6738,12 @@
         commandPanel?.classList.toggle("is-open", Boolean(open));
         commandPanel?.setAttribute("aria-hidden", open ? "false" : "true");
         document.body.classList.toggle("panel-open", Boolean(open));
+        if (open) {
+          const targetMode = wasOpen ? (document.body.dataset.overlayMode || "quick") : "quick";
+          setOverlayMode(targetMode);
+        } else {
+          document.body.dataset.overlayMode = "passive";
+        }
         if (!open && captureShortcutRecording) stopCaptureShortcutRecording();
         if (!open) closeCaptureViewer();
         if (state) renderPanelState(state);

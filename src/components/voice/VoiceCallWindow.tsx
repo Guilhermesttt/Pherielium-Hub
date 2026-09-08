@@ -793,7 +793,7 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 10 }}
           transition={{ type: "spring", stiffness: 380, damping: 28 }}
-          className="relative flex flex-col w-full max-w-6xl h-[88vh] overflow-hidden rounded-[28px] border border-white/10 bg-[#080808] shadow-[0_30px_90px_rgba(0,0,0,0.9)]"
+          className="relative flex flex-col w-full max-w-6xl h-[88vh] overflow-hidden rounded-[22px] border border-white/10 bg-[#080808] shadow-[0_30px_90px_rgba(0,0,0,0.9)]"
         >
           {/* Top Bar Header — h-14 consistent */}
           <div className="flex items-center justify-between h-14 px-6 border-b border-white/[0.08] bg-[#0a0a0a] z-20">

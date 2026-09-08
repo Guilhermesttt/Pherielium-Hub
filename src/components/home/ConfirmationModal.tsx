@@ -31,7 +31,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = React.memo(
         onClose={handleCloseAction}
         maxWidthClassName="max-w-md"
         zIndexClassName="z-[170]"
-        className="rounded-[32px] border border-white/10 bg-[#0a0a0c]/95 p-8 shadow-2xl backdrop-blur-3xl"
+        className="rounded-[22px] border border-white/10 bg-[#0a0a0c]/95 p-8 shadow-2xl backdrop-blur-3xl"
       >
         <h3 className="mb-2 text-xl font-semibold text-white">{title}</h3>
         <p className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>

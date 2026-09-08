@@ -3,18 +3,18 @@ import type { SoundTheme } from "../context/PreferencesContext";
 
 import phelieriumSelectSound from "../sounds/Phelierium Default/ui_select.wav";
 import phelieriumClickSound from "../sounds/Phelierium Default/ui_click.wav";
-import phelieriumAlertSound from "../sounds/Phelierium Default/ui_alert.mp3";
-import phelieriumNotificationSound from "../sounds/Phelierium Default/ui_notification.mp3";
-import phelieriumFriendshipSound from "../sounds/Phelierium Default/ui_friendshipsent.mp3";
+import phelieriumAlertSound from "../sounds/Phelierium Default/ui_alert.wav";
+import phelieriumNotificationSound from "../sounds/Phelierium Default/ui_notification.wav";
+import phelieriumFriendshipSound from "../sounds/Phelierium Default/ui_friendship_incomming.wav";
 import phelieriumOpenDetailSound from "../sounds/Phelierium Default/ui_open_game_detail.mp3";
 import phelieriumCloseDetailSound from "../sounds/Phelierium Default/ui_close_game_detail.mp3";
-import phelieriumEditSound from "../sounds/Phelierium Default/ui_edit_game.mp3";
+import phelieriumEditSound from "../sounds/Phelierium Default/ui_edit_game.wav";
 import phelieriumDeepSelectSound from "../sounds/Phelierium Default/ui_deep_selection.mp3";
 import phelieriumAchievementSound from "../sounds/Phelierium Default/Achievment_Unlock.mp3";
 import phelieriumAchievementPlatinumSound from "../sounds/Phelierium Default/Achievment_Unlock_Platinum.mp3";
 import phelieriumUiAchievementSound from "../sounds/Phelierium Default/ui_achievment.mp3";
 import phelieriumCallEnterSound from "../sounds/Phelierium Default/ui_call_enter.mp3";
-import phelieriumGameStartSound from "../sounds/Phelierium Default/ui_game_start.mp3";
+import phelieriumGameStartSound from "../sounds/Phelierium Default/ui_game_start.wav";
 import phelieriumNewChatMessageSound from "../sounds/Phelierium Default/ui_new_chat_message.mp3";
 
 import ps5PlusNavigateSound from "../sounds/PS5_Plus/deck_ui_navigation.wav";
@@ -126,7 +126,7 @@ export const soundThemes = {
     search: phelieriumSelectSound,
     detailOpen: phelieriumOpenDetailSound,
     friendRequest: phelieriumFriendshipSound,
-    chatSent: phelieriumSelectSound,
+    chatSent: phelieriumNewChatMessageSound,
     chatReceived: phelieriumNewChatMessageSound,
     notification: phelieriumNotificationSound,
     callEnter: phelieriumCallEnterSound,
@@ -347,7 +347,7 @@ const getAudioContext = (): AudioContext | null => {
     }
   }
   if (globalAudioCtx && globalAudioCtx.state === "suspended") {
-    void globalAudioCtx.resume().catch(() => {});
+    void globalAudioCtx.resume().catch(() => { });
   }
   return globalAudioCtx;
 };
@@ -406,7 +406,7 @@ const getHtmlAudio = (path: string, volume: number): HTMLAudioElement => {
 if (typeof window !== "undefined") {
   const unlockAudio = () => {
     if (globalAudioCtx && globalAudioCtx.state === "suspended") {
-      void globalAudioCtx.resume().catch(() => {});
+      void globalAudioCtx.resume().catch(() => { });
     }
   };
   window.addEventListener("pointerdown", unlockAudio, { capture: true, once: true });
@@ -444,7 +444,7 @@ export const useSoundEffects = (
       activeAudiosRef.current.forEach((audio) => {
         try {
           audio.pause();
-        } catch {}
+        } catch { }
       });
       activeAudiosRef.current.clear();
     };

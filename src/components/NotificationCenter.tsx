@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useMemo, useState, useEf
 import { Toaster, toast } from "./ui/Shandc/toast";
 import { soundThemes } from "../hooks/useSoundEffects";
 
-type NotificationType =
+export type NotificationType =
   | "success"
   | "error"
   | "info"
@@ -13,7 +13,7 @@ type NotificationType =
   | "friend-accepted"
   | "message";
 
-interface NotificationOptions {
+export interface NotificationOptions {
   id?: string | number;
   title?: string;
   imageUrl?: string;

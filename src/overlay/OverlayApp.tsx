@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Trophy,
@@ -17,10 +17,15 @@ import {
   PhoneOff,
   PhoneIncoming,
   CheckCircle2,
-  AlertCircle,
   Info,
   UserPlus,
   ChevronLeft,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 import achievementUnlockDefault from "../sounds/Phelierium Default/Achievment_Unlock.mp3";
@@ -30,8 +35,22 @@ import { Button } from "@/components/ui/Shandc/button";
 import { useGamepadButton } from "../context/GamepadContext";
 import { useGamepadFocusNavigation } from "../hooks/useGamepadFocusNavigation";
 
-interface AchievementToast {
+// ─── Logger Estruturado ────────────────────────────────────────────────────────
+const overlayLogger = {
+  info: (...args: unknown[]) => console.info("[overlay:app]", ...args),
+  warn: (...args: unknown[]) => console.warn("[overlay:app]", ...args),
+  error: (...args: unknown[]) => console.error("[overlay:app]", ...args),
+};
+
+// ─── Tipos do Assistente por Estados ──────────────────────────────────────────
+export type OverlayMode = "passive" | "quick" | "full";
+export type OverlayView = "home" | "friends" | "chat" | "achievements" | "call" | "media" | "settings";
+export type InteractionSource = "keyboard" | "gamepad" | "mouse";
+export type CallConnectionState = "connected" | "degraded" | "reconnecting" | "failed";
+
+export interface AchievementToast {
   id: string;
+  kind: "achievement";
   title: string;
   description: string;
   icon?: string;
@@ -44,9 +63,20 @@ interface AchievementToast {
   currentXP?: number;
 }
 
-interface SocialToast {
+export interface SocialToast {
   id: string;
-  kind: "friend-playing" | "friend-request" | "friend-accepted" | "message" | "capture" | "hint" | "incoming-call" | "success" | "error" | "info" | "achievement" | string;
+  kind:
+    | "friend-playing"
+    | "friend-request"
+    | "friend-accepted"
+    | "message"
+    | "capture"
+    | "hint"
+    | "incoming-call"
+    | "success"
+    | "error"
+    | "info"
+    | string;
   title: string;
   subtitle?: string;
   description?: string;
@@ -55,9 +85,13 @@ interface SocialToast {
   gameTitle?: string;
   screenshotUrl?: string;
   callerUid?: string;
+  friendId?: string;
+  messageCount?: number;
 }
 
-interface OverlayChatMessage {
+export type AnyOverlayToast = AchievementToast | SocialToast;
+
+export interface OverlayChatMessage {
   id: string;
   text: string;
   attachmentUrl?: string;
@@ -67,7 +101,7 @@ interface OverlayChatMessage {
   pending?: boolean;
 }
 
-interface OverlayChatSession {
+export interface OverlayChatSession {
   friendId: string;
   friendName: string;
   friendAvatar?: string;
@@ -77,30 +111,50 @@ interface OverlayChatSession {
   messages: OverlayChatMessage[];
 }
 
-interface CommandPanelState {
+export interface ActiveCallState {
+  active: boolean;
+  friendId?: string;
+  friendName?: string;
+  friendAvatar?: string;
+  muted?: boolean;
+  deafened?: boolean;
+  connectionState?: CallConnectionState;
+  durationSeconds?: number;
+}
+
+export interface CommandPanelState {
   gameTitle?: string;
   userDisplay?: string;
   userAvatar?: string;
+  playerLevel?: number;
+  playerXP?: number;
+  playerNextLevelXP?: number;
   playingGame?: any;
   achievements?: any[];
   friends?: any[];
   chat?: OverlayChatSession | null;
+  activeCall?: ActiveCallState | null;
   screenshots?: string[];
   settings?: {
     achievementVolume?: number;
     achievementSoundTheme?: string;
+    autoContrast?: boolean;
   };
 }
 
+// ─── Gerenciamento de Sons ─────────────────────────────────────────────────────
 const playOverlaySound = (type: "unlock" | "welcome" | "toast" | "toggle" | "unlockGold" | "unlockPlatinum") => {
   try {
     if (type === "unlock" || type === "unlockGold" || type === "unlockPlatinum") {
-      const src = type === "unlockPlatinum" ? achievementUnlockPlatinum
-        : type === "unlockGold" ? achievementUnlockGold
-        : achievementUnlockDefault;
+      const src =
+        type === "unlockPlatinum"
+          ? achievementUnlockPlatinum
+          : type === "unlockGold"
+          ? achievementUnlockGold
+          : achievementUnlockDefault;
       const audio = new Audio(src);
       audio.volume = 0.5;
-      audio.play().catch(() => {});
+      audio.play().catch((e) => overlayLogger.warn("Falha ao tocar som de conquista:", e));
       return;
     }
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -129,69 +183,94 @@ const playOverlaySound = (type: "unlock" | "welcome" | "toast" | "toggle" | "unl
       osc.start(now);
       osc.stop(now + 0.1);
     }
-  } catch {
-    // Silent fallback
+  } catch (err) {
+    overlayLogger.warn("AudioContext error:", err);
   }
 };
 
+// ─── Componente Principal ──────────────────────────────────────────────────────
 const OverlayApp: React.FC = () => {
-  const [achievementToasts, setAchievementToasts] = useState<AchievementToast[]>([]);
-  const [socialToasts, setSocialToasts] = useState<SocialToast[]>([]);
-  const [isPanelVisible, setIsPanelVisible] = useState(false);
-  const [activeView, setActiveView] = useState<"friends" | "chats" | "game" | "achievements" | "media" | "settings">("game");
+  const [overlayMode, setOverlayMode] = useState<OverlayMode>("passive");
+  const [activeView, setActiveView] = useState<OverlayView>("home");
+  const [interactionSource, setInteractionSource] = useState<InteractionSource>("mouse");
   const [panelData, setPanelData] = useState<CommandPanelState>({});
+  const [toasts, setToasts] = useState<AnyOverlayToast[]>([]);
   const [inputText, setInputText] = useState("");
   const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [activeCall, setActiveCall] = useState<ActiveCallState | null>(null);
+  const [autoContrast, setAutoContrast] = useState(false);
+
+  const toastTimersRef = useRef<Map<string, number>>(new Map());
   const chatMessagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const achievementList = React.useMemo(() => {
-    const raw = panelData.achievements;
-    if (Array.isArray(raw)) return raw;
-    if (raw && Array.isArray((raw as any).items)) return (raw as any).items;
-    return [];
-  }, [panelData.achievements]);
-
-  const unlockedAchievementsCount = React.useMemo(() => {
-    const raw = panelData.achievements as any;
-    if (typeof raw?.unlocked === "number") return raw.unlocked;
-    return achievementList.filter((a: any) => a.achieved).length;
-  }, [panelData.achievements, achievementList]);
-
-  const totalAchievementsCount = React.useMemo(() => {
-    const raw = panelData.achievements as any;
-    if (typeof raw?.available === "number" && raw.available > 0) return raw.available;
-    return achievementList.length;
-  }, [panelData.achievements, achievementList]);
-
-  useEffect(() => {
-    if (isPanelVisible) {
-      const timer = window.setTimeout(() => {
-        const root = document.querySelector<HTMLElement>("[data-system-page]");
-        const firstBtn = root?.querySelector<HTMLElement>("button:not(:disabled)");
-        if (firstBtn) {
-          firstBtn.dataset.gamepadFocused = "true";
-          firstBtn.focus();
-        }
-      }, 60);
-      return () => window.clearTimeout(timer);
+  // ─── Toast Manager Centralizado ──────────────────────────────────────────────
+  const removeToast = useCallback((id: string) => {
+    const timer = toastTimersRef.current.get(id);
+    if (timer) {
+      window.clearTimeout(timer);
+      toastTimersRef.current.delete(id);
     }
-  }, [isPanelVisible]);
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
+  const addToast = useCallback(
+    (toast: AnyOverlayToast, durationMs = 5000) => {
+      // Agrupamento inteligente para mensagens repetidas do mesmo amigo
+      if (toast.kind === "message" && "friendId" in toast && toast.friendId) {
+        setToasts((prev) => {
+          const existing = prev.find((t) => t.kind === "message" && (t as SocialToast).friendId === toast.friendId) as
+            | SocialToast
+            | undefined;
+          if (existing) {
+            const count = (existing.messageCount || 1) + 1;
+            const updated: SocialToast = {
+              ...existing,
+              title: `${toast.title} (${count})`,
+              message: (toast as SocialToast).message,
+              messageCount: count,
+            };
+            return prev.map((t) => (t.id === existing.id ? updated : t));
+          }
+          return [...prev, toast];
+        });
+      } else {
+        setToasts((prev) => [...prev, toast]);
+      }
+
+      const timerId = window.setTimeout(() => {
+        removeToast(toast.id);
+      }, durationMs);
+      toastTimersRef.current.set(toast.id, timerId);
+    },
+    [removeToast]
+  );
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      toastTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      toastTimersRef.current.clear();
+    };
+  }, []);
+
+  // ─── Conexão com IPC nativo do Electron ──────────────────────────────────────
   useEffect(() => {
     const api = (window as any).achievementOverlay;
-    if (!api) return;
+    if (!api) {
+      overlayLogger.warn("API achievementOverlay não encontrada.");
+      return;
+    }
 
     const unbindUnlock = api.onUnlock?.((payload: any) => {
       const percent = payload.percent ?? 50;
       const tier: AchievementToast["tier"] =
-        percent <= 5 ? "platinum" :
-        percent <= 20 ? "gold" :
-        percent <= 50 ? "silver" : "bronze";
+        percent <= 5 ? "platinum" : percent <= 20 ? "gold" : percent <= 50 ? "silver" : "bronze";
       const xpMap = { platinum: 500, gold: 200, silver: 100, bronze: 50 };
       const xpGained = xpMap[tier];
 
       const toast: AchievementToast = {
         id: String(Date.now() + Math.random()),
+        kind: "achievement",
         title: payload.title || "Conquista Desbloqueada",
         description: payload.description || "",
         icon: payload.icon,
@@ -204,10 +283,7 @@ const OverlayApp: React.FC = () => {
         currentXP: payload.currentXP,
       };
       playOverlaySound(tier === "platinum" ? "unlockPlatinum" : tier === "gold" ? "unlockGold" : "unlock");
-      setAchievementToasts((prev) => [...prev, toast]);
-      setTimeout(() => {
-        setAchievementToasts((prev) => prev.filter((t) => t.id !== toast.id));
-      }, 5000);
+      addToast(toast, 6500);
     });
 
     const unbindWelcome = api.onWelcome?.((payload: any) => {
@@ -219,10 +295,7 @@ const OverlayApp: React.FC = () => {
         avatar: payload.userAvatar,
       };
       playOverlaySound("welcome");
-      setSocialToasts((prev) => [...prev, toast]);
-      setTimeout(() => {
-        setSocialToasts((prev) => prev.filter((t) => t.id !== toast.id));
-      }, 4500);
+      addToast(toast, 4500);
     });
 
     const unbindSocial = api.onSocial?.((payload: any) => {
@@ -235,32 +308,42 @@ const OverlayApp: React.FC = () => {
         message: payload.message || payload.description,
         gameTitle: payload.gameTitle,
         screenshotUrl: payload.screenshotUrl,
+        callerUid: payload.callerUid,
+        friendId: payload.friendId,
       };
-      playOverlaySound("toast");
-      setSocialToasts((prev) => [...prev, toast]);
-      setTimeout(() => {
-        setSocialToasts((prev) => prev.filter((t) => t.id !== toast.id));
-      }, 5000);
+      if (payload.kind !== "game-start") {
+        playOverlaySound("toast");
+      }
+      addToast(toast, payload.kind === "incoming-call" ? 15000 : 5000);
     });
 
     const unbindVisibility = api.onPanelVisibility?.((payload: any) => {
-      setIsPanelVisible(Boolean(payload.open || payload.visible));
+      const shouldOpen = Boolean(payload.open || payload.visible);
+      if (shouldOpen) {
+        setOverlayMode((prev) => (prev === "passive" ? "quick" : prev));
+      } else {
+        setOverlayMode("passive");
+      }
       if (payload.state) {
         setPanelData((prev) => ({ ...prev, ...payload.state }));
+        if (payload.state.activeCall) setActiveCall(payload.state.activeCall);
       }
     });
 
     const unbindState = api.onPanelState?.((payload: any) => {
       setPanelData((prev) => ({ ...prev, ...payload }));
+      if (payload.activeCall !== undefined) setActiveCall(payload.activeCall);
     });
 
     const unbindCommand = api.onPanelCommand?.((payload: any) => {
       playOverlaySound("toggle");
       if (payload.kind === "open-chat") {
-        setIsPanelVisible(true);
-        setActiveView("chats");
+        setOverlayMode("full");
+        setActiveView("chat");
       } else if (payload.kind === "toggle") {
-        setIsPanelVisible((prev) => !prev);
+        setOverlayMode((prev) => (prev === "passive" ? "quick" : "passive"));
+      } else if (payload.kind === "expand") {
+        setOverlayMode("full");
       }
     });
 
@@ -272,27 +355,37 @@ const OverlayApp: React.FC = () => {
       unbindState?.();
       unbindCommand?.();
     };
-  }, []);
+  }, [addToast]);
 
+  // Scroll chat messages to bottom
   useEffect(() => {
-    if (activeView === "chats" && panelData.chat?.messages?.length) {
+    if (activeView === "chat" && panelData.chat?.messages?.length) {
       chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [activeView, panelData.chat?.messages]);
 
-  const closePanel = () => {
-    setIsPanelVisible(false);
+  // ─── Ações do Overlay ────────────────────────────────────────────────────────
+  const closeOverlay = useCallback(() => {
+    setOverlayMode("passive");
     (window as any).achievementOverlay?.panelAction?.({ kind: "close" });
-  };
+  }, []);
 
+  const handleStepBack = useCallback(() => {
+    if (viewingImage) {
+      setViewingImage(null);
+    } else if (overlayMode === "full") {
+      setOverlayMode("quick");
+    } else if (overlayMode === "quick") {
+      closeOverlay();
+    }
+  }, [closeOverlay, overlayMode, viewingImage]);
+
+  // ─── Teclado & Hotkeys ───────────────────────────────────────────────────────
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
+    function onKeyDown(e: KeyboardEvent) {
+      setInteractionSource("keyboard");
       if (e.key === "Escape") {
-        if (viewingImage) {
-          setViewingImage(null);
-        } else if (isPanelVisible) {
-          closePanel();
-        }
+        handleStepBack();
       } else if (e.key === "Enter" && !e.shiftKey) {
         if (
           document.activeElement &&
@@ -304,34 +397,34 @@ const OverlayApp: React.FC = () => {
         }
       }
     }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleStepBack]);
 
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isPanelVisible, viewingImage]);
-
+  // ─── Navegação por Gamepad ───────────────────────────────────────────────────
   const { moveSystemFocus } = useGamepadFocusNavigation({
-    playSound: (type) => playOverlaySound("toggle"),
+    playSound: () => playOverlaySound("toggle"),
     activeCategory: activeView,
     isSystemCategory: true,
   });
 
-  useGamepadButton("DPAD_UP", () => moveSystemFocus("up"), isPanelVisible, 100);
-  useGamepadButton("DPAD_DOWN", () => moveSystemFocus("down"), isPanelVisible, 100);
-  useGamepadButton("DPAD_LEFT", () => moveSystemFocus("left"), isPanelVisible, 100);
-  useGamepadButton("DPAD_RIGHT", () => moveSystemFocus("right"), isPanelVisible, 100);
-  useGamepadButton("O", () => closePanel(), isPanelVisible, 100);
-  useGamepadButton(
-    "X",
-    () => {
-      const active = document.activeElement as HTMLElement | null;
-      active?.click?.();
-    },
-    isPanelVisible,
-    100
-  );
+  const isInteractive = overlayMode !== "passive";
 
+  useGamepadButton("DPAD_UP", () => { setInteractionSource("gamepad"); moveSystemFocus("up"); }, isInteractive, 100);
+  useGamepadButton("DPAD_DOWN", () => { setInteractionSource("gamepad"); moveSystemFocus("down"); }, isInteractive, 100);
+  useGamepadButton("DPAD_LEFT", () => { setInteractionSource("gamepad"); moveSystemFocus("left"); }, isInteractive, 100);
+  useGamepadButton("DPAD_RIGHT", () => { setInteractionSource("gamepad"); moveSystemFocus("right"); }, isInteractive, 100);
+  useGamepadButton("O", () => { setInteractionSource("gamepad"); handleStepBack(); }, isInteractive, 100);
+  useGamepadButton("X", () => {
+    setInteractionSource("gamepad");
+    const active = document.activeElement as HTMLElement | null;
+    active?.click?.();
+  }, isInteractive, 100);
+
+  // ─── Handlers de Ação Social / Chamada ───────────────────────────────────────
   const handleSelectChat = (friendId: string) => {
-    setActiveView("chats");
+    setOverlayMode("full");
+    setActiveView("chat");
     (window as any).achievementOverlay?.panelAction?.({
       kind: "select-chat",
       friendId,
@@ -351,335 +444,635 @@ const OverlayApp: React.FC = () => {
   };
 
   const handleCloseChat = () => {
+    (window as any).achievementOverlay?.panelAction?.({ kind: "close-chat" });
+  };
+
+  const handleVoiceCall = (friendId: string, friendName: string, friendAvatar?: string) => {
+    setActiveCall({
+      active: true,
+      friendId,
+      friendName,
+      friendAvatar,
+      muted: false,
+      deafened: false,
+      connectionState: "connected",
+    });
     (window as any).achievementOverlay?.panelAction?.({
-      kind: "close-chat",
+      kind: "voice-call",
+      friendId,
+      friendName,
+      friendAvatar,
     });
   };
 
+  const handleEndCall = () => {
+    setActiveCall(null);
+    (window as any).achievementOverlay?.panelAction?.({ kind: "voice-reject" });
+  };
+
+  const toggleMute = () => {
+    setActiveCall((prev) => (prev ? { ...prev, muted: !prev.muted } : null));
+    (window as any).achievementOverlay?.panelAction?.({ kind: "voice-mute-toggle" });
+  };
+
+  const toggleDeafen = () => {
+    setActiveCall((prev) => (prev ? { ...prev, deafened: !prev.deafened } : null));
+    (window as any).achievementOverlay?.panelAction?.({ kind: "voice-deafen-toggle" });
+  };
+
+  // Cálculos de Conquistas e Progresso
+  const achievementList = React.useMemo(() => {
+    const raw = panelData.achievements;
+    if (Array.isArray(raw)) return raw;
+    if (raw && Array.isArray((raw as any).items)) return (raw as any).items;
+    return [];
+  }, [panelData.achievements]);
+
+  const unlockedCount = React.useMemo(() => {
+    const raw = panelData.achievements as any;
+    if (typeof raw?.unlocked === "number") return raw.unlocked;
+    return achievementList.filter((a: any) => a.achieved).length;
+  }, [panelData.achievements, achievementList]);
+
+  const totalCount = React.useMemo(() => {
+    const raw = panelData.achievements as any;
+    if (typeof raw?.available === "number" && raw.available > 0) return raw.available;
+    return achievementList.length;
+  }, [panelData.achievements, achievementList]);
+
+  const achievementsLoading = Boolean((panelData.achievements as any)?.loading);
+  const hasCurrentGame = Boolean(panelData.gameTitle || panelData.playingGame?.title);
+  const progressPercent = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
+  const onlineFriends = (panelData.friends || []).filter((f: any) => f.status === "online" || f.status === "playing");
+
   return (
-    <div className="fixed inset-0 pointer-events-none z-9999 font-sans select-none overflow-hidden">
-      {/* Top Right Achievement Toasts */}
-      <div className="fixed top-6 right-6 flex flex-col gap-3 z-10000 max-w-sm w-full pointer-events-auto">
+    <div
+      data-overlay-mode={overlayMode}
+      data-interaction-source={interactionSource}
+      onPointerDown={() => setInteractionSource("mouse")}
+      className={`fixed inset-0 pointer-events-none z-[9999] select-none overflow-hidden bg-transparent font-sans text-white ${
+        autoContrast ? "drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]" : ""
+      }`}
+    >
+      {/* ─── TOASTS FLUTUANTES ──────────────────────────────────────────────── */}
+      {/* Top Right: Toasts de Conquistas */}
+      <div className="fixed top-6 right-6 flex flex-col gap-3 z-[10000] max-w-sm w-full pointer-events-auto">
         <AnimatePresence>
-          {achievementToasts.map((toast) => {
-            const tierStyles = {
-              platinum: { color: "#38bdf8", border: "rgba(56,189,248,0.35)", bg: "rgba(56,189,248,0.08)", glow: "0 0 20px rgba(56,189,248,0.15)", label: "PLATINA" },
-              gold: { color: "#eab308", border: "rgba(234,179,8,0.35)", bg: "rgba(234,179,8,0.08)", glow: "0 0 18px rgba(234,179,8,0.12)", label: "OURO" },
-              silver: { color: "#a3a3a3", border: "rgba(163,163,163,0.25)", bg: "rgba(163,163,163,0.06)", glow: "", label: "PRATA" },
-              bronze: { color: "#cd7f32", border: "rgba(205,127,50,0.25)", bg: "rgba(205,127,50,0.06)", glow: "", label: "BRONZE" },
-            };
-            const tier = tierStyles[toast.tier || "bronze"];
-            return (
-              <motion.div
-                key={toast.id}
-                initial={{ opacity: 0, x: 80, scale: 0.9 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 80, scale: 0.9 }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="flex items-center gap-3.5 rounded-[22px] border p-4 backdrop-blur-2xl"
-                style={{
-                  borderColor: tier.border,
-                  background: `radial-gradient(ellipse at top, ${tier.bg}, rgba(8,12,9,0.95))`,
-                  boxShadow: `${tier.glow}, 0 25px 60px rgba(0,0,0,0.85)`,
-                }}
-              >
-                {/* Trophy Icon */}
-                <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border"
+          {toasts
+            .filter((t): t is AchievementToast => t.kind === "achievement")
+            .map((toast) => {
+              const tierStyles = {
+                platinum: {
+                  color: "#38bdf8",
+                  border: "rgba(56,189,248,0.4)",
+                  bg: "rgba(56,189,248,0.1)",
+                  glow: "0 0 24px rgba(56,189,248,0.2)",
+                  label: "PLATINA",
+                },
+                gold: {
+                  color: "#eab308",
+                  border: "rgba(234,179,8,0.4)",
+                  bg: "rgba(234,179,8,0.1)",
+                  glow: "0 0 20px rgba(234,179,8,0.15)",
+                  label: "OURO",
+                },
+                silver: {
+                  color: "#a3a3a3",
+                  border: "rgba(163,163,163,0.3)",
+                  bg: "rgba(163,163,163,0.08)",
+                  glow: "",
+                  label: "PRATA",
+                },
+                bronze: {
+                  color: "#cd7f32",
+                  border: "rgba(205,127,50,0.3)",
+                  bg: "rgba(205,127,50,0.08)",
+                  glow: "",
+                  label: "BRONZE",
+                },
+              };
+              const tier = tierStyles[toast.tier || "bronze"];
+              return (
+                <motion.div
+                  key={toast.id}
+                  initial={{ opacity: 0, x: 80, scale: 0.92 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 80, scale: 0.92 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex flex-col gap-2 rounded-2xl border p-3.5 backdrop-blur-xl shadow-2xl bg-black/85"
                   style={{
                     borderColor: tier.border,
-                    backgroundColor: tier.bg,
-                    boxShadow: tier.glow ? `inset 0 0 12px ${tier.bg}` : undefined,
+                    boxShadow: `${tier.glow}, 0 20px 50px rgba(0,0,0,0.85)`,
                   }}
                 >
-                  {toast.icon ? (
-                    <img src={toast.icon} alt="" className="h-full w-full object-cover rounded-xl" />
-                  ) : (
-                    <Trophy className="h-6 w-6" style={{ color: tier.color }} fill="currentColor" strokeWidth={1.5} />
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: tier.color }}>
-                      {tier.label}
-                    </span>
-                    {toast.gameTitle && (
-                      <>
-                        <span className="h-1 w-1 rounded-full bg-white/20" />
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-white/40 truncate">
-                          {toast.gameTitle}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border"
+                      style={{ borderColor: tier.border, backgroundColor: tier.bg }}
+                    >
+                      {toast.icon ? (
+                        <img src={toast.icon} alt="" className="h-full w-full object-cover rounded-xl" />
+                      ) : (
+                        <Trophy className="h-5 w-5" style={{ color: tier.color }} fill="currentColor" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: tier.color }}>
+                          {tier.label}
                         </span>
-                      </>
+                        {toast.gameTitle && (
+                          <>
+                            <span className="h-1 w-1 rounded-full bg-white/30" />
+                            <span className="text-[10px] font-bold text-white/50 truncate">{toast.gameTitle}</span>
+                          </>
+                        )}
+                      </div>
+                      <h4 className="truncate text-xs font-bold text-white mt-0.5">{toast.title}</h4>
+                      <p className="line-clamp-1 text-[11px] text-white/60">{toast.description}</p>
+                    </div>
+                    {toast.xpGained && (
+                      <div className="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 border border-emerald-500/30 bg-emerald-500/10">
+                        <Sparkles className="h-3 w-3 text-emerald-400" />
+                        <span className="text-[10px] font-black text-emerald-400">+{toast.xpGained}</span>
+                      </div>
                     )}
                   </div>
-                  <h4 className="truncate text-xs font-bold text-white mt-0.5">{toast.title}</h4>
-                  <p className="line-clamp-1 text-[10px] font-medium text-white/50">{toast.description}</p>
-                  {toast.currentLevel != null && (
-                    <p className="mt-1 text-[9px] font-bold tracking-wider" style={{ color: `${tier.color}99` }}>
-                      Nv.{toast.currentLevel}
+                  {/* Contextual CTA */}
+                  <div className="flex items-center justify-end gap-2 border-t border-white/[0.08] pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOverlayMode("full");
+                        setActiveView("achievements");
+                        removeToast(toast.id);
+                      }}
+                      className="min-h-9 rounded-lg px-3 text-[10px] font-bold uppercase tracking-wider text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-white"
+                    >
+                      Ver Detalhes →
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+        </AnimatePresence>
+      </div>
+
+      {/* Bottom Left: Toasts Sociais e de Chamada */}
+      <div className="fixed bottom-6 left-6 flex flex-col-reverse gap-3 z-[10000] max-w-sm w-full pointer-events-auto">
+        <AnimatePresence>
+          {toasts
+            .filter((t): t is SocialToast => t.kind !== "achievement")
+            .map((toast) => (
+              <motion.div
+                key={toast.id}
+                initial={{ opacity: 0, x: -40, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -40, scale: 0.95 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col gap-3 rounded-2xl border border-white/15 bg-black/90 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/10 border border-white/10">
+                    {toast.avatar && !toast.avatar.includes("icon.ico") ? (
+                      <img src={toast.avatar} alt="" className="h-full w-full object-cover" />
+                    ) : toast.kind === "incoming-call" ? (
+                      <PhoneIncoming className="h-5 w-5 text-emerald-400 animate-pulse" />
+                    ) : toast.kind === "friend-request" ? (
+                      <UserPlus className="h-5 w-5 text-sky-400" />
+                    ) : toast.kind === "friend-accepted" ? (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                    ) : (
+                      <Info className="h-5 w-5 text-white/70" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    {toast.kind === "message" && (
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block mb-0.5">
+                        Mensagem
+                      </span>
+                    )}
+                    <h4 className="truncate text-xs font-bold text-white">{toast.title}</h4>
+                    <p className="line-clamp-1 text-[11px] text-white/70 mt-0.5">
+                      {toast.message || toast.description || toast.subtitle}
                     </p>
-                  )}
+                  </div>
                 </div>
 
-                {/* XP Badge */}
-                {toast.xpGained != null && toast.xpGained > 0 && (
-                  <div
-                    className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 border"
-                    style={{
-                      borderColor: "rgba(52,211,153,0.3)",
-                      backgroundColor: "rgba(52,211,153,0.1)",
-                    }}
-                  >
-                    <Sparkles className="h-3 w-3 text-emerald-400" />
-                    <span className="text-[10px] font-black text-emerald-400">+{toast.xpGained}</span>
+                {/* Ações Rápidas nos Toasts */}
+                {toast.kind === "incoming-call" && (
+                  <div className="grid grid-cols-2 gap-2 border-t border-white/[0.08] pt-2.5">
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        (window as any).achievementOverlay?.panelAction?.({ kind: "voice-accept" });
+                        removeToast(toast.id);
+                      }}
+                      className="h-8 rounded-xl bg-emerald-500 text-black text-xs font-black hover:bg-emerald-400"
+                    >
+                      <PhoneCall className="mr-1.5 h-3.5 w-3.5" />
+                      Atender
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        (window as any).achievementOverlay?.panelAction?.({ kind: "voice-reject" });
+                        removeToast(toast.id);
+                      }}
+                      className="h-8 rounded-xl border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-black hover:bg-rose-500/20"
+                    >
+                      <PhoneOff className="mr-1.5 h-3.5 w-3.5" />
+                      Recusar
+                    </Button>
+                  </div>
+                )}
+
+                {toast.kind === "message" && toast.friendId && (
+                  <div className="flex items-center justify-end gap-2 border-t border-white/[0.08] pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleSelectChat(toast.friendId!);
+                        removeToast(toast.id);
+                      }}
+                      className="min-h-9 rounded-lg px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-400 transition-colors hover:bg-white/10 hover:text-emerald-300 focus-visible:outline-2 focus-visible:outline-white"
+                    >
+                      Responder →
+                    </button>
+                  </div>
+                )}
+
+                {toast.kind === "friend-request" && (
+                  <div className="flex items-center justify-end gap-2 border-t border-white/[0.08] pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOverlayMode("full");
+                        setActiveView("friends");
+                        removeToast(toast.id);
+                      }}
+                      className="min-h-9 rounded-lg px-3 text-[10px] font-bold uppercase tracking-wider text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300 focus-visible:outline-2 focus-visible:outline-white"
+                    >
+                      Ver Pedido →
+                    </button>
                   </div>
                 )}
               </motion.div>
-            );
-          })}
+            ))}
         </AnimatePresence>
       </div>
 
-      {/* Bottom Left Social & System Toasts */}
-      <div className="fixed bottom-6 left-6 flex flex-col-reverse gap-3 z-[10000] max-w-sm w-full pointer-events-auto">
-        <AnimatePresence>
-          {socialToasts.map((toast) => (
-            <motion.div
-              key={toast.id}
-              initial={{ opacity: 0, x: -30, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -30, scale: 0.95 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-col gap-3 rounded-[22px] border border-white/[0.12] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1c1d28]/98 via-[#111218]/99 to-[#08090c] p-4 shadow-[0_25px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl"
-            >
-              <div className="flex items-center gap-3.5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/10">
-                  {toast.avatar && !toast.avatar.includes("icon.ico") ? (
-                    <img src={toast.avatar} alt="" className="h-full w-full object-cover" />
-                  ) : toast.kind === "incoming-call" ? (
-                    <PhoneIncoming className="h-5 w-5 text-emerald-400 animate-bounce" />
-                  ) : toast.kind === "success" || toast.kind === "friend-accepted" ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                  ) : toast.kind === "error" ? (
-                    <AlertCircle className="h-5 w-5 text-rose-400" />
-                  ) : toast.kind === "info" ? (
-                    <Info className="h-5 w-5 text-blue-400" />
-                  ) : toast.kind === "friend-request" ? (
-                    <UserPlus className="h-5 w-5 text-blue-400" />
-                  ) : toast.kind === "achievement" ? (
-                    <Trophy className="h-5 w-5 text-yellow-400" />
-                  ) : toast.kind === "hint" ? (
-                    <div className="h-full w-full p-1 bg-black/60 flex items-center justify-center">
-                      <img src="./assets/icon.png" alt="Phelierium" className="h-6 w-6 object-contain" />
-                    </div>
-                  ) : toast.screenshotUrl ? (
-                    <Camera className="h-4.5 w-4.5 text-cyan-300" />
-                  ) : (
-                    <Sparkles className="h-4.5 w-4.5 text-white/70" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  {(toast.kind === "message" || toast.kind === "friend-message") && (
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400 block mb-0.5">
-                      Nova Mensagem
-                    </span>
-                  )}
-                  <h4 className="truncate text-xs font-bold text-white">{toast.title}</h4>
-                  {toast.subtitle && (
-                    <p className="truncate text-[10px] font-medium text-white/50 mt-0.5">{toast.subtitle}</p>
-                  )}
-                  {toast.message && (
-                    <p className="line-clamp-1 text-[10px] font-medium text-white/70 mt-0.5">{toast.message}</p>
-                  )}
-                  {!toast.subtitle && !toast.message && toast.description && (
-                    <p className="line-clamp-1 text-[10px] font-medium text-white/70 mt-0.5">{toast.description}</p>
-                  )}
-                </div>
-              </div>
-
-              {toast.kind === "incoming-call" && (
-                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-white/[0.07] pt-3">
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      (window as any).achievementOverlay?.panelAction?.({ kind: "voice-accept" });
-                      setSocialToasts((prev) => prev.filter((t) => t.id !== toast.id));
-                    }}
-                    className="h-9 rounded-xl bg-white text-black text-[11px] font-black shadow-none hover:!bg-white/90 hover:!text-black"
-                  >
-                    <PhoneCall className="mr-1.5 h-3.5 w-3.5" />
-                    Atender
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      (window as any).achievementOverlay?.panelAction?.({ kind: "voice-reject" });
-                      setSocialToasts((prev) => prev.filter((t) => t.id !== toast.id));
-                    }}
-                    className="h-9 rounded-xl border-rose-500/20 bg-rose-500/[0.06] text-rose-300 text-[11px] font-black shadow-none hover:!bg-rose-500/15 hover:!text-rose-200"
-                  >
-                    <PhoneOff className="mr-1.5 h-3.5 w-3.5" />
-                    Recusar
-                  </Button>
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {/* In-Game Full Command Panel Overlay */}
+      {/* ─── MINI BARRA PERSISTENTE DE CHAMADA DE VOZ ───────────────────────── */}
       <AnimatePresence>
-        {isPanelVisible && (
+        {activeCall?.active && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/75 backdrop-blur-3xl pointer-events-auto p-8"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-5 left-1/2 -translate-x-1/2 z-[10020] flex items-center gap-3 rounded-full border border-emerald-500/30 bg-black/90 px-4 py-2 shadow-2xl backdrop-blur-xl pointer-events-auto"
           >
-            <motion.div
-              initial={{ scale: 0.96, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.96, opacity: 0, y: 15 }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="relative flex h-[82vh] w-[90vw] max-w-6xl overflow-hidden rounded-[28px] border border-white/15 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1c1d28] via-[#0d0e12] to-[#050507] shadow-[0_30px_100px_rgba(0,0,0,0.95)]"
-              data-system-page="true"
-            >
-              {/* Sidebar Navigation */}
-              <div className="flex w-64 flex-col border-r border-white/[0.08] bg-white/[0.02] p-5">
-                <div className="flex items-center gap-3 pb-6 border-b border-white/[0.08]">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/10 border border-white/10">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-xs font-black text-white">{activeCall.friendName || "Em Chamada"}</span>
+            </div>
+
+            <div className="h-3.5 w-px bg-white/20" />
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={toggleMute}
+                aria-label={activeCall.muted ? "Ativar microfone" : "Desativar microfone"}
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                  activeCall.muted ? "bg-rose-500/20 text-rose-400" : "hover:bg-white/10 text-white"
+                }`}
+                title={activeCall.muted ? "Microfone Desativado" : "Desativar Microfone"}
+              >
+                {activeCall.muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={toggleDeafen}
+                aria-label={activeCall.deafened ? "Ativar áudio" : "Silenciar áudio"}
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                  activeCall.deafened ? "bg-rose-500/20 text-rose-400" : "hover:bg-white/10 text-white"
+                }`}
+                title={activeCall.deafened ? "Áudio Silenciado" : "Silenciar Áudio"}
+              >
+                {activeCall.deafened ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={handleEndCall}
+                aria-label="Desconectar chamada"
+                className="ml-1 flex h-10 w-10 items-center justify-center rounded-full bg-rose-600 text-white transition-colors hover:bg-rose-500"
+                title="Desconectar"
+              >
+                <PhoneOff className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── QUICK DOCK LATERAL (Assistente Compacto) ────────────────────────── */}
+      <AnimatePresence>
+        {overlayMode === "quick" && (
+          <motion.div
+            initial={{ opacity: 0, x: -80 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -80 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed right-6 top-1/2 z-[10040] flex max-h-[calc(100vh-40px)] w-[min(320px,calc(100vw-40px))] -translate-y-1/2 flex-col justify-between rounded-3xl border border-white/15 bg-[#08090c] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.88)] pointer-events-auto"
+          >
+            {/* Header: Usuário & Nível */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-xl bg-white/10 border border-white/10 overflow-hidden flex items-center justify-center">
                     {panelData.userAvatar ? (
                       <img src={panelData.userAvatar} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <Gamepad2 className="h-5 w-5 text-white/70" />
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="truncate text-xs font-bold text-white">
-                      {panelData.userDisplay || "Jogador"}
-                    </h3>
-                    <p className="truncate text-[10px] font-medium text-emerald-400">Em Jogo</p>
+                  <div>
+                    <h3 className="text-xs font-black text-white">{panelData.userDisplay || "Jogador"}</h3>
+                    <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Em jogo
+                    </span>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={closeOverlay}
+                  aria-label="Fechar overlay"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-white/60 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
 
-                <nav className="mt-6 flex flex-col gap-1.5 flex-1">
+              {/* Game Card Resumo */}
+              <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5">
+                <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Jogo Atual</span>
+                <h4 className="truncate text-sm font-black text-white">{panelData.gameTitle || "Nenhum jogo em execução"}</h4>
+                {!hasCurrentGame && (
+                  <p className="text-[11px] leading-relaxed text-white/60">
+                    Abra um jogo pela biblioteca para acompanhar a sessão e suas conquistas.
+                  </p>
+                )}
+                {totalCount > 0 && (
+                  <div className="mt-1">
+                    <div className="flex justify-between text-[10px] font-bold text-white/60 mb-1">
+                      <span>Troféus: {unlockedCount} / {totalCount}</span>
+                      <span>{progressPercent}%</span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10" aria-label={`${progressPercent}% das conquistas desbloqueadas`}>
+                      <div
+                        className="h-full bg-gradient-to-r from-sky-400 to-emerald-400 rounded-full transition-all duration-500"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Actions Pills */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[9px] font-black uppercase tracking-widest text-white/40 px-1">Menu Rápido</span>
+                <button
+                  type="button"
+                  onClick={() => { setActiveView("achievements"); setOverlayMode("full"); }}
+                  className="flex min-h-10 items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5 text-xs font-bold text-white/80 transition-all hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Trophy className="h-4 w-4 text-yellow-400" /> Conquistas
+                  </div>
+                  <span className="text-[10px] font-black text-white/40">{unlockedCount}/{totalCount}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setActiveView("friends"); setOverlayMode("full"); }}
+                  className="flex min-h-10 items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5 text-xs font-bold text-white/80 transition-all hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Users className="h-4 w-4 text-sky-400" /> Amigos
+                  </div>
+                  <span className="text-[10px] font-black text-emerald-400">{onlineFriends.length} online</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setActiveView("chat"); setOverlayMode("full"); }}
+                  className="flex min-h-10 items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5 text-xs font-bold text-white/80 transition-all hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <MessageSquare className="h-4 w-4 text-emerald-400" /> Bate-papo
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setActiveView("media"); setOverlayMode("full"); }}
+                  className="flex min-h-10 items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5 text-xs font-bold text-white/80 transition-all hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Camera className="h-4 w-4 text-purple-400" /> Capturas
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Footer do Quick Dock */}
+            <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
+              <Button
+                type="button"
+                onClick={() => setOverlayMode("full")}
+                className="mt-3 min-h-10 w-full rounded-xl bg-white text-xs font-black text-black hover:bg-white/90"
+              >
+                <Maximize2 className="h-3.5 w-3.5 mr-1.5" />
+                Expandir Assistente
+              </Button>
+              <div className="flex items-center justify-between px-1 text-[10px] text-white/40">
+                <span>Shift+Tab ou Esc para sair</span>
+                <button
+                  type="button"
+                  onClick={() => setAutoContrast((p) => !p)}
+                  className="min-h-10 rounded-xl px-2 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+                >
+                  Contraste: {autoContrast ? "Alto" : "Padrão"}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── FULL COMMAND CENTER OVERLAY ────────────────────────────────────── */}
+      <AnimatePresence>
+        {overlayMode === "full" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Central de comando do overlay"
+            className="fixed inset-0 z-[10050] flex items-center justify-center bg-[#030405]/95 p-6 backdrop-blur-md pointer-events-auto md:p-10"
+          >
+            <motion.div
+              initial={{ scale: 0.97, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.97, opacity: 0, y: 15 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="relative flex h-[min(760px,calc(100vh-80px))] w-[min(1180px,calc(100vw-80px))] max-w-none overflow-hidden rounded-3xl border border-white/[0.14] bg-[#08090c] shadow-[0_30px_100px_rgba(0,0,0,0.92)]"
+              data-system-page="true"
+            >
+              {/* Sidebar do Full Panel */}
+              <div className="flex w-[216px] flex-col border-r border-white/[0.08] bg-white/[0.025] p-4 shrink-0">
+                <div className="flex items-center justify-between pb-5 border-b border-white/[0.08]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/10 border border-white/10">
+                      {panelData.userAvatar ? (
+                        <img src={panelData.userAvatar} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <Gamepad2 className="h-4 w-4 text-white/70" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-xs font-black text-white">{panelData.userDisplay || "Jogador"}</h3>
+                      <p className="truncate text-[10px] font-bold text-emerald-400">Em Jogo</p>
+                    </div>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setActiveView("game")}
-                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all data-[gamepad-focused=true]:ring-2 data-[gamepad-focused=true]:ring-emerald-400 data-[gamepad-focused=true]:ring-offset-2 data-[gamepad-focused=true]:ring-offset-black data-[gamepad-focused=true]:outline-none ${activeView === "game"
-                      ? "bg-white text-black shadow-md"
-                      : "text-white/50 hover:bg-white/5 hover:text-white"
-                      }`}
+                    onClick={() => setOverlayMode("quick")}
+                    aria-label="Recolher para o dock rápido"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+                    title="Recolher para Dock Lateral"
+                  >
+                    <Minimize2 className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <nav className="mt-5 flex flex-col gap-1 flex-1">
+                  <button
+                    type="button"
+                    onClick={() => setActiveView("home")}
+                    aria-current={activeView === "home" ? "page" : undefined}
+                    className={`flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold transition-all focus-visible:outline-2 focus-visible:outline-white ${
+                      activeView === "home" ? "bg-white text-black shadow-md" : "text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
                   >
                     <Gamepad2 className="h-4 w-4" /> Visão Geral
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveView("achievements")}
-                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all data-[gamepad-focused=true]:ring-2 data-[gamepad-focused=true]:ring-emerald-400 data-[gamepad-focused=true]:ring-offset-2 data-[gamepad-focused=true]:ring-offset-black data-[gamepad-focused=true]:outline-none ${activeView === "achievements"
-                      ? "bg-white text-black shadow-md"
-                      : "text-white/50 hover:bg-white/5 hover:text-white"
-                      }`}
+                    aria-current={activeView === "achievements" ? "page" : undefined}
+                    className={`flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold transition-all focus-visible:outline-2 focus-visible:outline-white ${
+                      activeView === "achievements" ? "bg-white text-black shadow-md" : "text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
                   >
                     <Trophy className="h-4 w-4" /> Conquistas
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveView("friends")}
-                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all data-[gamepad-focused=true]:ring-2 data-[gamepad-focused=true]:ring-emerald-400 data-[gamepad-focused=true]:ring-offset-2 data-[gamepad-focused=true]:ring-offset-black data-[gamepad-focused=true]:outline-none ${activeView === "friends"
-                      ? "bg-white text-black shadow-md"
-                      : "text-white/50 hover:bg-white/5 hover:text-white"
-                      }`}
+                    aria-current={activeView === "friends" ? "page" : undefined}
+                    className={`flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold transition-all focus-visible:outline-2 focus-visible:outline-white ${
+                      activeView === "friends" ? "bg-white text-black shadow-md" : "text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
                   >
                     <Users className="h-4 w-4" /> Amigos
                   </button>
                   <button
                     type="button"
-                    onClick={() => setActiveView("chats")}
-                    className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all data-[gamepad-focused=true]:ring-2 data-[gamepad-focused=true]:ring-emerald-400 data-[gamepad-focused=true]:ring-offset-2 data-[gamepad-focused=true]:ring-offset-black data-[gamepad-focused=true]:outline-none ${activeView === "chats"
-                      ? "bg-white text-black shadow-md"
-                      : "text-white/50 hover:bg-white/5 hover:text-white"
-                      }`}
+                    onClick={() => setActiveView("chat")}
+                    aria-current={activeView === "chat" ? "page" : undefined}
+                    className={`flex min-h-10 items-center justify-between rounded-xl px-3 py-2 text-[13px] font-semibold transition-all focus-visible:outline-2 focus-visible:outline-white ${
+                      activeView === "chat" ? "bg-white text-black shadow-md" : "text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <MessageSquare className="h-4 w-4" /> Bate-papo
                     </div>
-                    {panelData.friends?.some((f: any) => f.unread > 0) && (
-                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                    )}
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveView("media")}
-                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all data-[gamepad-focused=true]:ring-2 data-[gamepad-focused=true]:ring-emerald-400 data-[gamepad-focused=true]:ring-offset-2 data-[gamepad-focused=true]:ring-offset-black data-[gamepad-focused=true]:outline-none ${activeView === "media"
-                      ? "bg-white text-black shadow-md"
-                      : "text-white/50 hover:bg-white/5 hover:text-white"
-                      }`}
+                    aria-current={activeView === "media" ? "page" : undefined}
+                    className={`flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold transition-all focus-visible:outline-2 focus-visible:outline-white ${
+                      activeView === "media" ? "bg-white text-black shadow-md" : "text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
                   >
                     <Camera className="h-4 w-4" /> Capturas
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveView("settings")}
-                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${activeView === "settings"
-                      ? "bg-white text-black shadow-md"
-                      : "text-white/50 hover:bg-white/5 hover:text-white"
-                      }`}
+                    aria-current={activeView === "settings" ? "page" : undefined}
+                    className={`flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold transition-all focus-visible:outline-2 focus-visible:outline-white ${
+                      activeView === "settings" ? "bg-white text-black shadow-md" : "text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
                   >
                     <Settings className="h-4 w-4" /> Ajustes
                   </button>
                 </nav>
 
-                <div className="pt-4 border-t border-white/[0.08]">
+                <div className="pt-3 border-t border-white/[0.08] flex flex-col gap-2">
                   <button
                     type="button"
-                    onClick={closePanel}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white/70 transition hover:bg-white/10 hover:text-white"
+                    onClick={closeOverlay}
+                    className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white/70 transition-all hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
                   >
-                    <X className="h-4 w-4" /> Fechar Overlay
+                    <X className="h-4 w-4" /> Fechar Overlay (Esc)
                   </button>
                 </div>
               </div>
 
-              {/* Main Content Area */}
-              <div className="flex flex-1 flex-col overflow-y-auto p-7 thin-scrollbar">
-                {activeView === "game" && (
+              {/* Área Central de Conteúdo */}
+              <div className="flex min-w-0 flex-1 flex-col overflow-y-auto p-6 md:p-8 thin-scrollbar">
+                {activeView === "home" && (
                   <div className="flex flex-col gap-6">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                        Jogo Ativo
+                      <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">
+                        {hasCurrentGame ? "Jogo ativo" : "Nenhuma sessão ativa"}
                       </span>
-                      <h2 className="text-3xl font-bold text-white mt-1">
-                        {panelData.gameTitle || "Jogo Atual"}
+                      <h2 className="mt-1 truncate text-2xl font-bold tracking-tight text-white md:text-3xl">
+                        {panelData.gameTitle || "Nenhum jogo em execução"}
                       </h2>
+                      {!hasCurrentGame && (
+                        <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/60">
+                          Abra um jogo pela biblioteca para acompanhar a sessão, conquistas e amigos jogando.
+                        </p>
+                      )}
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.035] p-4">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                          Sessão Atual
-                        </span>
-                        <p className="text-xl font-bold text-white mt-2">Em andamento</p>
+                    {!hasCurrentGame && (
+                      <Button
+                        type="button"
+                        onClick={closeOverlay}
+                        className="min-h-10 w-fit rounded-xl bg-white px-4 text-xs font-black text-black hover:bg-white/90"
+                      >
+                        Voltar à biblioteca
+                      </Button>
+                    )}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/45">Sessão atual</span>
+                        <p className="mt-2 text-base font-semibold text-white">{hasCurrentGame ? "Em andamento" : "Aguardando jogo"}</p>
                       </div>
-                      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.035] p-4">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                          Conquistas
-                        </span>
-                        <p className="text-xl font-bold text-white mt-2">
-                          {unlockedAchievementsCount} / {totalAchievementsCount}
-                        </p>
+                      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/45">Conquistas</span>
+                        <p className="mt-2 text-base font-semibold text-white">{unlockedCount} / {totalCount}</p>
                       </div>
-                      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.035] p-4">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                          Amigos Online
-                        </span>
-                        <p className="text-xl font-bold text-white mt-2">
-                          {panelData.friends?.filter((f: any) => f.status === "online" || f.status === "playing").length || 0}
-                        </p>
+                      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/45">Amigos online</span>
+                        <p className="mt-2 text-base font-semibold text-white">{onlineFriends.length}</p>
                       </div>
                     </div>
                   </div>
@@ -688,17 +1081,24 @@ const OverlayApp: React.FC = () => {
                 {activeView === "achievements" && (
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-white">Conquistas do Jogo</h3>
-                      <span className="text-xs font-bold text-white/60">
-                        {unlockedAchievementsCount} de {totalAchievementsCount} desbloqueadas
-                      </span>
+                      <h3 className="text-base font-black text-white">Conquistas do Jogo</h3>
+                      <span className="text-xs font-bold text-white/60">{unlockedCount} de {totalCount} desbloqueadas</span>
                     </div>
 
-                    {achievementList.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-center rounded-2xl border border-white/5 bg-white/[0.02]">
+                    {achievementsLoading ? (
+                      <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-white/[0.02] py-16 text-center" aria-busy="true">
+                        <Loader2 className="mb-3 h-8 w-8 animate-spin text-white/60" aria-hidden="true" />
+                        <p className="text-sm font-bold text-white/70">Carregando conquistas…</p>
+                      </div>
+                    ) : achievementList.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-white/[0.02] py-16 text-center">
                         <Trophy className="h-10 w-10 text-white/20 mb-2" />
-                        <p className="text-sm font-bold text-white/60">Nenhuma conquista disponível</p>
-                        <p className="text-xs text-white/40 mt-1">Este jogo não possui conquistas ou os dados ainda estão sendo sincronizados.</p>
+                        <p className="text-sm font-bold text-white/70">
+                          {hasCurrentGame ? "Nenhuma conquista disponível" : "Inicie um jogo para ver conquistas"}
+                        </p>
+                        <p className="mt-1 max-w-xs text-xs text-white/50">
+                          {hasCurrentGame ? "Este jogo ainda não possui dados de conquistas para exibir." : "A biblioteca mostrará os dados assim que uma sessão começar."}
+                        </p>
                       </div>
                     ) : (
                       <div className="grid gap-2.5">
@@ -716,13 +1116,14 @@ const OverlayApp: React.FC = () => {
                             </div>
                             <div className="min-w-0 flex-1">
                               <h4 className="text-xs font-bold text-white truncate">{ach.name || ach.displayName || "Conquista"}</h4>
-                              <p className="text-[10px] text-white/50 mt-0.5 line-clamp-1">{ach.description || "Sem descrição"}</p>
+                              <p className="text-[11px] text-white/50 mt-0.5 line-clamp-1">{ach.description || "Sem descrição"}</p>
                             </div>
                             <span
-                              className={`rounded-lg px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider shrink-0 ${ach.achieved
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
-                                : "bg-white/5 text-white/40 border border-white/10"
-                                }`}
+                              className={`rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-wider shrink-0 ${
+                                ach.achieved
+                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
+                                  : "bg-white/5 text-white/40 border border-white/10"
+                              }`}
                             >
                               {ach.achieved ? "Desbloqueada" : "Bloqueada"}
                             </span>
@@ -735,12 +1136,33 @@ const OverlayApp: React.FC = () => {
 
                 {activeView === "friends" && (
                   <div className="flex flex-col gap-4">
-                    <h3 className="text-lg font-bold text-white">Amigos</h3>
+                    <h3 className="text-base font-black text-white">Amigos</h3>
+                    {(panelData.friends || []).length === 0 ? (
+                      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.02] py-14 px-6 text-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-white/40 mb-3">
+                          <Users className="h-6 w-6" aria-hidden="true" />
+                        </div>
+                        <h4 className="text-sm font-bold text-white">Nenhum amigo está jogando agora</h4>
+                        <p className="mt-1 max-w-xs text-xs text-white/50">
+                          Você pode abrir um chat ou adicionar novos amigos para jogar junto.
+                        </p>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            (window as any).achievementOverlay?.panelAction?.({ kind: "open-launcher-friends" });
+                          }}
+                          className="mt-4 min-h-10 rounded-xl bg-white px-5 text-xs font-bold text-black hover:bg-white/90"
+                        >
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Adicionar amigo
+                        </Button>
+                      </div>
+                    ) : (
                     <div className="grid grid-cols-2 gap-3">
                       {(panelData.friends || []).map((friend: any, idx: number) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.035] p-4"
+                          className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.035] p-3.5"
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="relative h-10 w-10 rounded-xl bg-white/10 shrink-0 overflow-hidden">
@@ -752,12 +1174,13 @@ const OverlayApp: React.FC = () => {
                                 </div>
                               )}
                               <span
-                                className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-black ${friend.status === "playing"
-                                  ? "bg-green-500 animate-pulse"
-                                  : friend.status === "online"
+                                className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-black ${
+                                  friend.status === "playing"
+                                    ? "bg-green-500 animate-pulse"
+                                    : friend.status === "online"
                                     ? "bg-green-400"
                                     : "bg-white/20"
-                                  }`}
+                                }`}
                               />
                             </div>
                             <div className="min-w-0">
@@ -766,8 +1189,8 @@ const OverlayApp: React.FC = () => {
                                 {friend.status === "playing"
                                   ? `Jogando ${friend.playing || ""}`
                                   : friend.status === "online"
-                                    ? "Online"
-                                    : "Offline"}
+                                  ? "Online"
+                                  : "Offline"}
                               </p>
                             </div>
                           </div>
@@ -775,14 +1198,7 @@ const OverlayApp: React.FC = () => {
                             <div className="flex items-center gap-1.5">
                               <button
                                 type="button"
-                                onClick={() => {
-                                  (window as any).achievementOverlay?.panelAction?.({
-                                    kind: "voice-call",
-                                    friendId: friend.id,
-                                    friendName: friend.name,
-                                    friendAvatar: friend.avatar,
-                                  });
-                                }}
+                                onClick={() => handleVoiceCall(friend.id, friend.name, friend.avatar)}
                                 className="flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 px-2.5 py-1.5 text-xs font-bold transition-all"
                                 title="Ligar para amigo"
                               >
@@ -800,20 +1216,21 @@ const OverlayApp: React.FC = () => {
                         </div>
                       ))}
                     </div>
+                    )}
                   </div>
                 )}
 
-                {activeView === "chats" && (
+                {activeView === "chat" && (
                   <div className="flex flex-col h-full gap-4">
                     {panelData.chat ? (
                       <div className="flex flex-col h-full">
-                        {/* Active Chat Header */}
-                        <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] mb-4">
+                        <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.08] mb-4">
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
                               onClick={handleCloseChat}
-                              className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white"
+                              aria-label="Voltar para amigos"
+                              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
                             >
                               <ChevronLeft className="h-4 w-4" />
                             </button>
@@ -828,79 +1245,60 @@ const OverlayApp: React.FC = () => {
                             </div>
                             <div>
                               <h4 className="text-xs font-bold text-white">{panelData.chat.friendName}</h4>
-                              <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">
+                              <p className="text-[10px] text-emerald-400 font-bold">
                                 {panelData.chat.typing ? "Digitando..." : "Em conversa"}
                               </p>
                             </div>
                           </div>
-
-                          {/* Call Button in Chat Header */}
                           <button
                             type="button"
-                            onClick={() => {
-                              (window as any).achievementOverlay?.panelAction?.({
-                                kind: "voice-call",
-                                friendId: panelData.chat?.friendId,
-                                friendName: panelData.chat?.friendName,
-                                friendAvatar: panelData.chat?.friendAvatar,
-                              });
-                            }}
-                            className="flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 px-3 py-1.5 text-xs font-bold transition-all shadow-md shadow-emerald-500/10"
+                            onClick={() =>
+                              handleVoiceCall(
+                                panelData.chat?.friendId || "",
+                                panelData.chat?.friendName || "",
+                                panelData.chat?.friendAvatar
+                              )
+                            }
+                            className="flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 px-3 py-1.5 text-xs font-bold transition-all"
                           >
                             <Phone className="h-3.5 w-3.5" /> Ligar
                           </button>
                         </div>
 
-                        {/* Messages Feed */}
                         <div className="flex-1 overflow-y-auto space-y-3 pr-2 thin-scrollbar">
                           {panelData.chat.messages.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-white/30 text-xs">
+                            <div className="flex flex-col items-center justify-center h-full text-center text-xs text-white/50">
                               <MessageSquare className="h-8 w-8 mb-2 opacity-50" />
-                              Nenhuma mensagem anterior.
+                              <span>Nenhuma mensagem anterior.</span>
+                              <span className="mt-1 text-[11px] text-white/40">Envie uma mensagem para iniciar a conversa.</span>
                             </div>
                           ) : (
                             panelData.chat.messages.map((msg) => (
-                              <div
-                                key={msg.id}
-                                className={`flex ${msg.mine ? "justify-end" : "justify-start"}`}
-                              >
+                              <div key={msg.id} className={`flex ${msg.mine ? "justify-end" : "justify-start"}`}>
                                 <div
-                                  className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-xs shadow-md ${msg.mine
-                                    ? "bg-white text-black font-medium"
-                                    : "bg-white/[0.07] border border-white/10 text-white"
-                                    }`}
+                                  className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-xs shadow-md ${
+                                    msg.mine
+                                      ? "bg-white text-black font-medium"
+                                      : "bg-white/[0.07] border border-white/10 text-white"
+                                  }`}
                                 >
                                   {msg.attachmentUrl && (
                                     <div className="mb-2 overflow-hidden rounded-xl border border-black/10">
                                       <button
                                         type="button"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          setViewingImage(msg.attachmentUrl!);
-                                        }}
-                                        className="relative group block w-full text-left cursor-pointer"
+                                        onClick={() => setViewingImage(msg.attachmentUrl!)}
+                                        className="relative group block w-full cursor-pointer"
                                       >
-                                        <img
-                                          src={msg.attachmentUrl}
-                                          alt="Anexo"
-                                          className="max-h-48 w-full object-cover rounded-xl transition-transform group-hover:scale-[1.02]"
-                                        />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
-                                          <ZoomIn className="h-6 w-6 text-white drop-shadow-md" />
+                                        <img src={msg.attachmentUrl} alt="Anexo" className="max-h-48 w-full object-cover rounded-xl" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity">
+                                          <ZoomIn className="h-6 w-6 text-white" />
                                         </div>
                                       </button>
                                     </div>
                                   )}
                                   {msg.text && <p className="break-words leading-relaxed">{msg.text}</p>}
-                                  <span
-                                    className={`mt-1 block text-right text-[8px] font-bold ${msg.mine ? "text-black/50" : "text-white/40"
-                                      }`}
-                                  >
-                                    {new Date(msg.createdAt).toLocaleTimeString([], {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
+                                  <span className={`mt-1 block text-right text-[9px] font-bold ${msg.mine ? "text-black/50" : "text-white/40"}`}>
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                   </span>
                                 </div>
                               </div>
@@ -909,31 +1307,35 @@ const OverlayApp: React.FC = () => {
                           <div ref={chatMessagesEndRef} />
                         </div>
 
-                        {/* Message Input */}
                         <form onSubmit={handleSendMessage} className="mt-4 flex items-center gap-2">
                           <input
                             type="text"
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
                             placeholder={`Enviar mensagem para ${panelData.chat.friendName}...`}
-                            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-white placeholder-white/30 focus:border-white/30 focus:outline-none"
+                            aria-label={`Mensagem para ${panelData.chat.friendName}`}
+                            className="min-h-10 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-white placeholder-white/30 focus:border-white/30 focus:outline-none"
                           />
                           <button
                             type="submit"
                             disabled={!inputText.trim() || panelData.chat.sending}
-                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-black hover:bg-white/90 disabled:opacity-40"
+                            aria-label={panelData.chat.sending ? "Enviando mensagem" : "Enviar mensagem"}
+                            className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-black hover:bg-white/90 disabled:opacity-40"
                           >
-                            {panelData.chat.sending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Send className="h-4 w-4" />
-                            )}
+                            {panelData.chat.sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                           </button>
                         </form>
                       </div>
                     ) : (
                       <div className="flex flex-col gap-3">
-                        <h3 className="text-lg font-bold text-white">Selecione um Amigo para Conversar</h3>
+                        <h3 className="text-base font-black text-white">Selecione um Amigo para Conversar</h3>
+                        {(panelData.friends || []).filter((f: any) => f.canChat).length === 0 ? (
+                          <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-white/[0.02] py-16 text-center">
+                            <MessageSquare className="mb-3 h-9 w-9 text-white/20" aria-hidden="true" />
+                            <p className="text-sm font-bold text-white/70">Nenhuma conversa disponível</p>
+                            <p className="mt-1 max-w-xs text-xs text-white/50">Quando um amigo estiver disponível, você poderá iniciar um chat aqui.</p>
+                          </div>
+                        ) : (
                         <div className="grid grid-cols-2 gap-3">
                           {(panelData.friends || [])
                             .filter((f: any) => f.canChat)
@@ -942,7 +1344,7 @@ const OverlayApp: React.FC = () => {
                                 key={idx}
                                 type="button"
                                 onClick={() => handleSelectChat(friend.id)}
-                                className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.035] p-4 text-left hover:bg-white/[0.07] transition-all"
+                                className="flex min-h-16 items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.035] p-4 text-left transition-all hover:bg-white/[0.07] focus-visible:outline-2 focus-visible:outline-white"
                               >
                                 <div className="h-9 w-9 rounded-xl bg-white/10 overflow-hidden shrink-0">
                                   {friend.avatar ? (
@@ -951,57 +1353,70 @@ const OverlayApp: React.FC = () => {
                                     <div className="h-full w-full flex items-center justify-center text-white/60">
                                       <Users className="h-4 w-4" />
                                     </div>
-                                  )}
+                                    )}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="text-xs font-bold text-white truncate">{friend.name}</p>
                                   <p className="text-[10px] text-white/40 truncate">Clique para abrir chat</p>
                                 </div>
-                                {friend.unread > 0 && (
-                                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-emerald-400 px-1.5 text-[10px] font-black text-black">
-                                    {friend.unread}
-                                  </span>
-                                )}
                               </button>
                             ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                         </div>
+                         )}
+                       </div>
+                     )}
+                   </div>
+                 )}
 
                 {activeView === "media" && (
                   <div className="flex flex-col gap-4">
-                    <h3 className="text-lg font-bold text-white">Capturas de Tela</h3>
-                    <div className="grid grid-cols-3 gap-3">
+                    <h3 className="text-base font-black text-white">Capturas de Tela</h3>
+                    {(panelData.screenshots || []).length === 0 ? (
+                      <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-white/[0.02] py-16 text-center">
+                        <Camera className="mb-3 h-9 w-9 text-white/20" aria-hidden="true" />
+                        <p className="text-sm font-bold text-white/70">Nenhuma captura ainda</p>
+                        <p className="mt-1 max-w-xs text-xs text-white/50">As capturas feitas durante a partida aparecerão aqui.</p>
+                      </div>
+                    ) : (
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                       {(panelData.screenshots || []).map((url: string, idx: number) => (
                         <button
                           key={idx}
                           type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setViewingImage(url);
-                          }}
-                          className="h-32 rounded-xl overflow-hidden border border-white/10 relative group text-left cursor-pointer transition-transform hover:scale-[1.02]"
+                          onClick={() => setViewingImage(url)}
+                          aria-label={`Abrir captura ${idx + 1}`}
+                          className="relative h-32 cursor-pointer overflow-hidden rounded-xl border border-white/10 text-left transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-white"
                         >
-                          <img src={url} alt="Captura de tela" className="h-full w-full object-cover" />
+                          <img src={url} alt="Captura" className="h-full w-full object-cover" />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                             <ZoomIn className="h-6 w-6 text-white drop-shadow-md" />
                           </div>
                         </button>
                       ))}
                     </div>
+                   )}
                   </div>
                 )}
 
                 {activeView === "settings" && (
                   <div className="flex flex-col gap-4 max-w-lg">
-                    <h3 className="text-lg font-bold text-white">Ajustes do Overlay</h3>
+                    <h3 className="text-base font-black text-white">Ajustes do Overlay</h3>
                     <div className="rounded-2xl border border-white/[0.06] bg-white/[0.035] p-4 space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-white">Notificações em Jogo</span>
-                        <span className="text-[10px] text-emerald-400 font-bold">Ativadas</span>
+                        <div>
+                          <span className="text-xs font-bold text-white block">Modo Alto Contraste</span>
+                          <span className="text-[10px] text-white/50">Melhora legibilidade sobre jogos com fundos claros</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAutoContrast((p) => !p)}
+                          aria-pressed={autoContrast}
+                          className={`min-h-10 rounded-xl px-3 py-1 text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-white ${
+                            autoContrast ? "bg-emerald-500 text-black" : "bg-white/10 text-white/60"
+                          }`}
+                        >
+                          {autoContrast ? "Ativado" : "Desativado"}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1012,7 +1427,7 @@ const OverlayApp: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Image Lightbox Viewer inside Overlay */}
+      {/* ─── VISUALIZADOR DE IMAGEM LIGHTBOX ─────────────────────────────────── */}
       <AnimatePresence>
         {viewingImage && (
           <motion.div
@@ -1022,19 +1437,19 @@ const OverlayApp: React.FC = () => {
             className="fixed inset-0 z-[10100] flex items-center justify-center bg-black/90 backdrop-blur-2xl pointer-events-auto p-8"
             onClick={() => setViewingImage(null)}
           >
-            <div className="relative max-w-5xl max-h-[85vh] overflow-hidden rounded-2xl border border-white/15 bg-black/80 shadow-2xl p-2" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="relative max-w-5xl max-h-[85vh] overflow-hidden rounded-2xl border border-white/15 bg-black/80 shadow-2xl p-2"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
                 onClick={() => setViewingImage(null)}
-                className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white hover:bg-white/20 transition-all border border-white/10"
+                aria-label="Fechar imagem"
+                className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/70 text-white transition-all hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
               >
                 <X className="h-5 w-5" />
               </button>
-              <img
-                src={viewingImage}
-                alt="Imagem expandida no overlay"
-                className="max-h-[80vh] max-w-full rounded-xl object-contain"
-              />
+              <img src={viewingImage} alt="Captura ampliada" className="max-h-[80vh] max-w-full rounded-xl object-contain" />
             </div>
           </motion.div>
         )}
