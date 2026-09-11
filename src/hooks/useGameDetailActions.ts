@@ -5,6 +5,8 @@ import { getMonitorableExecutablePath, launchGame } from "../services/launcher";
 import { deleteLibraryGame, updateLibraryGame } from "../services/localLibrary";
 import { MIN_LAUNCH_SCREEN_MS, wait } from "../types/gameDetail";
 
+import type { SoundEffectType } from "./useSoundEffects";
+
 interface UseGameDetailActionsProps {
   game: Game | null;
   state: GameDetailState;
@@ -17,6 +19,7 @@ interface UseGameDetailActionsProps {
   onClose: () => void;
   onLibraryChanged?: () => Promise<void> | void;
   onOpenMods?: () => void;
+  playSound?: (type: SoundEffectType) => void;
 }
 
 export function useGameDetailActions({
@@ -31,9 +34,13 @@ export function useGameDetailActions({
   onClose,
   onLibraryChanged,
   onOpenMods,
+  playSound,
 }: UseGameDetailActionsProps) {
   const handleLaunch = React.useCallback(async () => {
     if (state.isLaunching || !game) return;
+    try {
+      playSound?.("play");
+    } catch { }
     dispatch({ type: "SET_LAUNCHING", payload: true });
     dispatch({ type: "SET_LAUNCH_ERROR", payload: null });
     try {
@@ -49,7 +56,11 @@ export function useGameDetailActions({
       }
       window.dispatchEvent(
         new CustomEvent("checkpoint:game-launch", {
-          detail: { title: game.title, executablePath: getMonitorableExecutablePath(game) },
+          detail: {
+            title: game.title,
+            executablePath: getMonitorableExecutablePath(game),
+            soundPlayed: true,
+          },
         }),
       );
     } catch (error) {
@@ -60,7 +71,7 @@ export function useGameDetailActions({
     } finally {
       dispatch({ type: "SET_LAUNCHING", payload: false });
     }
-  }, [closeOnLaunch, copy.launchGenericError, dispatch, game, launchProfile, onLibraryChanged, state.isLaunching, user?.uid]);
+  }, [closeOnLaunch, copy.launchGenericError, dispatch, game, launchProfile, onLibraryChanged, playSound, state.isLaunching, user?.uid]);
 
   const handleDeleteGame = React.useCallback(async () => {
     if (!user?.uid) {

@@ -1,8 +1,10 @@
-import React, { useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { Clock, ExternalLink, Gamepad2, Layers, Lock, Pencil, Search, Star, Trophy, TrendingUp, User } from "lucide-react";
+import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Clock, ExternalLink, Gamepad2, Layers, Lock, Pencil, Search, Star, Trophy, TrendingUp, User, Sparkles, ChevronDown, Camera, CheckCircle2, Target, Award } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDiscord, faSteam } from "@fortawesome/free-brands-svg-icons";
+import tierLevelClickSound from "../sounds/Phelierium Default/ui_tierLevel_click.mp3";
+import { progressionEventBus } from "../services/progressionEvents";
 import { EPIC_GAMES_ICON_PATH } from "../constants/assets";
 import type { LauncherLanguage } from "../context/PreferencesContext";
 import type { Game, UserProfile } from "../types/domain";
@@ -14,7 +16,7 @@ import {
   calculatePlayerLevelFromXp,
   getPSNTierInfo,
 } from "../utils/trophyTiers";
-import { getHubAggregateCounts } from "../utils/hubTrophies";
+import { getHubAggregateCounts, getUserUnifiedLevel } from "../utils/hubTrophies";
 import { useAuth } from "../auth/AuthProvider";
 import {
   calculateTotalPlayedMinutes,
@@ -23,6 +25,19 @@ import {
 } from "../utils/playtime";
 import ProfileEditorModal from "./ProfileEditorModal";
 import TrophyHistoryTimeline from "./trophies/TrophyHistoryTimeline";
+import PherieliumTierBronze from "../assets/Pherielium_Tier_Bronze.png";
+import PherieliumTierSilver from "../assets/Pherielium_Tier_Prata.png";
+import PherieliumTierGold from "../assets/Pherielium_Tier_Ouro.png";
+import PherieliumTierPlatinum from "../assets/Pherielium_Tier_Platina.png";
+import { getAllQuestsWithStatus, getUserQuestsXp, type UserQuest } from "../services/userQuests";
+import { HomeOnboardingQuests } from "./home/HomeOnboardingQuests";
+
+const USER_TIER_IMAGES: Record<string, string> = {
+  bronze: PherieliumTierBronze,
+  silver: PherieliumTierSilver,
+  gold: PherieliumTierGold,
+  platinum: PherieliumTierPlatinum,
+};
 
 interface UserProfilePageProps {
   userProfile: UserProfile | null;
@@ -181,22 +196,36 @@ const ProfileAvatar: React.FC<{
   authPhotoURL?: string | null;
   displayName: string;
   compact?: boolean;
-}> = ({ profile, authPhotoURL, displayName, compact = false }) => {
+  editable?: boolean;
+  onEditClick?: () => void;
+}> = ({ profile, authPhotoURL, displayName, compact = false, editable = false, onEditClick }) => {
   const src = avatarUrl(profile, authPhotoURL);
   return (
-    <div className={`relative shrink-0 aspect-square overflow-hidden rounded-full border-2 border-white/15 bg-white/[0.06] shadow-[0_18px_48px_rgba(0,0,0,.45)] ${compact ? "h-[72px] w-[72px]" : "h-[88px] w-[88px]"}`}>
+    <div
+      onClick={editable ? onEditClick : undefined}
+      className={`group relative shrink-0 aspect-square overflow-hidden rounded-2xl border border-white/15 bg-neutral-900 shadow-[0_16px_40px_rgba(0,0,0,.5)] ${compact ? "h-[76px] w-[76px]" : "h-[92px] w-[92px]"
+        } ${editable ? "cursor-pointer" : ""}`}
+      title={editable ? "Clique para editar perfil e foto" : undefined}
+    >
       {src ? (
-        <img src={src} alt="" className="h-full w-full object-cover object-center aspect-square" />
+        <img src={src} alt="" className="h-full w-full object-cover object-center aspect-square select-none transition-transform duration-300 group-hover:scale-105" />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-xl font-black text-white/70">
+        <div className="flex h-full w-full items-center justify-center text-xl font-black text-white/70 select-none">
           {initialsFor(displayName)}
         </div>
       )}
+      {editable && (
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white z-10">
+          <Camera className="h-5 w-5 text-white" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">Editar</span>
+        </div>
+      )}
+      <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-2xl pointer-events-none z-20" />
     </div>
   );
 };
 
-const PlatformCard: React.FC<{
+const PlatformRow: React.FC<{
   name: string;
   connected: boolean;
   username?: string;
@@ -207,32 +236,58 @@ const PlatformCard: React.FC<{
   compact?: boolean;
 }> = ({ name, connected, username, avatar, icon, connectedLabel, disconnectedLabel, compact = false }) => (
   <div
-    className={`flex items-center rounded-2xl border ${compact ? "gap-3 p-2.5" : "gap-3.5 p-3.5"} ${connected ? "border-white/14 bg-white/[0.045]" : "border-white/[0.06] bg-black/25"
+    className={`flex items-center justify-between transition-colors hover:bg-white/[0.03] rounded-xl ${compact ? "py-2 px-2.5 gap-2.5" : "py-2.5 px-3 gap-3"
       }`}
   >
-    <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/[0.07] text-white/75 ${compact ? "h-9 w-9" : "h-10 w-10"}`}>
-      {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : icon}
+    <div className="flex min-w-0 items-center gap-3">
+      <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/[0.05] text-neutral-300 ${compact ? "h-8 w-8" : "h-9 w-9"}`}>
+        {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover rounded-lg" /> : icon}
+      </div>
+      <div className="min-w-0">
+        <p className="truncate text-xs font-bold text-white leading-tight">{name}</p>
+        <p className="truncate text-[11px] font-medium text-neutral-400 mt-0.5">
+          {connected ? username || connectedLabel : disconnectedLabel}
+        </p>
+      </div>
     </div>
-    <div className="min-w-0 flex-1">
-      <p className="truncate text-xs font-bold text-white">{name}</p>
-      <p className="truncate text-xs font-medium text-white/40 mt-0.5">
-        {connected ? username || connectedLabel : disconnectedLabel}
-      </p>
-    </div>
-    <span className={`h-2 w-2 shrink-0 rounded-full ${connected ? "bg-white" : "bg-white/15"}`} />
+    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${connected ? "bg-white shadow-[0_0_6px_rgba(255,255,255,0.7)]" : "bg-white/20"}`} />
   </div>
 );
 
-const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: React.ReactNode; compact?: boolean }> = ({
-  icon,
-  label,
-  value,
-  compact = false,
-}) => (
-  <div className={`flex flex-col items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.045] ${compact ? "min-h-[72px] px-4 py-2.5" : "min-h-[90px] px-5 py-3.5"}`}>
-    <div className={`${compact ? "mb-1" : "mb-1.5"} text-white/40`}>{icon}</div>
-    <div className={`${compact ? "text-lg" : "text-xl"} font-bold text-white tabular-nums`}>{value}</div>
-    <div className="mt-0.5 text-[9px] font-black uppercase tracking-widest text-white/35">{label}</div>
+const MetricsCluster: React.FC<{
+  games: number;
+  hours: string | number;
+  favorites: number;
+  copy: { games: string; hours: string; favorites: string };
+  compact?: boolean;
+}> = ({ games, hours, favorites, copy, compact = false }) => (
+  <div className={`flex items-center justify-between sm:justify-start gap-5 sm:gap-7 rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-md ${compact ? "px-4 py-2.5" : "px-5 py-3"}`}>
+    <div className="flex flex-col">
+      <span className={`${compact ? "text-base" : "text-lg sm:text-xl"} font-black text-white tabular-nums tracking-tight leading-none`}>
+        {games}
+      </span>
+      <span className="text-[9px] font-extrabold uppercase tracking-widest text-neutral-400 mt-1">
+        {copy.games}
+      </span>
+    </div>
+    <div className="h-6 w-px bg-white/10 shrink-0" />
+    <div className="flex flex-col">
+      <span className={`${compact ? "text-base" : "text-lg sm:text-xl"} font-black text-white tabular-nums tracking-tight leading-none`}>
+        {hours}
+      </span>
+      <span className="text-[9px] font-extrabold uppercase tracking-widest text-neutral-400 mt-1">
+        {copy.hours}
+      </span>
+    </div>
+    <div className="h-6 w-px bg-white/10 shrink-0" />
+    <div className="flex flex-col">
+      <span className={`${compact ? "text-base" : "text-lg sm:text-xl"} font-black text-white tabular-nums tracking-tight leading-none`}>
+        {favorites}
+      </span>
+      <span className="text-[9px] font-extrabold uppercase tracking-widest text-neutral-400 mt-1">
+        {copy.favorites}
+      </span>
+    </div>
   </div>
 );
 
@@ -251,16 +306,14 @@ const Section: React.FC<SectionProps> = ({
   className = "",
   compact = false,
 }) => (
-  <section className={`${compact ? "rounded-xl p-4 md:p-5" : "rounded-2xl p-6 md:p-7"} border border-white/10 bg-black/40 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)] ${className}`}>
-    <div className={`${compact ? "mb-3" : "mb-5"} flex items-center gap-3`}>
+  <section className={`${compact ? "rounded-2xl p-4 md:p-5" : "rounded-3xl p-5 md:p-6"} border border-white/[0.06] bg-[#0B0C0D] backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.4)] ${className}`}>
+    <div className={`${compact ? "mb-3" : "mb-4"} flex items-center gap-2.5`}>
       {icon && (
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white/70">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-neutral-400">
           {icon}
         </div>
       )}
-      <div>
-        <h2 className="text-base md:text-lg font-bold text-white tracking-tight">{title}</h2>
-      </div>
+      <h2 className="text-xs sm:text-sm font-black text-neutral-300 tracking-wider uppercase font-mono">{title}</h2>
     </div>
     {children}
   </section>
@@ -388,42 +441,177 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const discordDisplayName = String(userProfile?.discordUsername || discordId).trim();
 
   const { user: authUser } = useAuth();
+
+  // Missões de Engajamento do Jogador (Phelierium Quests)
+  const currentUid = userId || userProfile?.uid || authUser?.uid || "";
+  const [questsRevision, setQuestsRevision] = useState(0);
+
+  const quests = useMemo(() => {
+    if (!currentUid) return [];
+    return getAllQuestsWithStatus(currentUid);
+  }, [currentUid, questsRevision]);
+
+  // Auto-validação de marcos alcançados (ex: jogos na biblioteca, plataformas conectadas, etc.)
+  useEffect(() => {
+    if (!editable || !authUser?.uid) return;
+    const uid = authUser.uid;
+
+    // Se já tem pelo menos 1 jogo na biblioteca
+    if (stats.totalGames > 0) {
+      import("../services/userQuests").then(({ completeUserQuest }) => {
+        completeUserQuest(uid, "first_game");
+      });
+    }
+
+    // Se tem plataformas conectadas
+    if (hasSteamProfile || hasDiscordProfile || stats.epicGames > 0) {
+      import("../services/userQuests").then(({ completeUserQuest }) => {
+        completeUserQuest(uid, "connect_platform");
+      });
+    }
+
+    // Se tem amigos adicionados
+    if ((userProfile?.checkpointFriends?.length || 0) > 0) {
+      import("../services/userQuests").then(({ completeUserQuest }) => {
+        completeUserQuest(uid, "first_friend");
+      });
+    }
+
+    // Se tem jogos favoritados
+    if (stats.favorites > 0) {
+      import("../services/userQuests").then(({ completeUserQuest }) => {
+        completeUserQuest(uid, "favorite_game");
+      });
+    }
+
+    // Se já desbloqueou alguma conquista
+    if (stats.totalAchievements > 0) {
+      import("../services/userQuests").then(({ completeUserQuest }) => {
+        completeUserQuest(uid, "first_trophy");
+      });
+    }
+  }, [
+    editable,
+    authUser?.uid,
+    stats.totalGames,
+    stats.favorites,
+    stats.totalAchievements,
+    hasSteamProfile,
+    hasDiscordProfile,
+    stats.epicGames,
+    userProfile?.checkpointFriends?.length,
+  ]);
+
+  useEffect(() => {
+    const handler = () => setQuestsRevision((r) => r + 1);
+    const unsub = progressionEventBus.onXpGained(handler);
+    window.addEventListener("checkpoint:xp-gained", handler);
+    return () => {
+      unsub();
+      window.removeEventListener("checkpoint:xp-gained", handler);
+    };
+  }, []);
   const playerLevel = useMemo(() => {
     const isSelf = editable && authUser?.uid;
     if (isSelf) {
-      const hubAgg = getHubAggregateCounts(authUser.uid!, normalizedGames as any);
-      // Se tem progresso no hub, usa hub; senão mostra nível 1 Bronze 1 (não farmado)
-      if ((hubAgg.hubPoints ?? 0) > 0 || normalizedGames.length > 0) {
-        return calculatePlayerLevel(0, 0, 0, hubAgg);
-      }
-    } else {
-      // Amigos ou perfis consultados via busca
-      const anyProfile = userProfile as any;
-      const levelProgress = anyProfile?.levelProgress;
-      if (levelProgress?.total_xp != null && Number(levelProgress.total_xp) > 0) {
-        return calculatePlayerLevelFromXp(Number(levelProgress.total_xp));
-      }
-      const rawLvl = Number(levelProgress?.current_level ?? anyProfile?.level ?? 0);
-      if (rawLvl > 1) {
-        const tierInfo = getPSNTierInfo(rawLvl);
-        return {
-          level: rawLvl,
-          xp: 0,
-          progress: Number(levelProgress?.progress_pct ?? 0),
-          currentLevelXp: 0,
-          xpForNextLevel: 0,
-          tier: tierInfo.tier,
-          subTier: tierInfo.subTier,
-          tierName: tierInfo.name,
-          rank: tierInfo.name,
-          rankColor: tierInfo.color,
-          tierInfo,
-        };
-      }
+      return getUserUnifiedLevel(authUser.uid!, normalizedGames as any);
+    }
+    // Amigos ou perfis consultados via busca
+    const anyProfile = userProfile as any;
+    const levelProgress = anyProfile?.levelProgress;
+    if (levelProgress?.total_xp != null && Number(levelProgress.total_xp) > 0) {
+      return calculatePlayerLevelFromXp(Number(levelProgress.total_xp));
+    }
+    const rawLvl = Number(levelProgress?.current_level ?? anyProfile?.level ?? 0);
+    if (rawLvl > 1) {
+      const tierInfo = getPSNTierInfo(rawLvl);
+      return {
+        level: rawLvl,
+        xp: 0,
+        progress: Number(levelProgress?.progress_pct ?? 0),
+        currentLevelXp: 0,
+        xpForNextLevel: 0,
+        tier: tierInfo.tier,
+        subTier: tierInfo.subTier,
+        tierName: tierInfo.name,
+        rank: tierInfo.name,
+        rankColor: tierInfo.color,
+        tierInfo,
+      };
     }
     const agg = aggregateTrophyCounts(normalizedGames);
     return calculatePlayerLevel(stats.totalHours, stats.totalAchievements, stats.totalGames, agg);
-  }, [normalizedGames, stats, editable, authUser?.uid, userProfile]);
+  }, [normalizedGames, stats, editable, authUser?.uid, userProfile, questsRevision]);
+
+  const [simulatedLevelDelta, setSimulatedLevelDelta] = useState(0);
+  const [isTierMenuOpen, setIsTierMenuOpen] = useState(false);
+  const tierMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isTierMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tierMenuRef.current && !tierMenuRef.current.contains(e.target as Node)) {
+        setIsTierMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isTierMenuOpen]);
+
+  const effectiveLevel = Math.min(999, Math.max(1, playerLevel.level + simulatedLevelDelta));
+  const effectiveTierInfo = useMemo(() => getPSNTierInfo(effectiveLevel), [effectiveLevel]);
+  const effectiveTier = effectiveTierInfo.tier;
+
+  const nextTierInfo = useMemo(() => {
+    if (effectiveLevel >= 999) return null;
+    return getPSNTierInfo(effectiveLevel + 1);
+  }, [effectiveLevel]);
+
+  const handleTierBadgeClick = useCallback(() => {
+    try {
+      const audio = new Audio(tierLevelClickSound);
+      audio.volume = 0.8;
+      audio.play().catch(() => { });
+    } catch {
+      playSound?.("select");
+    }
+  }, [playSound]);
+
+  const handleSimulateLevelUp = useCallback(
+    (targetTier?: "bronze" | "silver" | "gold" | "platinum") => {
+      let nextLevel = effectiveLevel + 1;
+
+      if (targetTier) {
+        if (targetTier === "bronze") nextLevel = 10;
+        else if (targetTier === "silver") nextLevel = 25;
+        else if (targetTier === "gold") nextLevel = 50;
+        else if (targetTier === "platinum") nextLevel = 100;
+      }
+
+      const nextInfo = getPSNTierInfo(nextLevel);
+      setSimulatedLevelDelta(nextLevel - playerLevel.level);
+
+      progressionEventBus.emitLevelUp({
+        oldLevel: effectiveLevel,
+        newLevel: nextLevel,
+        levelInfo: {
+          ...playerLevel,
+          level: nextLevel,
+          tier: nextInfo.tier,
+          subTier: nextInfo.subTier,
+          tierName: nextInfo.name,
+          rank: nextInfo.name,
+          rankColor: nextInfo.color,
+          tierInfo: nextInfo,
+          progress: 0,
+          currentLevelXp: 0,
+          xpForNextLevel: 100,
+        },
+        tierInfo: nextInfo,
+      });
+    },
+    [effectiveLevel, playerLevel],
+  );
 
   return (
     <motion.div
@@ -436,116 +624,331 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       className={`relative min-h-0 flex-1 overflow-y-auto thin-scrollbar ${compactProfile ? "px-5 pb-6 pt-4" : "px-8 pb-12 pt-6"}`}
     >
       <div className={`relative mx-auto max-w-6xl ${compactProfile ? "space-y-4" : "space-y-6"}`}>
-        <section className={`rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.45)] ${compactProfile ? "p-5 md:p-6" : "p-6 md:p-7"}`}>
-          <div className={`flex flex-col md:flex-row md:items-center md:justify-between ${compactProfile ? "gap-4" : "gap-6"}`}>
-            <div className="flex min-w-0 items-center gap-5">
-              <ProfileAvatar profile={userProfile} authPhotoURL={user?.photoURL} displayName={displayName} compact={compactProfile} />
-              <div className="min-w-0">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-white/60 font-body">
-                  {editable ? "Seu perfil" : "Perfil do jogador"}
-                </p>
-                <div className="flex items-center gap-3">
-                  <h1 className={`${compactProfile ? "text-2xl" : "text-3xl"} truncate font-bold tracking-tight text-white`}>{displayName}</h1>
-                  <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 ${compactProfile ? "scale-75 origin-left" : ""} ${playerLevel.tierInfo.borderClass} ${playerLevel.tierInfo.bgClass}`}>
-                    <Trophy className={`h-3.5 w-3.5 ${playerLevel.tierInfo.color}`} />
-                    <span className={`text-xs font-bold ${playerLevel.tierInfo.color}`}>Lv.{playerLevel.level}</span>
-                  </div>
-                </div>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <span className={`text-xs font-medium ${playerLevel.tierInfo.color}`}>{playerLevel.tierInfo.name}</span>
-                  <div className="h-1.5 w-20 overflow-hidden rounded-full bg-white/[0.06] border border-white/5">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, Math.max(0, playerLevel.progress))}%` }}
-                      transition={{ duration: 0.6, ease: "easeOut" }}
-                      className="h-full rounded-full bg-white"
-                    />
-                  </div>
-                  <span className="text-xs text-white/60 font-medium">{playerLevel.progress}%</span>
-                </div>
-                <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                  {hasSteamProfile && (
-                    <button
-                      type="button"
-                      onClick={() => void openExternalProfile(`https://steamcommunity.com/profiles/${steamId}`)}
-                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.06] px-2 py-0.5 text-xs font-medium text-white transition-colors hover:bg-white/10"
-                    >
-                      <FontAwesomeIcon icon={faSteam} className="h-3 w-3" />
-                      {userProfile?.steamUsername || "Steam"}
-                    </button>
-                  )}
-                  {hasDiscordProfile && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!copyFriendDiscord) {
-                          void openExternalProfile(`https://discord.com/users/${discordId}`);
-                          return;
-                        }
-                        void copyToClipboard(discordDisplayName).then(() => {
-                          onNotify?.(
-                            userProfile?.discordUsername ? copy.copiedNickname : copy.copiedId,
-                            "success",
-                          );
-                        }).catch(() => onNotify?.(copy.copyError, "error"));
-                      }}
-                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.06] px-2 py-0.5 text-xs font-medium text-white transition-colors hover:bg-white/10"
-                    >
-                      <FontAwesomeIcon icon={faDiscord} className="h-3 w-3" />
-                      {discordDisplayName}
-                    </button>
-                  )}
-                </div>
-                {userProfile?.bio && <p className="mt-2.5 max-w-xl text-[13px] leading-relaxed text-white/70 font-body">{userProfile.bio}</p>}
-                <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-medium text-white/60">
-                  {email && <span>{email}</span>}
-                  {userProfile?.website && /^https:\/\//i.test(userProfile.website) && (
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 hover:text-white"
-                      onClick={() => window.electronAPI?.openExternalUrl(userProfile.website as string)}
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" /> Site
-                    </button>
-                  )}
-                </div>
-                {Boolean(userProfile?.favoriteGenres?.length) && (
-                  <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    {userProfile?.favoriteGenres?.map((genre) => (
-                      <span key={genre} className="rounded-md border border-white/10 bg-white/[0.05] px-2 py-0.5 text-xs font-medium text-white/70">
-                        {genre}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+        {/* HERO SECTION EDITORIAL MINIMALISTA */}
+        <section className={`relative rounded-3xl border border-white/[0.06] bg-[#0B0C0D] shadow-[0_24px_80px_rgba(0,0,0,0.6)] ${compactProfile ? "p-5 md:p-6" : "p-6 sm:p-8"}`}>
+          {/* Luz ambiente sutil na cor da patente do jogador isolada para não cortar elementos flutuantes */}
+          <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+            <div
+              className="absolute -top-32 -left-32 w-80 h-80 rounded-full blur-[110px] opacity-15 pointer-events-none transition-all duration-700"
+              style={{ background: playerLevel.tierInfo.gradientFrom }}
+            />
+          </div>
 
-            <div className="flex flex-col items-end gap-3">
-              {editable && (
-                <button
-                  type="button"
-                  onClick={() => {
+          <div className="relative z-10 flex flex-col gap-6">
+            {/* Linha Principal: Identidade à Esquerda | KPIs + Ações à Direita */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+
+              {/* BLOCO DE IDENTIDADE: Avatar + Informações unificadas */}
+              <div className="flex items-start sm:items-center gap-5 sm:gap-6 min-w-0 flex-1">
+                <ProfileAvatar
+                  profile={userProfile}
+                  authPhotoURL={user?.photoURL}
+                  displayName={displayName}
+                  compact={compactProfile}
+                  editable={editable}
+                  onEditClick={() => {
                     setIsEditing(true);
                     playSound?.("showModal");
                   }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.06] px-3 py-2 text-xs font-black text-white/65 transition hover:bg-white/12 hover:text-white"
-                >
-                  <Pencil className="h-3.5 w-3.5" /> {copy.edit}
-                </button>
-              )}
-              {isPrivateProfile ? (
-                <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white/50">
-                  <Lock className="h-4 w-4 text-white/60" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Perfil Privado</span>
+                />
+
+                <div className="min-w-0 flex-1">
+                  {/* Nível 1: Nome do Jogador + Atalho para Editar */}
+                  <div className="flex items-center gap-3">
+                    <h1 className={`${compactProfile ? "text-2xl" : "text-3xl sm:text-4xl"} font-black tracking-tight text-white leading-none truncate`}>
+                      {displayName}
+                    </h1>
+                    {editable && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditing(true);
+                          playSound?.("showModal");
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/10 bg-white/[0.05] hover:bg-white/10 text-xs font-semibold text-neutral-300 hover:text-white transition cursor-pointer"
+                        title="Editar perfil"
+                      >
+                        <Pencil className="h-3 w-3 text-neutral-400" />
+                        <span>Editar</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Nível 2: Patente Proprietária 3D com Animação de Substituição de Tier */}
+                  <div className="mt-2.5 flex items-center gap-2.5 flex-wrap">
+                    <motion.div
+                      whileHover={{ scale: 1.15, y: -2 }}
+                      whileTap={{ scale: 0.88 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 18 }}
+                      className="relative flex items-center justify-center shrink-0 cursor-pointer h-8 w-8"
+                      onClick={handleTierBadgeClick}
+                      onMouseEnter={() => playSound?.("hover")}
+                      title={`${effectiveTierInfo.name} - Nível ${effectiveLevel} (Clique para ouvir o som)`}
+                    >
+                      <AnimatePresence mode="wait">
+                        <motion.img
+                          key={effectiveTier}
+                          src={USER_TIER_IMAGES[effectiveTier] || PherieliumTierBronze}
+                          alt={effectiveTierInfo.name}
+                          width={32}
+                          height={32}
+                          initial={{
+                            scale: 1.8,
+                            opacity: 0,
+                            filter: "brightness(1.8) drop-shadow(0 0 16px rgba(255,255,255,0.9))",
+                          }}
+                          animate={{
+                            scale: [1.8, 1.15, 1],
+                            opacity: 1,
+                            filter: "brightness(1) drop-shadow(0 4px 8px rgba(0,0,0,0.5))",
+                          }}
+                          exit={{
+                            scale: 0.1,
+                            opacity: 0,
+                            filter: "brightness(0.5) blur(3px)",
+                          }}
+                          transition={{
+                            duration: 0.5,
+                            ease: [0.16, 1, 0.3, 1],
+                          }}
+                          className="h-7 w-7 object-contain shrink-0 select-none pointer-events-none drop-shadow"
+                        />
+                      </AnimatePresence>
+                    </motion.div>
+
+                    <span
+                      className="text-sm font-black tracking-wide transition-colors duration-500"
+                      style={{ color: effectiveTierInfo.hexColor }}
+                    >
+                      {effectiveTierInfo.name}
+                    </span>
+
+                    <span className="text-white/20 font-bold">•</span>
+
+                    <motion.span
+                      key={effectiveLevel}
+                      initial={{ y: -4, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      className="text-xs font-extrabold text-neutral-300 font-mono"
+                    >
+                      Lv. {effectiveLevel}
+                    </motion.span>
+                  </div>
+
+                  {/* Barra de Progressão da Patente (Clean & Minimal) */}
+                  <div className="mt-2.5 space-y-1 max-w-sm">
+                    <div className="h-1.5 w-full sm:w-72 rounded-full bg-white/[0.06] overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, Math.max(0, playerLevel.progress))}%` }}
+                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                        className="h-full rounded-full"
+                        style={{
+                          background: `linear-gradient(90deg, ${playerLevel.tierInfo.gradientFrom}, ${playerLevel.tierInfo.gradientTo})`,
+                          boxShadow: `0 0 8px ${playerLevel.tierInfo.gradientFrom}40`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-neutral-400">
+                      <span>{playerLevel.progress}% para {nextTierInfo?.name || "Nível Máximo"}</span>
+                      {playerLevel.currentLevelXp > 0 && playerLevel.xpForNextLevel > 0 && (
+                        <span className="text-[10px] text-neutral-500 font-mono">
+                          {playerLevel.currentLevelXp}/{playerLevel.xpForNextLevel} XP
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Nível 3: Bio */}
+                  {userProfile?.bio && (
+                    <p className="mt-3 text-xs sm:text-[13px] text-neutral-300 leading-relaxed max-w-xl font-normal">
+                      {userProfile.bio}
+                    </p>
+                  )}
+
+                  {/* Nível 3: Plataformas Conectadas & Links */}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {hasSteamProfile && (
+                      <button
+                        type="button"
+                        onClick={() => void openExternalProfile(`https://steamcommunity.com/profiles/${steamId}`)}
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
+                      >
+                        <FontAwesomeIcon icon={faSteam} className="h-3 w-3 text-neutral-400" />
+                        <span>{userProfile?.steamUsername || "Steam"}</span>
+                      </button>
+                    )}
+                    {hasDiscordProfile && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!copyFriendDiscord) {
+                            void openExternalProfile(`https://discord.com/users/${discordId}`);
+                            return;
+                          }
+                          void copyToClipboard(discordDisplayName)
+                            .then(() => {
+                              onNotify?.(
+                                userProfile?.discordUsername ? copy.copiedNickname : copy.copiedId,
+                                "success",
+                              );
+                            })
+                            .catch(() => onNotify?.(copy.copyError, "error"));
+                        }}
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
+                      >
+                        <FontAwesomeIcon icon={faDiscord} className="h-3 w-3 text-neutral-400" />
+                        <span>{discordDisplayName}</span>
+                      </button>
+                    )}
+                    {userProfile?.website && /^https:\/\//i.test(userProfile.website) && (
+                      <button
+                        type="button"
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
+                        onClick={() => window.electronAPI?.openExternalUrl(userProfile.website as string)}
+                      >
+                        <ExternalLink className="h-3 w-3 text-neutral-400" />
+                        <span>Site</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Nível 4: Tags de Gêneros Favoritos */}
+                  {Boolean(userProfile?.favoriteGenres?.length) && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {userProfile?.favoriteGenres?.map((genre) => (
+                        <span
+                          key={genre}
+                          className="rounded-md border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wider"
+                        >
+                          {genre}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-3">
-                  <StatCard compact={compactProfile} icon={<Gamepad2 className="h-4 w-4" />} label={copy.games} value={stats.totalGames} />
-                  <StatCard compact={compactProfile} icon={<Clock className="h-4 w-4" />} label={copy.hours} value={`${formatPlayedHours(stats.totalHours)}h`} />
-                  <StatCard compact={compactProfile} icon={<Star className="h-4 w-4" />} label={copy.favorites} value={stats.favorites} />
+              </div>
+
+              {/* LADO DIREITO: KPIs Unificados + Botão de Edição */}
+              <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-4 shrink-0">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  {editable && (
+                    <div className="relative flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => handleSimulateLevelUp()}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-black text-amber-300 transition hover:bg-amber-400/20 hover:border-amber-400/50 hover:text-amber-200 cursor-pointer shadow-[0_0_15px_rgba(251,191,36,0.15)] active:scale-95"
+                        title="Simular subida de nível e emitir modal com som espacial"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                        <span>Simular Level UP</span>
+                      </button>
+
+                      {/* Dropdown de saltos de tier para testar a substituição visual */}
+                      <div ref={tierMenuRef} className="relative ml-1">
+                        <button
+                          type="button"
+                          onClick={() => setIsTierMenuOpen((v) => !v)}
+                          className="h-8 w-8 rounded-xl border border-white/10 bg-white/[0.04] flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                          title="Saltar para outro Tier"
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+
+                        {isTierMenuOpen && (
+                          <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-white/15 bg-neutral-900/95 backdrop-blur-xl shadow-2xl p-1 z-50 space-y-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleSimulateLevelUp("bronze");
+                                setIsTierMenuOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold text-[#cd7f32] hover:bg-white/10 transition flex items-center gap-2 cursor-pointer"
+                            >
+                              <span className="h-2 w-2 rounded-full bg-[#cd7f32]" />
+                              <span>Tier Bronze (Lv. 10)</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleSimulateLevelUp("silver");
+                                setIsTierMenuOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200 hover:bg-white/10 transition flex items-center gap-2 cursor-pointer"
+                            >
+                              <span className="h-2 w-2 rounded-full bg-slate-300" />
+                              <span>Tier Prata (Lv. 25)</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleSimulateLevelUp("gold");
+                                setIsTierMenuOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-400 hover:bg-white/10 transition flex items-center gap-2 cursor-pointer"
+                            >
+                              <span className="h-2 w-2 rounded-full bg-amber-400" />
+                              <span>Tier Ouro (Lv. 50)</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleSimulateLevelUp("platinum");
+                                setIsTierMenuOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold text-[#38bdf8] hover:bg-white/10 transition flex items-center gap-2 cursor-pointer"
+                            >
+                              <span className="h-2 w-2 rounded-full bg-[#38bdf8]" />
+                              <span>Tier Platina (Lv. 100)</span>
+                            </button>
+                            {simulatedLevelDelta !== 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSimulatedLevelDelta(0);
+                                  setIsTierMenuOpen(false);
+                                }}
+                                className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold text-neutral-400 hover:bg-white/5 hover:text-white border-t border-white/10 transition cursor-pointer"
+                              >
+                                Resetar nível original
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {editable && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditing(true);
+                        playSound?.("showModal");
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-bold text-neutral-300 transition hover:bg-white/10 hover:text-white cursor-pointer"
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-neutral-400" />
+                      <span>{copy.edit}</span>
+                    </button>
+                  )}
                 </div>
-              )}
+
+                {isPrivateProfile ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-neutral-400">
+                    <Lock className="h-4 w-4 text-neutral-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider">Perfil Privado</span>
+                  </div>
+                ) : (
+                  <MetricsCluster
+                    games={stats.totalGames}
+                    hours={`${formatPlayedHours(stats.totalHours)}h`}
+                    favorites={stats.favorites}
+                    copy={copy}
+                    compact={compactProfile}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -562,256 +965,370 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           </section>
         ) : (
           <>
-            <div className={`grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] ${compactProfile ? "gap-4" : "gap-5"}`}>
-          <section aria-label="Atividade do jogador" className="space-y-5">
-            <Section
-              compact={compactProfile}
-              title={activeGameTab === "mostPlayed" ? copy.mostPlayed : `${copy.allGames} (${normalizedGames.length})`}
-              icon={activeGameTab === "mostPlayed" ? <TrendingUp className="h-4 w-4" /> : <Layers className="h-4 w-4" />}
-              className={compactProfile ? "min-h-[260px]" : "min-h-[346px]"}
-            >
-              {/* Tab Selector & Search */}
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-white/8 pb-3">
-                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/5">
-                  <button
-                    type="button"
-                    onClick={() => setActiveGameTab("mostPlayed")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      activeGameTab === "mostPlayed"
-                        ? "bg-white/15 text-white shadow-xs"
-                        : "text-white/45 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    <TrendingUp className="h-3.5 w-3.5" />
-                    <span>{copy.mostPlayed}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveGameTab("allGames")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      activeGameTab === "allGames"
-                        ? "bg-white/15 text-white shadow-xs"
-                        : "text-white/45 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    <Layers className="h-3.5 w-3.5" />
-                    <span>{copy.allGames}</span>
-                    <span className="ml-0.5 rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] text-white/70">
-                      {normalizedGames.length}
-                    </span>
-                  </button>
-                </div>
-
-                {activeGameTab === "allGames" && (
-                  <div className="relative w-48 sm:w-56">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30 pointer-events-none" />
-                    <input
-                      type="text"
-                      placeholder={copy.searchGames}
-                      value={gameSearch}
-                      onChange={(e) => setGameSearch(e.target.value)}
-                      className="w-full h-8 pl-8 pr-3 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-white placeholder-white/30 focus:outline-none focus:border-white/30 focus:bg-white/10 transition"
-                    />
-                  </div>
-                )}
+            {editable && (
+              <div className="w-full mb-6">
+                <HomeOnboardingQuests
+                  userId={userId || userProfile?.uid}
+                  userProfile={userProfile}
+                  userLevel={playerLevel.level}
+                  hasFriends={(userProfile?.checkpointFriends?.length || 0) > 0}
+                  totalGames={games.length}
+                  favoritesCount={games.filter((g) => (g as any).isFavorite || (g as any).favorite).length}
+                  hasAchievements={games.some((g) => (g.completedAchievements || 0) > 0)}
+                  hasSteamConnected={Boolean(userProfile?.steamId)}
+                  hasEpicConnected={localStorage.getItem("checkpoint_epic_linked_uid") === (userId || userProfile?.uid)}
+                  hasDiscordConnected={Boolean(userProfile?.discordId)}
+                  onOpenAddFriend={() => {}}
+                  onOpenAddGame={() => {}}
+                  onOpenSettings={() => {}}
+                  onOpenProfile={() => {}}
+                  onOpenTrophies={() => {}}
+                  playSound={playSound}
+                />
               </div>
+            )}
+            <div className={`grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] ${compactProfile ? "gap-4" : "gap-5"}`}>
+              <section aria-label="Atividade do jogador" className="space-y-5">
+                <Section
+                  compact={compactProfile}
+                  title={activeGameTab === "mostPlayed" ? copy.mostPlayed : `${copy.allGames} (${normalizedGames.length})`}
+                  icon={activeGameTab === "mostPlayed" ? <TrendingUp className="h-4 w-4" /> : <Layers className="h-4 w-4" />}
+                  className={compactProfile ? "min-h-[260px]" : "min-h-[346px]"}
+                >
+                  {/* Tab Selector com Underline Minimalista & Search */}
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.06] pb-1">
+                    <div className="flex items-center gap-6">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveGameTab("mostPlayed");
+                          playSound?.("select");
+                        }}
+                        onMouseEnter={() => playSound?.("hover")}
+                        className={`relative pb-3 text-xs font-bold transition-colors cursor-pointer ${activeGameTab === "mostPlayed" ? "text-white" : "text-neutral-500 hover:text-neutral-300"
+                          }`}
+                      >
+                        <span>{copy.mostPlayed}</span>
+                        {activeGameTab === "mostPlayed" && (
+                          <motion.div
+                            layoutId="profileGameTabUnderline"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]"
+                            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                          />
+                        )}
+                      </button>
 
-              {activeGameTab === "mostPlayed" ? (
-                topGames.length > 0 ? (
-                  <div className="space-y-4">
-                    {topGames.map((game, index) => {
-                      const playedHours = getGamePlayedHours(game);
-                      const pct = (playedHours / maxHours) * 100;
-                      return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveGameTab("allGames");
+                          playSound?.("select");
+                        }}
+                        onMouseEnter={() => playSound?.("hover")}
+                        className={`relative pb-3 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${activeGameTab === "allGames" ? "text-white" : "text-neutral-500 hover:text-neutral-300"
+                          }`}
+                      >
+                        <span>{copy.allGames}</span>
+                        <span className="text-[10px] font-mono text-neutral-400">({normalizedGames.length})</span>
+                        {activeGameTab === "allGames" && (
+                          <motion.div
+                            layoutId="profileGameTabUnderline"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]"
+                            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                          />
+                        )}
+                      </button>
+                    </div>
+
+                    {activeGameTab === "allGames" && (
+                      <div className="relative w-48 sm:w-56 pb-2 sm:pb-0">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-500 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder={copy.searchGames}
+                          value={gameSearch}
+                          onChange={(e) => setGameSearch(e.target.value)}
+                          className="w-full h-8 pl-8 pr-3 rounded-lg bg-white/[0.04] border border-white/10 text-xs font-medium text-white placeholder-neutral-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.08] transition"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {activeGameTab === "mostPlayed" ? (
+                    topGames.length > 0 ? (
+                      <div className="space-y-2">
+                        {topGames.map((game, index) => {
+                          const playedHours = getGamePlayedHours(game);
+                          const pct = Math.max(4, Math.min(100, (playedHours / maxHours) * 100));
+                          return (
+                            <button
+                              key={game.id}
+                              type="button"
+                              onClick={() => onOpenGame?.(game)}
+                              disabled={!onOpenGame}
+                              className="group grid w-full grid-cols-[20px_42px_1fr_auto] items-center gap-3.5 rounded-xl p-2.5 text-left transition-colors hover:bg-white/[0.04] disabled:cursor-default disabled:hover:bg-transparent cursor-pointer"
+                            >
+                              <span className="text-right text-xs font-mono font-bold text-neutral-500 group-hover:text-neutral-300 transition-colors">{index + 1}</span>
+                              <div className="h-12 w-9 overflow-hidden rounded-lg bg-white/5 border border-white/10 shrink-0">
+                                {(game.cardImage || game.image) && (
+                                  <img src={game.cardImage || game.image} alt="" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                                )}
+                              </div>
+                              <div className="min-w-0 pr-2">
+                                <p className="truncate text-xs sm:text-sm font-bold text-white group-hover:text-white transition-colors">{game.title}</p>
+                                {/* Barra sutil de distribuição relativa de tempo jogado */}
+                                <div className="mt-2 flex items-center gap-2">
+                                  <div className="h-1 w-full max-w-xs overflow-hidden rounded-full bg-white/[0.05]">
+                                    <motion.div
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${pct}%` }}
+                                      transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], delay: index * 0.05 }}
+                                      className="h-full rounded-full bg-white/30 group-hover:bg-white/60 transition-colors"
+                                    />
+                                  </div>
+                                  <span className="text-[9px] font-mono text-neutral-500 shrink-0">
+                                    {Math.round(pct)}% rel.
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="flex items-center gap-1.5 text-xs font-mono font-bold text-neutral-300">
+                                <Clock className="h-3 w-3 text-neutral-500" />
+                                {formatPlayedHours(playedHours)}h
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <EmptyProfileState compact={compactProfile} title={copy.emptyTitle} body={copy.emptyBody} />
+                    )
+                  ) : (
+                    /* Todos os Jogos Tab */
+                    filteredAllGames.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[420px] overflow-y-auto pr-1 thin-scrollbar">
+                        {filteredAllGames.map((game) => {
+                          const playedHours = getGamePlayedHours(game);
+                          const launcherBadge = game.launcherType === "steam"
+                            ? "Steam"
+                            : game.launcherType === "epic"
+                              ? "Epic Games"
+                              : "Local";
+
+                          return (
+                            <button
+                              key={game.id}
+                              type="button"
+                              onClick={() => onOpenGame?.(game)}
+                              disabled={!onOpenGame}
+                              className="flex items-center gap-3 p-2.5 rounded-xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/12 transition text-left cursor-pointer group disabled:cursor-default"
+                            >
+                              <div className="h-14 w-11 rounded-lg overflow-hidden bg-white/8 shrink-0 relative">
+                                {(game.cardImage || game.image) ? (
+                                  <img src={game.cardImage || game.image} alt="" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-white/30">
+                                    <Gamepad2 className="h-5 w-5" />
+                                  </div>
+                                )}
+                                {game.isFavorite && (
+                                  <div className="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-black/60 flex items-center justify-center">
+                                    <Star className="h-2.5 w-2.5 text-yellow-400 fill-yellow-400" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-xs font-bold text-white group-hover:text-white/90">{game.title}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-[10px] font-medium text-white/40 flex items-center gap-1">
+                                    <Clock className="h-2.5 w-2.5" />
+                                    {formatPlayedHours(playedHours)}h
+                                  </span>
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-white/50 uppercase tracking-wider">
+                                    {launcherBadge}
+                                  </span>
+                                </div>
+                                {(game.totalAchievements || 0) > 0 && (
+                                  <div className="flex items-center gap-1 mt-1 text-[10px] text-white/40">
+                                    <Trophy className="h-2.5 w-2.5 text-yellow-500/80" />
+                                    <span>{game.completedAchievements || 0} / {game.totalAchievements}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="py-12 text-center text-xs font-bold text-white/40">
+                        {copy.noGamesFound}
+                      </div>
+                    )
+                  )}
+                </Section>
+
+                {/* FAVORITOS: Editorial sem container pesado de card */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400/20" />
+                      <h3 className="text-xs font-black text-neutral-300 tracking-wider uppercase font-mono">{copy.favorites}</h3>
+                    </div>
+                    {favoriteGames.length > 0 && (
+                      <span className="text-[10px] font-mono text-neutral-500 font-bold">
+                        {favoriteGames.length} {favoriteGames.length === 1 ? "jogo" : "jogos"}
+                      </span>
+                    )}
+                  </div>
+
+                  {favoriteGames.length > 0 ? (
+                    <div className="flex gap-4 overflow-x-auto pb-2 pt-1 no-scrollbar">
+                      {favoriteGames.map((game) => (
                         <button
                           key={game.id}
                           type="button"
                           onClick={() => onOpenGame?.(game)}
                           disabled={!onOpenGame}
-                          className="grid w-full grid-cols-[20px_42px_1fr_auto] items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-white/[0.06] disabled:cursor-default disabled:hover:bg-transparent"
+                          className="group w-[96px] sm:w-[104px] shrink-0 text-left transition-transform duration-200 hover:-translate-y-1 focus:outline-none cursor-pointer disabled:cursor-default"
                         >
-                          <span className="text-right text-xs font-black text-white/25">{index + 1}</span>
-                          <div className="h-12 w-9 overflow-hidden rounded-lg bg-white/8">
+                          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-neutral-900 border border-white/10 shadow-lg group-hover:border-white/30 group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)] transition-all">
                             {(game.cardImage || game.image) && (
-                              <img src={game.cardImage || game.image} alt="" className="h-full w-full object-cover" />
+                              <img
+                                src={game.cardImage || game.image}
+                                alt={game.title}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
                             )}
                           </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-black text-white">{game.title}</p>
-                            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                          <p className="mt-2 line-clamp-2 text-xs font-bold text-neutral-300 group-hover:text-white leading-tight transition-colors">
+                            {game.title}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="py-4 text-xs font-medium text-neutral-500 italic">{copy.noFavorites}</p>
+                  )}
+                </div>
+              </section>
+
+              <aside aria-label="Resumo do perfil" className="space-y-5">
+                <Section compact={compactProfile} title={copy.platforms}>
+                  <div className="divide-y divide-white/[0.05]">
+                    <PlatformRow
+                      name="Steam"
+                      connected={Boolean(userProfile?.steamId)}
+                      avatar={userProfile?.steamAvatar}
+                      username={userProfile?.steamUsername || userProfile?.steamId}
+                      icon={<FontAwesomeIcon icon={faSteam} className="h-4 w-4" />}
+                      connectedLabel={copy.connected}
+                      disconnectedLabel={copy.disconnected}
+                      compact={compactProfile}
+                    />
+                    <PlatformRow
+                      name="Epic Games"
+                      connected={stats.epicGames > 0}
+                      username={stats.epicGames > 0 ? `${stats.epicGames} ${copy.catalogued}` : copy.catalog}
+                      icon={<EpicIcon className="h-4 w-4" />}
+                      connectedLabel={copy.connected}
+                      disconnectedLabel={copy.disconnected}
+                      compact={compactProfile}
+                    />
+                    <PlatformRow
+                      name="Discord"
+                      connected={Boolean(userProfile?.discordId)}
+                      avatar={userProfile?.discordAvatar}
+                      username={userProfile?.discordUsername}
+                      icon={<FontAwesomeIcon icon={faDiscord} className="h-4 w-4" />}
+                      connectedLabel={copy.connected}
+                      disconnectedLabel={copy.disconnected}
+                      compact={compactProfile}
+                    />
+                  </div>
+                </Section>
+
+                <Section compact={compactProfile} title={copy.achievements}>
+                  <div className="mb-3 flex items-end justify-between">
+                    <div>
+                      <span className="text-4xl font-black text-white">{stats.totalAchievements}</span>
+                      <span className="ml-1 text-sm font-bold text-white/35">/ {stats.totalPossible}</span>
+                    </div>
+                    <span className="text-sm font-black text-white/45">{achievementPercent}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-white/8">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${achievementPercent}%` }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} className="h-full rounded-full bg-white" />
+                  </div>
+                  <p className="mt-3 flex items-center gap-1.5 text-[10px] text-white/35">
+                    <Trophy className="h-3 w-3" /> {stats.totalAchievements} {copy.unlocked}
+                  </p>
+                </Section>
+
+                {/* BIBLIOTECA EDITORIAL */}
+                <Section compact={compactProfile} title={copy.library}>
+                  <div className="space-y-4">
+                    {/* Header de Distribuição */}
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-neutral-400">Distribuição</span>
+                      <span className="text-xs font-mono font-black text-white">{stats.totalGames} {stats.totalGames === 1 ? "jogo" : "jogos"}</span>
+                    </div>
+
+                    {/* Stacked bar única de distribuição */}
+                    {stats.totalGames > 0 && (
+                      <div className="h-2 w-full flex rounded-full overflow-hidden bg-white/[0.06] p-0.5 gap-0.5">
+                        {stats.steamGames > 0 && (
+                          <div
+                            style={{ width: `${(stats.steamGames / stats.totalGames) * 100}%` }}
+                            className="h-full bg-sky-400 rounded-full transition-all"
+                            title={`Steam: ${stats.steamGames}`}
+                          />
+                        )}
+                        {stats.epicGames > 0 && (
+                          <div
+                            style={{ width: `${(stats.epicGames / stats.totalGames) * 100}%` }}
+                            className="h-full bg-white/90 rounded-full transition-all"
+                            title={`Epic Games: ${stats.epicGames}`}
+                          />
+                        )}
+                        {stats.localGames > 0 && (
+                          <div
+                            style={{ width: `${(stats.localGames / stats.totalGames) * 100}%` }}
+                            className="h-full bg-neutral-500 rounded-full transition-all"
+                            title={`Local: ${stats.localGames}`}
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Linhas Editoriais com traço fino */}
+                    <div className="space-y-3 pt-1">
+                      {libraryRows.map((row) => {
+                        const pct = stats.totalGames > 0 ? (row.value / stats.totalGames) * 100 : 0;
+                        return (
+                          <div key={row.label} className="group">
+                            <div className="flex items-center justify-between text-xs font-bold mb-1">
+                              <span className="text-neutral-300 group-hover:text-white transition-colors">{row.label}</span>
+                              <span className="font-mono text-neutral-400 group-hover:text-white tabular-nums transition-colors">{row.value}</span>
+                            </div>
+                            <div className="h-1 w-full bg-white/[0.05] rounded-full overflow-hidden">
                               <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${pct}%` }}
-                                transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], delay: index * 0.05 }}
-                                className="h-full rounded-full bg-white"
+                                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                                className={`h-full rounded-full ${row.label === "Steam"
+                                    ? "bg-sky-400/80"
+                                    : row.label === "Epic Games"
+                                      ? "bg-white/80"
+                                      : "bg-neutral-400/80"
+                                  }`}
                               />
                             </div>
                           </div>
-                          <span className="flex items-center gap-1 text-[10px] font-semibold text-white/35">
-                            <Clock className="h-3 w-3" /> {formatPlayedHours(playedHours)}h
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <EmptyProfileState compact={compactProfile} title={copy.emptyTitle} body={copy.emptyBody} />
-                )
-              ) : (
-                /* Todos os Jogos Tab */
-                filteredAllGames.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[420px] overflow-y-auto pr-1 thin-scrollbar">
-                    {filteredAllGames.map((game) => {
-                      const playedHours = getGamePlayedHours(game);
-                      const launcherBadge = game.launcherType === "steam"
-                        ? "Steam"
-                        : game.launcherType === "epic"
-                        ? "Epic Games"
-                        : "Local";
-
-                      return (
-                        <button
-                          key={game.id}
-                          type="button"
-                          onClick={() => onOpenGame?.(game)}
-                          disabled={!onOpenGame}
-                          className="flex items-center gap-3 p-2.5 rounded-xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/12 transition text-left cursor-pointer group disabled:cursor-default"
-                        >
-                          <div className="h-14 w-11 rounded-lg overflow-hidden bg-white/8 shrink-0 relative">
-                            {(game.cardImage || game.image) ? (
-                              <img src={game.cardImage || game.image} alt="" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-white/30">
-                                <Gamepad2 className="h-5 w-5" />
-                              </div>
-                            )}
-                            {game.isFavorite && (
-                              <div className="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-black/60 flex items-center justify-center">
-                                <Star className="h-2.5 w-2.5 text-yellow-400 fill-yellow-400" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-bold text-white group-hover:text-white/90">{game.title}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] font-medium text-white/40 flex items-center gap-1">
-                                <Clock className="h-2.5 w-2.5" />
-                                {formatPlayedHours(playedHours)}h
-                              </span>
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-white/50 uppercase tracking-wider">
-                                {launcherBadge}
-                              </span>
-                            </div>
-                            {(game.totalAchievements || 0) > 0 && (
-                              <div className="flex items-center gap-1 mt-1 text-[10px] text-white/40">
-                                <Trophy className="h-2.5 w-2.5 text-yellow-500/80" />
-                                <span>{game.completedAchievements || 0} / {game.totalAchievements}</span>
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center text-xs font-bold text-white/40">
-                    {copy.noGamesFound}
-                  </div>
-                )
-              )}
-            </Section>
-
-            <Section compact={compactProfile} title={copy.favorites} icon={<Star className="h-4 w-4" />}>
-              {favoriteGames.length > 0 ? (
-                <div className="flex gap-4 overflow-x-auto pb-1 no-scrollbar">
-                  {favoriteGames.map((game) => (
-                    <button
-                      key={game.id}
-                      type="button"
-                      onClick={() => onOpenGame?.(game)}
-                      disabled={!onOpenGame}
-                      className="w-[82px] shrink-0 rounded-3xl p-1 text-left transition-colors hover:bg-white/[0.07] disabled:cursor-default disabled:hover:bg-transparent"
-                    >
-                      <div className="h-[90px] w-[74px] overflow-hidden rounded-xl bg-white/8">
-                        {(game.cardImage || game.image) && (
-                          <img src={game.cardImage || game.image} alt="" className="h-full w-full object-cover" />
-                        )}
-                      </div>
-                      <p className="mt-2 truncate text-center text-[10px] text-white/45">{game.title}</p>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className={`${compactProfile ? "py-5" : "py-8"} text-center text-sm font-bold text-white/35`}>{copy.noFavorites}</p>
-              )}
-            </Section>
-          </section>
-
-          <aside aria-label="Resumo do perfil" className="space-y-5">
-            <Section compact={compactProfile} title={copy.platforms}>
-              <div className="space-y-2">
-                <PlatformCard
-                  name="Steam"
-                  connected={Boolean(userProfile?.steamId)}
-                  avatar={userProfile?.steamAvatar}
-                  username={userProfile?.steamUsername || userProfile?.steamId}
-                  icon={<FontAwesomeIcon icon={faSteam} className="h-4 w-4" />}
-                  connectedLabel={copy.connected}
-                  disconnectedLabel={copy.disconnected}
-                  compact={compactProfile}
-                />
-                <PlatformCard
-                  name="Epic Games"
-                  connected={stats.epicGames > 0}
-                  username={stats.epicGames > 0 ? `${stats.epicGames} ${copy.catalogued}` : copy.catalog}
-                  icon={<EpicIcon className="h-5 w-5" />}
-                  connectedLabel={copy.connected}
-                  disconnectedLabel={copy.disconnected}
-                  compact={compactProfile}
-                />
-                <PlatformCard
-                  name="Discord"
-                  connected={Boolean(userProfile?.discordId)}
-                  avatar={userProfile?.discordAvatar}
-                  username={userProfile?.discordUsername}
-                  icon={<FontAwesomeIcon icon={faDiscord} className="h-4 w-4" />}
-                  connectedLabel={copy.connected}
-                  disconnectedLabel={copy.disconnected}
-                  compact={compactProfile}
-                />
-              </div>
-            </Section>
-
-            <Section compact={compactProfile} title={copy.achievements}>
-              <div className="mb-3 flex items-end justify-between">
-                <div>
-                  <span className="text-4xl font-black text-white">{stats.totalAchievements}</span>
-                  <span className="ml-1 text-sm font-bold text-white/35">/ {stats.totalPossible}</span>
-                </div>
-                <span className="text-sm font-black text-white/45">{achievementPercent}%</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/8">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${achievementPercent}%` }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} className="h-full rounded-full bg-white" />
-              </div>
-              <p className="mt-3 flex items-center gap-1.5 text-[10px] text-white/35">
-                <Trophy className="h-3 w-3" /> {stats.totalAchievements} {copy.unlocked}
-              </p>
-            </Section>
-
-            <Section compact={compactProfile} title={copy.library}>
-              <div className="space-y-3">
-                {libraryRows.map((row) => (
-                  <div key={row.label}>
-                    <div className="mb-1 flex items-center justify-between text-[10px] font-bold text-white/45"><span>{row.label}</span><span>{row.value}</span></div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
-                      <motion.div initial={{ width: 0 }} animate={{ width: stats.totalGames > 0 ? `${(row.value / stats.totalGames) * 100}%` : "0%" }} transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }} className="h-full rounded-full bg-white" />
+                        );
+                      })}
                     </div>
                   </div>
-                ))}
-              </div>
-            </Section>
-          </aside>
-        </div>
+                </Section>
+              </aside>
+            </div>
 
             <TrophyHistoryTimeline userId={userId || userProfile?.uid || (user as any)?.uid || "current-user"} games={games} />
           </>

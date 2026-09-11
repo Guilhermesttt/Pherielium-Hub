@@ -108,50 +108,66 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
     if (!imageSrc) return;
 
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    if (!imageSrc.startsWith("data:") && !imageSrc.startsWith("blob:")) {
+      img.crossOrigin = "anonymous";
+    }
+
+    img.onerror = (err) => {
+      console.warn("[ImageCropModal] Erro ao carregar imagem para corte, usando original:", err);
+      onCropComplete(imageSrc);
+    };
+
     img.onload = () => {
-      const OUTPUT_SIZE = 512;
-      const CROP_CONTAINER_SIZE = 280; // Size in UI preview
+      try {
+        const OUTPUT_SIZE = 512;
+        const CROP_CONTAINER_SIZE = 280; // Size in UI preview
 
-      const canvas = document.createElement("canvas");
-      canvas.width = OUTPUT_SIZE;
-      canvas.height = OUTPUT_SIZE;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+        const canvas = document.createElement("canvas");
+        canvas.width = OUTPUT_SIZE;
+        canvas.height = OUTPUT_SIZE;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          onCropComplete(imageSrc);
+          return;
+        }
 
-      // Fill with smooth background
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
+        // Fill with smooth background
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
 
-      // Center the canvas context
-      ctx.translate(OUTPUT_SIZE / 2, OUTPUT_SIZE / 2);
-      ctx.rotate((rotation * Math.PI) / 180);
+        // Center the canvas context
+        ctx.translate(OUTPUT_SIZE / 2, OUTPUT_SIZE / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
 
-      // Calculate scale ratio between UI crop box and output size
-      const uiToOutputRatio = OUTPUT_SIZE / CROP_CONTAINER_SIZE;
+        // Calculate scale ratio between UI crop box and output size
+        const uiToOutputRatio = OUTPUT_SIZE / CROP_CONTAINER_SIZE;
 
-      // Base display scale
-      const baseRatio = Math.max(
-        CROP_CONTAINER_SIZE / img.naturalWidth,
-        CROP_CONTAINER_SIZE / img.naturalHeight
-      );
+        // Base display scale
+        const baseRatio = Math.max(
+          CROP_CONTAINER_SIZE / (img.naturalWidth || OUTPUT_SIZE),
+          CROP_CONTAINER_SIZE / (img.naturalHeight || OUTPUT_SIZE)
+        );
 
-      const renderWidth = img.naturalWidth * baseRatio * scale * uiToOutputRatio;
-      const renderHeight = img.naturalHeight * baseRatio * scale * uiToOutputRatio;
+        const renderWidth = (img.naturalWidth || OUTPUT_SIZE) * baseRatio * scale * uiToOutputRatio;
+        const renderHeight = (img.naturalHeight || OUTPUT_SIZE) * baseRatio * scale * uiToOutputRatio;
 
-      const drawX = position.x * uiToOutputRatio;
-      const drawY = position.y * uiToOutputRatio;
+        const drawX = position.x * uiToOutputRatio;
+        const drawY = position.y * uiToOutputRatio;
 
-      ctx.drawImage(
-        img,
-        drawX - renderWidth / 2,
-        drawY - renderHeight / 2,
-        renderWidth,
-        renderHeight
-      );
+        ctx.drawImage(
+          img,
+          drawX - renderWidth / 2,
+          drawY - renderHeight / 2,
+          renderWidth,
+          renderHeight
+        );
 
-      const croppedDataUrl = canvas.toDataURL("image/webp", 0.9);
-      onCropComplete(croppedDataUrl);
+        const croppedDataUrl = canvas.toDataURL("image/webp", 0.9);
+        onCropComplete(croppedDataUrl || imageSrc);
+      } catch (cropErr) {
+        console.warn("[ImageCropModal] Falha no canvas, repassando original:", cropErr);
+        onCropComplete(imageSrc);
+      }
     };
     img.src = imageSrc;
   }, [imageSrc, scale, position, rotation, onCropComplete]);

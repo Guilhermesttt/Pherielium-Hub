@@ -5,6 +5,7 @@ import {
   PROFILE_LIMITS,
   saveCurrentUserProfile,
 } from "../services/profile";
+import { completeUserQuest } from "../services/userQuests";
 import ModalShell from "./ui/ModalShell";
 import ImageCropModal from "./ImageCropModal";
 
@@ -51,11 +52,16 @@ const ProfileEditorModal: React.FC<ProfileEditorModalProps> = ({
   const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
   const [isCropOpen, setIsCropOpen] = useState(false);
 
+  const wasOpenRef = useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
+    // Apenas inicializa os campos quando o modal acaba de abrir (transição false -> true)
+    if (isOpen && !wasOpenRef.current) {
+      wasOpenRef.current = true;
+      const cachedAvatar = profile?.uid ? localStorage.getItem(`phelierium_custom_avatar_${profile.uid}`) : null;
       setForm({
         displayName: profile?.displayName || fallbackName,
-        photoURL: profile?.photoURL || fallbackPhotoURL || "",
+        photoURL: cachedAvatar || profile?.photoURL || fallbackPhotoURL || "",
         bio: profile?.bio || "",
         location: profile?.location || "",
         pronouns: profile?.pronouns || "",
@@ -66,8 +72,10 @@ const ProfileEditorModal: React.FC<ProfileEditorModalProps> = ({
       setSaving(false);
       setRawImageForCrop(null);
       setIsCropOpen(false);
+    } else if (!isOpen) {
+      wasOpenRef.current = false;
     }
-  }, [isOpen, profile, fallbackName, fallbackPhotoURL]);
+  }, [isOpen, profile?.displayName, profile?.uid, fallbackName, fallbackPhotoURL]);
 
   const setField = (field: keyof EditableProfile, value: any) =>
     setForm((current) => ({ ...current, [field]: value }));
@@ -114,7 +122,10 @@ const ProfileEditorModal: React.FC<ProfileEditorModalProps> = ({
     setSaving(true);
     setError("");
     try {
-      await saveCurrentUserProfile({ profile: form });
+      await saveCurrentUserProfile({ profile: form, userId: profile?.uid });
+      if (profile?.uid) {
+        completeUserQuest(profile.uid, "customize_profile");
+      }
       await onSaved?.();
       onClose();
     } catch (saveError) {
@@ -130,7 +141,7 @@ const ProfileEditorModal: React.FC<ProfileEditorModalProps> = ({
         isOpen={isOpen && !isCropOpen}
         onClose={onClose}
         maxWidthClassName="max-w-2xl"
-        zIndexClassName="z-[120]"
+        zIndexClassName="z-[250]"
         ariaLabel="Editar perfil"
       >
         <div className="relative max-h-[85vh] w-full overflow-y-auto rounded-[22px] border border-white/12 bg-[#090909] p-6 shadow-2xl thin-scrollbar text-white">

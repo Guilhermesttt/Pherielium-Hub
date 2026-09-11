@@ -63,6 +63,10 @@ export const disconnectPlatform = async (
     if (api.logoutEpic) {
       await api.logoutEpic().catch(() => {});
     }
+    try {
+      localStorage.removeItem("checkpoint_epic_linked_uid");
+      localStorage.removeItem(`checkpoint_epic_user_${uid}`);
+    } catch {}
   } else {
     await disconnectSteamAccount().catch(() => {});
   }

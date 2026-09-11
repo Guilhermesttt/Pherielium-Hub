@@ -22,6 +22,7 @@ import {
   sendCheckpointFriendRequest,
   getCheckpointFriendStatuses,
 } from '../services/checkpointFriends';
+import { completeUserQuest } from '../services/userQuests';
 
 export type { CheckpointFriendRequest, SocialFriend } from "../types/domain";
 
@@ -638,6 +639,13 @@ export function useFriendsSystem({
         photoURL: userProfile?.photoURL || user.photoURL || null,
       });
       notify("Solicitação enviada.", "success");
+      
+      // Missão de Engajamento: Adicionar o primeiro amigo
+      completeUserQuest(user.uid, "first_friend", {
+        playSound,
+        onNotify: (msg, type) => notify(msg, type),
+      });
+
       await refreshProfile();
       setIsAddFriendModalOpen(false);
     } catch (e) {
@@ -666,6 +674,14 @@ export function useFriendsSystem({
         ...current.filter((friend) => friend.id !== nextFriend.id),
       ]);
       notify(`${friendName} agora é seu amigo no Checkpoint.`, "success");
+
+      // Missão de Engajamento: Adicionar / Aceitar o primeiro amigo
+      if (user?.uid) {
+        completeUserQuest(user.uid, "first_friend", {
+          playSound,
+          onNotify: (msg, type) => notify(msg, type),
+        });
+      }
 
       // Notifica o outro usuário via WebSocket para atualizar a tela dele instantaneamente
       if (user?.uid) {

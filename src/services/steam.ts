@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { apiUrl } from "./api";
+import { apiUrl, getAuthHeaders } from "./api";
 import type { Game, SteamOwnedGame } from "../types/domain";
 import type { LauncherLanguage } from "../context/PreferencesContext";
 import {
@@ -40,18 +40,16 @@ export interface SteamCurrentGameResult {
   visibilityState: number;
 }
 
-const getAuthHeaders = async () => {
-  const session = (await supabase.auth.getSession()).data.session;
-  if (!session?.access_token) {
-    throw new Error("Sessão expirada. Entre novamente para sincronizar a Steam.");
-  }
-  return { Authorization: `Bearer ${session.access_token}` };
-};
+
 
 export const getSteamLinkUrl = async () => {
+  const headers = await getAuthHeaders();
+  if (!headers.Authorization) {
+    throw new Error("Sessão expirada. Entre novamente para sincronizar a Steam.");
+  }
   const response = await fetch(apiUrl("/auth/steam/start"), {
     method: "POST",
-    headers: await getAuthHeaders(),
+    headers,
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as { error?: string };

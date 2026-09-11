@@ -153,26 +153,113 @@ export function getAllHubPoints(uid: string, games: Array<{ id: string }>): numb
   return total;
 }
 
-export function getHubAggregateCounts(uid: string, games: Array<{ id: string }>): import("./trophyTiers").GameTrophyCounts {
-  const agg = { platinum: 0, gold: 0, silver: 0, bronze: 0, iron: 0, total: 0, completed: 0, totalGold: 0, totalSilver: 0, totalBronze: 0, totalPlatinum: 0, points: 0, hubPoints: 0, importedPoints: 0, hub: { platinum: 0, gold: 0, silver: 0, bronze: 0 }, imported: { platinum: 0, gold: 0, silver: 0, bronze: 0 } } as any;
-  for (const g of games) {
-    const c = getHubCounts(uid, g.id);
-    const pts = c.platinum * 300 + c.gold * 90 + c.silver * 30 + c.bronze * 15;
-    agg.platinum += c.platinum;
-    agg.gold += c.gold;
-    agg.silver += c.silver;
-    agg.bronze += c.bronze;
-    agg.completed += c.platinum + c.gold + c.silver + c.bronze;
-    agg.total += c.platinum + c.gold + c.silver + c.bronze;
-    agg.points += pts;
-    agg.hubPoints += pts;
-    agg.hub!.platinum += c.platinum;
-    agg.hub!.gold += c.gold;
-    agg.hub!.silver += c.silver;
-    agg.hub!.bronze += c.bronze;
+export function getHubAggregateCounts(uid: string, games?: Array<{ id: string }>): import("./trophyTiers").GameTrophyCounts {
+  const agg = {
+    platinum: 0,
+    gold: 0,
+    silver: 0,
+    bronze: 0,
+    iron: 0,
+    total: 0,
+    completed: 0,
+    totalGold: 0,
+    totalSilver: 0,
+    totalBronze: 0,
+    totalPlatinum: 0,
+    points: 0,
+    hubPoints: 0,
+    importedPoints: 0,
+    hub: { platinum: 0, gold: 0, silver: 0, bronze: 0 },
+    imported: { platinum: 0, gold: 0, silver: 0, bronze: 0 },
+  } as any;
+
+  if (!uid) return agg;
+
+  const processedGames = new Set<string>();
+
+  if (games && games.length > 0) {
+    for (const g of games) {
+      if (!g?.id || processedGames.has(String(g.id))) continue;
+      processedGames.add(String(g.id));
+      const c = getHubCounts(uid, String(g.id));
+      const pts = c.platinum * 300 + c.gold * 90 + c.silver * 30 + c.bronze * 15;
+      agg.platinum += c.platinum;
+      agg.gold += c.gold;
+      agg.silver += c.silver;
+      agg.bronze += c.bronze;
+      agg.completed += c.platinum + c.gold + c.silver + c.bronze;
+      agg.total += c.platinum + c.gold + c.silver + c.bronze;
+      agg.points += pts;
+      agg.hubPoints += pts;
+      agg.hub!.platinum += c.platinum;
+      agg.hub!.gold += c.gold;
+      agg.hub!.silver += c.silver;
+      agg.hub!.bronze += c.bronze;
+    }
   }
-  // totalPlatinum etc not needed for level, just keep 0
+
+  // Varredura de segurança em localStorage para incluir jogos que possuem hub_counts mas que não estão na lista filtrada passada
+  try {
+    const prefix = `hub_counts:${uid}:`;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) {
+        const gameId = k.slice(prefix.length);
+        if (gameId && !processedGames.has(gameId)) {
+          processedGames.add(gameId);
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            const c = JSON.parse(raw);
+            const plat = Number(c.platinum) || 0;
+            const gold = Number(c.gold) || 0;
+            const silver = Number(c.silver) || 0;
+            const bronze = Number(c.bronze) || 0;
+            const pts = plat * 300 + gold * 90 + silver * 30 + bronze * 15;
+            agg.platinum += plat;
+            agg.gold += gold;
+            agg.silver += silver;
+            agg.bronze += bronze;
+            agg.completed += plat + gold + silver + bronze;
+            agg.total += plat + gold + silver + bronze;
+            agg.points += pts;
+            agg.hubPoints += pts;
+            agg.hub!.platinum += plat;
+            agg.hub!.gold += gold;
+            agg.hub!.silver += silver;
+            agg.hub!.bronze += bronze;
+          }
+        }
+      }
+    }
+  } catch {}
+
+  // Inclui XP de missões de engajamento (primeiro amigo, primeiro jogo, personalização, etc.)
+  try {
+    const questXpRaw = localStorage.getItem(`phelierium_quests_xp:${uid}`);
+    const questXp = Number(questXpRaw) || 0;
+    if (questXp > 0) {
+      agg.points += questXp;
+      agg.hubPoints += questXp;
+    }
+  } catch {}
+
   return agg;
+}
+
+/**
+ * Função canônica e centralizada para obter o nível unificado do jogador no ecossistema Phelierium Hub.
+ * Todos os componentes (Home, Troféus, Perfil, ProfileDropdown) usam exatamente esta fonte única da verdade.
+ */
+export function getUserUnifiedLevel(
+  uid?: string | null,
+  games?: Array<{ id: string }>,
+): import("./trophyTiers").PlayerLevelInfo {
+  if (!uid) {
+    return calculatePlayerLevelFromXp(0);
+  }
+  const hubAgg = getHubAggregateCounts(uid, games || []);
+  const totalXp = Math.max(0, hubAgg.hubPoints || hubAgg.points || 0);
+  return calculatePlayerLevelFromXp(totalXp);
 }
 
 /**

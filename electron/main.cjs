@@ -34,39 +34,52 @@ protocol.registerSchemesAsPrivileged([
     },
   },
 ]);
-const { createAchievementBridge } = require("./achievement-bridge.cjs");
-const { readAchievementLibrarySummary } = require("./achievement-summary.cjs");
-const { normalizeLaunchProfile } = require("./launch-profile.cjs");
-const { sanitizeOverlayImageSource } = require("./overlay-image.cjs");
-const { readInstalledEpicGames } = require("./epic-manifests.cjs");
-const { readEpicLocalAchievements } = require("./epic-local-achievements.cjs");
+// ── Achievements ─────────────────────────────────────────────────────────────
+const { createAchievementBridge } = require("./achievements/achievement-bridge.cjs");
+const { readAchievementLibrarySummary } = require("./achievements/achievement-summary.cjs");
+// ── Overlay ───────────────────────────────────────────────────────────────────
+const { sanitizeOverlayImageSource } = require("./overlay/overlay-image.cjs");
+const { showTrophyNotification, createDefaultDeps: createTrophyNotificationDeps } = require("./overlay/trophy-notification.cjs");
+// ── Epic Games ────────────────────────────────────────────────────────────────
+const { readInstalledEpicGames } = require("./epic-games/epic-manifests.cjs");
+const { readEpicLocalAchievements } = require("./epic-games/epic-local-achievements.cjs");
 const {
   EPIC_STORE_CARD_EXTRACTOR,
   EPIC_STORE_GRAPHQL_QUERY,
   normalizeEpicGraphqlElements,
   normalizeEpicStoreDetails,
   normalizeEpicStoreCards,
-} = require("./epic-store-search.cjs");
+} = require("./epic-games/epic-store-search.cjs");
+const { createLegendaryManager } = require("./epic-games/legendary-manager.cjs");
+const { createEpicAccount } = require("./epic-games/epic-account.cjs");
+const { createEpicCredentialVault } = require("./epic-games/epic-credential-vault.cjs");
+const { createEpicSession } = require("./epic-games/epic-session.cjs");
+const { migrateEpicAccountMetadata } = require("./epic-games/epic-credential-migration.cjs");
+// ── Games / Process Monitor ───────────────────────────────────────────────────
+const { normalizeLaunchProfile } = require("./games/launch-profile.cjs");
+const { createLocalGameLibrary } = require("./games/local-game-library.cjs");
 const {
   createGameProcessTracker,
   normalizeWindowsPath,
   parseTasklistProcessNames,
   parseProcessSnapshot,
-} = require("./game-process-monitor.cjs");
-const { createSecureIpcRegistrar } = require("./ipc-security.cjs");
-const { createLegendaryManager } = require("./legendary-manager.cjs");
-const { createEpicAccount } = require("./epic-account.cjs");
-const { createEpicCredentialVault } = require("./epic-credential-vault.cjs");
-const { createEpicSession } = require("./epic-session.cjs");
-const { migrateEpicAccountMetadata } = require("./epic-credential-migration.cjs");
-const { showTrophyNotification, createDefaultDeps: createTrophyNotificationDeps } = require("./trophy-notification.cjs");
-const { createLocalGameLibrary } = require("./local-game-library.cjs");
-const { cleanupPlatformAchievementFiles } = require("./platform-data-cleanup.cjs");
-const { createWindowBehaviorController } = require("./window-behavior.cjs");
-const { queryWindowsControllerBattery } = require("./controller-battery.cjs");
-const { createRetroArtworkImporter } = require("./retro-artwork-importer.cjs");
-const { createTheGamesDbClient } = require("./thegamesdb.cjs");
-const { createNexusCredentialStore } = require("./nexus-credential-store.cjs");
+} = require("./games/game-process-monitor.cjs");
+const {
+  detectEmulator,
+  parseAchievementState,
+  getGoldbergV1Paths,
+  getAchievementAliases,
+  resolveEmulatorAchievementId,
+  detectKnownEmulatorSave,
+} = require("./games/emulator-detector.cjs");
+// ── Core / Utilities ──────────────────────────────────────────────────────────
+const { createSecureIpcRegistrar } = require("./core/ipc-security.cjs");
+const { cleanupPlatformAchievementFiles } = require("./core/platform-data-cleanup.cjs");
+const { createWindowBehaviorController } = require("./core/window-behavior.cjs");
+// ── Hardware ──────────────────────────────────────────────────────────────────
+const { queryWindowsControllerBattery } = require("./hardware/controller-battery.cjs");
+// ── Nexus Mods ────────────────────────────────────────────────────────────────
+const { createNexusCredentialStore } = require("./mods/nexus-credential-store.cjs");
 const {
   getNexusDownloadLinks,
   getNexusModCatalog,
@@ -75,21 +88,13 @@ const {
   normalizeGameDomain,
   normalizeModId,
   validateNexusApiKey,
-} = require("./nexus-api.cjs");
-const { downloadNexusFile, parseNxmUrl } = require("./nexus-download-manager.cjs");
-const { assertAllowedArchive } = require("./nexus-installation-manager.cjs");
-const { selectModGameDirectory } = require("./mod-game-directory.cjs");
-const { runModOperation, shutdownModOperationWorker } = require("./mod-operation-runner.cjs");
-const { detectModConflicts } = require("./mod-conflict-detector.cjs");
-const { loadModProfiles, saveModProfile, deleteModProfile } = require("./mod-profile-store.cjs");
-const {
-  detectEmulator,
-  parseAchievementState,
-  getGoldbergV1Paths,
-  getAchievementAliases,
-  resolveEmulatorAchievementId,
-  detectKnownEmulatorSave,
-} = require("./emulator-detector.cjs");
+} = require("./mods/nexus-api.cjs");
+const { downloadNexusFile, parseNxmUrl } = require("./mods/nexus-download-manager.cjs");
+const { assertAllowedArchive } = require("./mods/nexus-installation-manager.cjs");
+const { selectModGameDirectory } = require("./mods/mod-game-directory.cjs");
+const { runModOperation, shutdownModOperationWorker } = require("./mods/mod-operation-runner.cjs");
+const { detectModConflicts } = require("./mods/mod-conflict-detector.cjs");
+const { loadModProfiles, saveModProfile, deleteModProfile } = require("./mods/mod-profile-store.cjs");
 
 // Backend de produção (Render). Pode ser sobrescrito via env BACKEND_PUBLIC_URL
 // se um dia você quiser apontar pra outro ambiente sem mexer no código.
@@ -176,8 +181,8 @@ const sendDirectOfflineSync = () => {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body,
-    }).catch(() => {});
-  } catch {}
+    }).catch(() => { });
+  } catch { }
 };
 
 let mainWindow;
@@ -305,7 +310,7 @@ const getOverlayIconDataUri = () => {
         const buf = fs.readFileSync(p);
         return `data:image/png;base64,${buf.toString("base64")}`;
       }
-    } catch {}
+    } catch { }
   }
   return "";
 };
@@ -677,12 +682,12 @@ const handleNexusDownloadUrl = async (rawUrl) => {
         installation = await runExclusiveModOperation(
           `${parsed.gameDomain}:${parsed.modId}`,
           () => installSupportedNexusZip({
-          gameDomain: parsed.gameDomain,
-          archivePath: downloaded.filePath,
-          gameFolder: pending.gameFolder,
-          modId: parsed.modId,
-          fileId: parsed.fileId,
-          modName: pending.modName,
+            gameDomain: parsed.gameDomain,
+            archivePath: downloaded.filePath,
+            gameFolder: pending.gameFolder,
+            modId: parsed.modId,
+            fileId: parsed.fileId,
+            modName: pending.modName,
           }),
         );
       } catch (error) {
@@ -859,15 +864,15 @@ registerSecureIpcHandler("nexus:install-downloaded-mod", async (_event, request)
     const installation = await runExclusiveModOperation(
       `${gameDomain}:${modId}`,
       () => installSupportedNexusZip({
-      gameDomain,
-      archivePath,
-      gameFolder: String(request?.gameFolder || "").slice(0, 2048),
-      modId,
-      fileId,
-      modName: baseState.modName,
-      modVersion: String(request?.modVersion || "").slice(0, 80),
-      modAuthor: String(request?.modAuthor || "").slice(0, 120),
-      priority: Number(request?.priority) || 0,
+        gameDomain,
+        archivePath,
+        gameFolder: String(request?.gameFolder || "").slice(0, 2048),
+        modId,
+        fileId,
+        modName: baseState.modName,
+        modVersion: String(request?.modVersion || "").slice(0, 80),
+        modAuthor: String(request?.modAuthor || "").slice(0, 120),
+        priority: Number(request?.priority) || 0,
       }),
     );
     return publishNexusDownloadState({
@@ -1317,7 +1322,7 @@ const createWindow = async () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send("app:quitting");
       }
-    } catch {}
+    } catch { }
 
     // Timer de segurança de 400ms caso o renderer não responda a tempo
     if (!quitSafetyTimer) {
@@ -1446,7 +1451,7 @@ const createOverlayWindow = () => {
     hasShadow: false,
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, "overlay-preload.cjs"),
+      preload: path.join(__dirname, "overlay", "overlay-preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -1459,7 +1464,7 @@ const createOverlayWindow = () => {
   overlayWindow.setIgnoreMouseEvents(true, { forward: true });
   syncOverlayBounds();
   const createdOverlayWindow = overlayWindow;
-  createdOverlayWindow.loadFile(path.join(__dirname, "overlay.html"));
+  createdOverlayWindow.loadFile(path.join(__dirname, 'overlay', "overlay.html"));
   createdOverlayWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (isSafeOpenExternalUrl(url)) {
       void shell.openExternal(url);
@@ -1469,6 +1474,10 @@ const createOverlayWindow = () => {
   createdOverlayWindow.webContents.once("did-finish-load", () => {
     if (createdOverlayWindow.isDestroyed() || overlayWindow !== createdOverlayWindow) return;
     overlayReady = true;
+    createdOverlayWindow.webContents.send("overlay:panel-visibility", {
+      open: overlayPanelOpen,
+      state: overlayPanelState,
+    });
     pendingOverlayEvents.splice(0).forEach(({ channel, payload }) => {
       createdOverlayWindow.webContents.send(channel, payload);
     });
@@ -1493,7 +1502,10 @@ const revealOverlayForToast = () => {
   try {
     overlayWindow.setAlwaysOnTop(true, "screen-saver");
     overlayWindow.moveTop();
-    overlayWindow.setIgnoreMouseEvents(true, { forward: true });
+    if (!overlayPanelOpen) {
+      overlayWindow.setIgnoreMouseEvents(true, { forward: true });
+      overlayWindow.setFocusable(false);
+    }
     overlayWindow.showInactive();
   } catch (error) {
     console.warn("[overlay] Nao foi possivel reafirmar a ordem da janela:", error);
@@ -1523,6 +1535,10 @@ const sendOverlayEvent = (channel, payload) => {
   try {
     overlayWindow.setAlwaysOnTop(true, "screen-saver");
     overlayWindow.moveTop();
+    if (!overlayPanelOpen) {
+      overlayWindow.setIgnoreMouseEvents(true, { forward: true });
+      overlayWindow.setFocusable(false);
+    }
     overlayWindow.showInactive();
   } catch (error) {
     console.warn("[overlay] Nao foi possivel reafirmar a ordem da janela:", error);
@@ -1553,10 +1569,7 @@ const setOverlayPanelOpen = (open) => {
     overlayWindow.moveTop();
     overlayWindow.showInactive();
 
-    // Se NÃO houver jogo rodando, podemos dar foco normalmente para testes no desktop.
-    // Quando HÁ jogo rodando, NÃO chamamos overlayWindow.focus(): chamar SetForegroundWindow
-    // força o Windows DWM/DirectX a minimizar o jogo (especialmente em fullscreen).
-    // O overlay usa showInactive() e aceita cliques do mouse e comandos do controle.
+
     if (!hasRunningGame) {
       overlayWindow.setFocusable(true);
       overlayWindow.focus();
@@ -1568,8 +1581,7 @@ const setOverlayPanelOpen = (open) => {
     overlayWindow.blur();
     overlayWindow.setSkipTaskbar(true);
     overlayWindow.hide();
-    
-    // Devolve o foco ao Hub SOMENTE se NÃO houver um jogo rodando
+
     if (!hasRunningGame && mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
       setTimeout(() => {
         const stillHasGame = inGameOverlayActive
@@ -1660,7 +1672,7 @@ const loadRecentCaptures = async () => {
     const baseDir = captureDirectory();
     await fs.promises.mkdir(baseDir, { recursive: true });
     const entries = await fs.promises.readdir(baseDir, { withFileTypes: true });
-    
+
     let allFiles = [];
     for (const entry of entries) {
       if (entry.isFile() && /\.(png|jpe?g)$/i.test(entry.name)) {
@@ -1747,7 +1759,7 @@ const captureCurrentDisplay = async () => {
       .slice(0, 70) || "Desktop";
     const directory = path.join(captureDirectory(), gameTitle);
     await fs.promises.mkdir(directory, { recursive: true });
-    
+
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const fileName = `${gameTitle} ${stamp}.png`;
     const filePath = path.join(directory, fileName);
@@ -1861,9 +1873,6 @@ const activateInGameOverlay = () => {
   createOverlayWindow();
   if (!overlayWindow || overlayWindow.isDestroyed()) return false;
 
-  // The shortcut is registered at startup, but registration can fail while
-  // another application temporarily owns it. Re-check it when a running game
-  // is detected so capture never depends on opening the overlay panel first.
   if (!globalShortcut.isRegistered(captureShortcut) && !registerCaptureShortcut(captureShortcut)) {
     console.warn(`[overlay] O atalho de captura ${captureShortcut} nao pode ser ativado para a sessao atual.`);
   }
@@ -2398,7 +2407,7 @@ registerSecureIpcHandler("achievement:get-definitions", async (_event, gameId) =
       try {
         const achievementsDir = path.join(app.getPath("userData"), "achievements");
         await fs.promises.unlink(path.join(achievementsDir, `${gameId}.json`));
-      } catch {}
+      } catch { }
     } else {
       console.error("Error reading achievement definitions:", error);
     }
@@ -2423,7 +2432,7 @@ registerSecureIpcHandler("achievement:get-progress", async (_event, gameId) => {
       console.warn(`[achievement] Progresso corrompido para ${gameId} (descartando):`, error.message);
       try {
         await fs.promises.unlink(path.join(app.getPath("userData"), `user_progress_${gameId}.json`));
-      } catch {}
+      } catch { }
     } else {
       console.error("Error reading achievement progress:", error);
     }
@@ -2460,7 +2469,7 @@ registerSecureIpcHandler("trophy:notify-unlock", async (_event, payload) => {
   }
 });
 
-const { readLocalSavesRetroactive } = require("./emulator-detector.cjs");
+const { readLocalSavesRetroactive } = require("./games/emulator-detector.cjs");
 registerSecureIpcHandler("achievement:get-local-state", async (_event, appId) => {
   try {
     if (!appId) return {};
@@ -2605,10 +2614,6 @@ registerSecureIpcHandler("overlay:show-friend-message", async (_event, payload) 
   });
 });
 
-/**
- * Helper genérico para localizar e parsear o schema de conquistas
- * usando tanto o Game ID local quanto o App ID da Steam (ex: "steam_3764200").
- */
 async function getSchemaByAppIdOrGameId(key) {
   const achievementsDir = path.join(app.getPath("userData"), "achievements");
   if (!fs.existsSync(achievementsDir)) return null;
@@ -2641,10 +2646,6 @@ async function getSchemaByAppIdOrGameId(key) {
   return null;
 }
 
-/**
- * Injeta o arquivo steam_settings/achievements.json no emulador e
- * inicializa o arquivo de saves no AppData com { earned: false }.
- */
 async function injectGoldbergDefinitions(appId, settingsPath) {
   try {
     // 1. Procurar o schema salvo usando o steamAppId
@@ -2836,17 +2837,7 @@ registerSecureIpcHandler("launcher:select-executable", async () => {
   return selectedPath;
 });
 
-const importRetroArtwork = createRetroArtworkImporter();
-const theGamesDb = createTheGamesDbClient({ apiKey: process.env.THEGAMESDB_API_KEY });
 
-registerSecureIpcHandler("retro:import-artwork", async (_event, imageUrl) =>
-  importRetroArtwork(imageUrl));
-
-registerSecureIpcHandler("retro:search-thegamesdb", async (_event, request) =>
-  theGamesDb.searchGamesByName(request || {}));
-
-registerSecureIpcHandler("retro:thegamesdb-screenshots", async (_event, request) =>
-  theGamesDb.getGameScreenshots(request || {}));
 
 registerSecureIpcHandler("media:get-local-game-screenshots", async (_event, request) => {
   const { title, launcherType, steamAppId } = request;
@@ -2861,7 +2852,7 @@ registerSecureIpcHandler("media:get-local-game-screenshots", async (_event, requ
       .trim()
       .slice(0, 70) || "Desktop";
     const gameDir = path.join(hubDir, safeTitle);
-    
+
     let allFiles = [];
     if (fs.existsSync(hubDir)) {
       const files = await fs.promises.readdir(hubDir);
@@ -2931,12 +2922,11 @@ registerSecureIpcHandler("media:get-screen-sources", async () => {
   }));
 });
 
-// ─── Push-to-Talk (PTT) ─────────────────────────────────────────────────────
 let pttShortcut = null;
 
 const unregisterPtt = () => {
   if (pttShortcut) {
-    try { globalShortcut.unregister(pttShortcut); } catch {}
+    try { globalShortcut.unregister(pttShortcut); } catch { }
     pttShortcut = null;
   }
 };
@@ -3291,7 +3281,7 @@ registerSecureIpcHandler("launcher:open-epic-login-window", async () => {
               setTimeout(() => {
                 try {
                   authWindow.close();
-                } catch {}
+                } catch { }
                 resolve(authCode);
               }, 1200);
             }
@@ -3428,7 +3418,17 @@ registerSecureIpcHandler("epic:get-status", () => getEpicAccount().getStatus());
 registerSecureIpcHandler("epic:authenticate", (_event, request) => getEpicAccount().authenticate(request));
 registerSecureIpcHandler("epic:list-library", () => getEpicAccount().listLibrary());
 registerSecureIpcHandler("epic:get-achievements", (_event, request) => getEpicAccount().getAchievements(request));
-registerSecureIpcHandler("epic:logout", () => getEpicAccount().logout());
+registerSecureIpcHandler("epic:logout", async () => {
+  try {
+    const session = await getEpicSession();
+    if (session && typeof session.clear === "function") {
+      await session.clear();
+    }
+  } catch (err) {
+    console.warn("[epic-logout] error clearing session:", err);
+  }
+  return getEpicAccount().logout();
+});
 registerSecureIpcHandler("epic:validate-session", async () => {
   const session = await getEpicSession();
   return session.validate();
@@ -3595,8 +3595,6 @@ registerSecureIpcHandler("system:set-open-at-login", async (_event, open) => {
   const shouldOpen = Boolean(open);
 
   if (process.platform === "win32") {
-    // Remove the legacy entry first. Older builds could leave Electron/dev
-    // arguments registered instead of the installed launcher executable.
     app.setLoginItemSettings({ openAtLogin: false });
     app.setLoginItemSettings({
       openAtLogin: false,
@@ -3708,113 +3706,109 @@ registerSecureIpcHandler("launcher:open-executable", async (
 
   if (ENABLE_EMULATOR_FILE_INJECTION) {
 
-  // Autoconfiguração de ponte de conquistas para emuladores Steam locais (Goldberg)
-  try {
-    const gameDir = path.dirname(normalizedTarget);
-    const parentDir = path.dirname(gameDir);
+    // Autoconfiguração de ponte de conquistas para emuladores Steam locais (Goldberg)
+    try {
+      const gameDir = path.dirname(normalizedTarget);
+      const parentDir = path.dirname(gameDir);
 
-    const pathsToCheck = [
-      path.join(gameDir, "steam_settings"),
-      path.join(parentDir, "steam_settings")
-    ];
-
-    const [hasDll64, hasDll32] = await Promise.all([
-      fs.promises.access(path.join(gameDir, "steam_api64.dll")).then(() => true).catch(() => false),
-      fs.promises.access(path.join(gameDir, "steam_api.dll")).then(() => true).catch(() => false),
-    ]);
-    const hasSteamDll = hasDll64 || hasDll32;
-
-    let settingsPath = null;
-    for (const p of pathsToCheck) {
-      const exists = await fs.promises.access(p).then(() => true).catch(() => false);
-      if (exists) { settingsPath = p; break; }
-    }
-
-    if (!settingsPath && hasSteamDll) {
-      settingsPath = path.join(gameDir, "steam_settings");
-      await fs.promises.mkdir(settingsPath, { recursive: true });
-    }
-
-    if (settingsPath) {
-      const bridgeAddress = achievementBridge?.getAddress?.();
-      const bridgePort = Number(bridgeAddress?.port || 3000);
-      await fs.promises.writeFile(
-        path.join(settingsPath, "achievements_receiver.txt"),
-        `http://127.0.0.1:${bridgePort}`,
-        "utf8",
-      );
-
-      // Tenta obter o App ID para configurar as conquistas no emulador Goldberg
-      let appId = null;
-      const appidPaths = [
-        path.join(gameDir, "steam_appid.txt"),
-        path.join(settingsPath, "steam_appid.txt")
+      const pathsToCheck = [
+        path.join(gameDir, "steam_settings"),
+        path.join(parentDir, "steam_settings")
       ];
-      for (const ap of appidPaths) {
-        const content = await fs.promises.readFile(ap, "utf8").catch(() => null);
-        if (content !== null && /^\d+$/.test(content.trim())) {
-          appId = content.trim();
-          break;
-        }
+
+      const [hasDll64, hasDll32] = await Promise.all([
+        fs.promises.access(path.join(gameDir, "steam_api64.dll")).then(() => true).catch(() => false),
+        fs.promises.access(path.join(gameDir, "steam_api.dll")).then(() => true).catch(() => false),
+      ]);
+      const hasSteamDll = hasDll64 || hasDll32;
+
+      let settingsPath = null;
+      for (const p of pathsToCheck) {
+        const exists = await fs.promises.access(p).then(() => true).catch(() => false);
+        if (exists) { settingsPath = p; break; }
       }
 
-      if (appId) {
-        // Injeta as definições das conquistas antes do jogo abrir
-
+      if (!settingsPath && hasSteamDll) {
+        settingsPath = path.join(gameDir, "steam_settings");
+        await fs.promises.mkdir(settingsPath, { recursive: true });
       }
 
-      if (appId) {
-        const achievementsDir = path.join(app.getPath("userData"), "achievements");
-        let schemaAchievements = null;
+      if (settingsPath) {
+        const bridgeAddress = achievementBridge?.getAddress?.();
+        const bridgePort = Number(bridgeAddress?.port || 3000);
+        await fs.promises.writeFile(
+          path.join(settingsPath, "achievements_receiver.txt"),
+          `http://127.0.0.1:${bridgePort}`,
+          "utf8",
+        );
 
-        const files = await fs.promises.readdir(achievementsDir).catch(() => []);
-        for (const file of files) {
-          if (!file.endsWith(".json")) continue;
-          const gameId = path.basename(file, ".json");
-          try {
-            const rawContent = await fs.promises.readFile(path.join(achievementsDir, file), "utf8");
-            const parsed = JSON.parse(rawContent);
-            if (
-              gameId.endsWith(`_steam_${appId}`) ||
-              gameId === appId ||
-              String(parsed.steamAppId) === String(appId)
-            ) {
-              if (parsed && Array.isArray(parsed.achievements)) {
-                schemaAchievements = parsed.achievements;
-                break;
-              }
-            }
-          } catch {
-            // ignore
+        let appId = null;
+        const appidPaths = [
+          path.join(gameDir, "steam_appid.txt"),
+          path.join(settingsPath, "steam_appid.txt")
+        ];
+        for (const ap of appidPaths) {
+          const content = await fs.promises.readFile(ap, "utf8").catch(() => null);
+          if (content !== null && /^\d+$/.test(content.trim())) {
+            appId = content.trim();
+            break;
           }
         }
 
-        // Se encontramos conquistas salvas, criamos os arquivos vazios no Goldberg em paralelo
-        if (schemaAchievements && schemaAchievements.length > 0) {
-          const goldbergAchDir = path.join(settingsPath, "achievements");
-          await fs.promises.mkdir(goldbergAchDir, { recursive: true });
+        if (appId) {
+          // Injeta as definições das conquistas antes do jogo abrir
 
-          await Promise.all(
-            schemaAchievements
-              .map((ach) => ach.apiName || ach.id)
-              .filter(Boolean)
-              .map((apiName) => {
-                const achFilePath = path.join(goldbergAchDir, String(apiName).trim());
-                return fs.promises.writeFile(achFilePath, "", "utf8").catch(() => {});
-              }),
-          );
+        }
+
+        if (appId) {
+          const achievementsDir = path.join(app.getPath("userData"), "achievements");
+          let schemaAchievements = null;
+
+          const files = await fs.promises.readdir(achievementsDir).catch(() => []);
+          for (const file of files) {
+            if (!file.endsWith(".json")) continue;
+            const gameId = path.basename(file, ".json");
+            try {
+              const rawContent = await fs.promises.readFile(path.join(achievementsDir, file), "utf8");
+              const parsed = JSON.parse(rawContent);
+              if (
+                gameId.endsWith(`_steam_${appId}`) ||
+                gameId === appId ||
+                String(parsed.steamAppId) === String(appId)
+              ) {
+                if (parsed && Array.isArray(parsed.achievements)) {
+                  schemaAchievements = parsed.achievements;
+                  break;
+                }
+              }
+            } catch {
+              // ignore
+            }
+          }
+
+          if (schemaAchievements && schemaAchievements.length > 0) {
+            const goldbergAchDir = path.join(settingsPath, "achievements");
+            await fs.promises.mkdir(goldbergAchDir, { recursive: true });
+
+            await Promise.all(
+              schemaAchievements
+                .map((ach) => ach.apiName || ach.id)
+                .filter(Boolean)
+                .map((apiName) => {
+                  const achFilePath = path.join(goldbergAchDir, String(apiName).trim());
+                  return fs.promises.writeFile(achFilePath, "", "utf8").catch(() => { });
+                }),
+            );
+          }
         }
       }
+    } catch (err) {
+      console.error("Erro na autoconfiguração do receptor de conquistas:", err);
     }
-  } catch (err) {
-    console.error("Erro na autoconfiguração do receptor de conquistas:", err);
-  }
   }
 
   const gameDir = path.dirname(normalizedTarget);
 
-  // ── Detectar emulador e preparar watcher de conquistas ─────────────────────
-  // Extrai o appId do steam_appid.txt para que o detector saiba onde procurar.
   let detectedGameAppId = null;
   {
     const appidCandidates = [
@@ -3840,15 +3834,11 @@ registerSecureIpcHandler("launcher:open-executable", async (
     }
   }
 
-  // gameId para associar o watcher — usamos o appId como chave porque é estável.
   const watcherKey = detectedGameAppId ? `steam_${detectedGameAppId}` : path.basename(normalizedTarget, ".exe");
 
-  // Para qualquer watcher anterior do mesmo jogo antes de iniciar um novo.
   stopGameProcessMonitor(watcherKey);
   stopGameWatcher(watcherKey);
 
-  // Função chamada pelo watcher quando o arquivo de saves muda.
-  // Async: resolve metadados de conquistas diretamente e envia ao overlay.
   const handleAchievementFileChange = async (detectedEmulator) => {
     try {
       const newState = parseAchievementState(detectedEmulator);
@@ -3866,9 +3856,7 @@ registerSecureIpcHandler("launcher:open-executable", async (
         }
       }
 
-      // Atualiza o estado — SÓ se o parse retornou dados úteis.
-      // Um parse vazio (erro de leitura durante escrita) não deve zerar o
-      // estado anterior, evitando falsos positivos na próxima verificação.
+
       if (Object.keys(newState).length > 0) {
         entry.lastState = newState;
       }
@@ -3886,17 +3874,14 @@ registerSecureIpcHandler("launcher:open-executable", async (
   };
 
   /**
-   * Inicia o fs.watch no diretório de saves do emulador.
    * @param {object} detectedEmulator
-   * @param {Function|null} onExit - chamada quando o jogo encerrar (pode ser null)
+   * @param {Function|null} onExit
    */
   const startGameWatcher = (detectedEmulator, onExit) => {
     if (!detectedEmulator) return;
 
-    // Somente leitura: nunca cria diretórios ou arquivos de save.
     if (!fs.existsSync(detectedEmulator.watchDir) || !fs.existsSync(detectedEmulator.savePath)) return;
 
-    // Lê o estado inicial ANTES de montar o watcher para poder comparar depois.
     const initialState = parseAchievementState(detectedEmulator);
 
     let debounceTimer = null;
@@ -3912,7 +3897,6 @@ registerSecureIpcHandler("launcher:open-executable", async (
         );
       }, 3000);
     } else {
-      // Para Goldberg/Tenoke (.json), fs.watch funciona perfeitamente.
       try {
         watcher = fs.watch(detectedEmulator.watchDir, { persistent: false }, (_event, filename) => {
           const saveFile = path.basename(detectedEmulator.savePath);
@@ -3941,7 +3925,7 @@ registerSecureIpcHandler("launcher:open-executable", async (
 
     activeWatchers.set(watcherKey, {
       watcher,
-      intervalTimer, // Salva o timer para o stopGameWatcher matar depois
+      intervalTimer,
       debounceTimer: null,
       lastState: initialState,
     });
@@ -3957,9 +3941,6 @@ registerSecureIpcHandler("launcher:open-executable", async (
     }
   };
 
-  // ─── Injector unificado ──────────────────────────────────────────────────
-  // Delega ao injector correto com base no tipo de emulador detectado,
-  // evitando a dupla chamada a getSchemaByAppIdOrGameId que havia antes.
   const injectAchievementDefinitions = async (appId, emulator, settingsPath) => {
     if (!ENABLE_EMULATOR_FILE_INJECTION) return;
     if (!appId) return;
@@ -4051,7 +4032,7 @@ registerSecureIpcHandler("launcher:open-executable", async (
           activeRescanTimers.delete(watcherKey);
           console.info(`[achievement-watcher] Emulador encontrado após ${rescanAttempt * RESCAN_INTERVAL_MS / 1000}s: ${found.emulatorType}`);
           // Injeta definições agora que o arquivo de save foi criado
-          injectAchievementDefinitions(detectedGameAppId, found, _settingsPathForInject).catch(() => {});
+          injectAchievementDefinitions(detectedGameAppId, found, _settingsPathForInject).catch(() => { });
           const aliases = getAchievementAliases(found);
           achievementBridge?.migrateAchievementAliases(watcherKey, aliases).catch(
             (error) => console.error("[achievement-migration] Falha:", error),
@@ -4260,7 +4241,7 @@ const runFocusOptimizer = (action) => {
       if (err) console.error(`[focus-optimizer] Error running ${action}:`, err);
       else console.info(`[focus-optimizer] ${action} executed.`);
     });
-  } catch (e) {}
+  } catch (e) { }
 };
 
 const finishMonitoredGameSession = (watcherKey) => {
@@ -4286,7 +4267,7 @@ const runGameMacros = (gameId) => {
         else console.info(`[macros] Macro executed for ${gameId}.`);
       });
     }
-  } catch(e) {}
+  } catch (e) { }
 };
 
 const startGameProcessMonitor = (watcherKey, executablePath, options = {}) => {
@@ -4463,14 +4444,14 @@ registerSecureIpcHandler("overlay:test-achievement", async (_event, requestedTie
   const xp = tier === "platinum" ? 300 : tier === "gold" ? 90 : tier === "silver" ? 30 : 15;
   const name =
     tier === "platinum" ? "Troféu de Platina Desbloqueado" :
-    tier === "gold" ? "Troféu de Ouro Conquistado" :
-    tier === "silver" ? "Troféu de Prata Conquistado" :
-    copy.firstKill;
+      tier === "gold" ? "Troféu de Ouro Conquistado" :
+        tier === "silver" ? "Troféu de Prata Conquistado" :
+          copy.firstKill;
   const description =
     tier === "platinum" ? "Parabéns! Você completou 100% de todas as conquistas deste jogo." :
-    tier === "gold" ? "Conquista de alto valor desbloqueada com maestria." :
-    tier === "silver" ? "Excelente progresso em sua jornada." :
-    copy.testAchievement;
+      tier === "gold" ? "Conquista de alto valor desbloqueada com maestria." :
+        tier === "silver" ? "Excelente progresso em sua jornada." :
+          copy.testAchievement;
 
   // Sempre envia direto para o overlay visual, independente das preferências do usuário
   sendOverlayEvent("achievement:unlock", {
@@ -4559,12 +4540,12 @@ registerSecureIpcHandler("overlay:show-notification", async (_event, payload) =>
     type === "error"
       ? "Erro"
       : type === "success"
-      ? "Sucesso"
-      : type === "achievement"
-      ? "Conquista Desbloqueada"
-      : type === "incoming-call"
-      ? "Chamada de Voz"
-      : "Notificação";
+        ? "Sucesso"
+        : type === "achievement"
+          ? "Conquista Desbloqueada"
+          : type === "incoming-call"
+            ? "Chamada de Voz"
+            : "Notificação";
   const title = data.title ?? defaultTitle;
   const message = data.message ?? "";
   const duration = typeof data.duration === "number" ? data.duration : undefined;
@@ -5050,7 +5031,7 @@ app.on("before-quit", () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("app:quitting");
     }
-  } catch {}
+  } catch { }
   void shutdownModOperationWorker();
   if (localGameLibrary) {
     try {

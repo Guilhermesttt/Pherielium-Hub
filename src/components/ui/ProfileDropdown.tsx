@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { LogOut, Settings, User } from "lucide-react";
 import {
   DropdownMenu,
@@ -11,11 +11,13 @@ import {
 } from "./dropdown-menu";
 import type { LauncherLanguage } from "../../context/PreferencesContext";
 import type { SoundEffectType } from "../../hooks/useSoundEffects";
+import { getPSNTierInfo, type PlayerLevelInfo } from "../../utils/trophyTiers";
 
 interface ProfileDropdownProps {
   userDisplay: string;
   email?: string;
   avatarUrl?: string;
+  userLevel?: PlayerLevelInfo | number;
   onLogout: () => void;
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
@@ -24,18 +26,19 @@ interface ProfileDropdownProps {
 }
 
 const dropdownCopy = {
-  "pt-BR": { identity: "Identidade", profile: "Ver perfil", settings: "Configurações", logout: "Sair" },
-  "en-US": { identity: "Identity", profile: "View profile", settings: "Settings", logout: "Sign out" },
-  "es-ES": { identity: "Identidad", profile: "Ver perfil", settings: "Configuración", logout: "Salir" },
-  "fr-FR": { identity: "Identité", profile: "Voir le profil", settings: "Paramètres", logout: "Se déconnecter" },
-  "de-DE": { identity: "Identität", profile: "Profil anzeigen", settings: "Einstellungen", logout: "Abmelden" },
-  "it-IT": { identity: "Identità", profile: "Vedi profilo", settings: "Impostazioni", logout: "Esci" },
+  "pt-BR": { identity: "Identidade", profile: "Ver perfil", settings: "Configurações", logout: "Sair", level: "Nível" },
+  "en-US": { identity: "Identity", profile: "View profile", settings: "Settings", logout: "Sign out", level: "Level" },
+  "es-ES": { identity: "Identidad", profile: "Ver perfil", settings: "Configuración", logout: "Salir", level: "Nivel" },
+  "fr-FR": { identity: "Identité", profile: "Voir le profil", settings: "Paramètres", logout: "Se déconnecter", level: "Niveau" },
+  "de-DE": { identity: "Identität", profile: "Profil anzeigen", settings: "Einstellungen", logout: "Abmelden", level: "Stufe" },
+  "it-IT": { identity: "Identità", profile: "Vedi profilo", settings: "Impostazioni", logout: "Esci", level: "Livello" },
 } as const;
 
 export function ProfileDropdown({
   userDisplay,
   email,
   avatarUrl,
+  userLevel,
   onLogout,
   onOpenProfile,
   onOpenSettings,
@@ -44,6 +47,32 @@ export function ProfileDropdown({
 }: ProfileDropdownProps) {
   const initials = userDisplay.slice(0, 2).toUpperCase();
   const copy = dropdownCopy[language] || dropdownCopy["pt-BR"];
+
+  const levelInfo = useMemo<PlayerLevelInfo | null>(() => {
+    if (!userLevel) return null;
+    if (typeof userLevel === "number") {
+      const tierInfo = getPSNTierInfo(userLevel);
+      return {
+        level: userLevel,
+        xp: 0,
+        progress: 0,
+        currentLevelXp: 0,
+        xpForNextLevel: 100,
+        tier: tierInfo.tier,
+        subTier: tierInfo.subTier,
+        tierName: tierInfo.name,
+        rank: tierInfo.name,
+        rankColor: tierInfo.color,
+        tierInfo,
+      };
+    }
+    return userLevel;
+  }, [userLevel]);
+
+  const levelNum = levelInfo?.level;
+  const tierInfo = useMemo(() => {
+    return levelInfo?.tierInfo || (levelNum ? getPSNTierInfo(levelNum) : getPSNTierInfo(1));
+  }, [levelInfo, levelNum]);
 
   return (
     <DropdownMenu>
@@ -54,9 +83,16 @@ export function ProfileDropdown({
           className="group flex cursor-pointer items-center gap-3 rounded-2xl p-1.5 transition-all hover:bg-white/10 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/20"
         >
           <div className="flex flex-col items-end pl-2">
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/60 transition-colors">
-              {copy.identity}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/60 transition-colors">
+                {copy.identity}
+              </span>
+              {levelNum != null && (
+                <span className={`text-[9px] font-black uppercase tracking-wider ${tierInfo.color}`}>
+                  • Nv. {levelNum}
+                </span>
+              )}
+            </div>
             <span className="text-xs font-black uppercase text-white/90 group-hover:text-white transition-colors">
               {userDisplay}
             </span>
@@ -74,14 +110,45 @@ export function ProfileDropdown({
       </DropdownMenuTrigger>
       
       <DropdownMenuContent
-        className="w-64 rounded-[20px] border border-white/10 bg-[#09090b]/95 p-2 shadow-2xl backdrop-blur-xl"
+        className="w-72 rounded-[20px] border border-white/10 bg-[#09090b]/95 p-2 shadow-2xl backdrop-blur-xl"
         align="end"
         sideOffset={12}
       >
         <DropdownMenuLabel className="p-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-bold text-white">{userDisplay}</span>
-            {email && <span className="text-xs font-medium text-white/40">{email}</span>}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-black text-white truncate">{userDisplay}</span>
+                {email && <span className="text-xs font-medium text-white/40 truncate">{email}</span>}
+              </div>
+              {levelNum != null && (
+                <span className={`shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-wider border ${tierInfo.bgClass} ${tierInfo.borderClass} ${tierInfo.color}`}>
+                  Nv. {levelNum}
+                </span>
+              )}
+            </div>
+
+            {levelInfo && (
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-2.5 space-y-1.5 mt-0.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className={`font-bold ${tierInfo.color}`}>
+                    {tierInfo.name}
+                  </span>
+                  <span className="font-mono text-[10px] text-white/60 font-semibold">
+                    {levelInfo.currentLevelXp} / {levelInfo.xpForNextLevel} XP
+                  </span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${levelInfo.progress}%`,
+                      backgroundColor: tierInfo.hexColor || "#38bdf8",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-white/10" />

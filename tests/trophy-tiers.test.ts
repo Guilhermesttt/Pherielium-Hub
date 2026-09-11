@@ -80,10 +80,16 @@ describe("Sistema de Tiers de Troféus (PlayStation / Phelierium)", () => {
       expect(map.get("ACH_EASY")?.tierId).toBe("bronze");
     });
 
-    it("jogo com 1 conquista atribui Platina", () => {
-      const map = buildGameTierMap([{ apiName: "ACH_1", name: "Única" }]);
-      expect(map.get("ACH_1")?.tierIndex).toBe(0);
-      expect(map.get("ACH_1")?.tierId).toBe("platinum");
+    it("jogo com 1 conquista base comum atribui Ouro para a conquista de gameplay", () => {
+      const map = buildGameTierMap([{ apiName: "ACH_1", name: "Única Conquista" }]);
+      expect(map.get("ACH_1")?.tierIndex).toBe(1);
+      expect(map.get("ACH_1")?.tierId).toBe("gold");
+    });
+
+    it("jogo com conquista que é explicitamente de Platina atribui Platina", () => {
+      const map = buildGameTierMap([{ apiName: "ACH_PLAT", name: "Troféu de Platina", description: "Pegue tudo" }]);
+      expect(map.get("ACH_PLAT")?.tierIndex).toBe(0);
+      expect(map.get("ACH_PLAT")?.tierId).toBe("platinum");
     });
   });
 

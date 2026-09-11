@@ -83,6 +83,9 @@ export const usePlatformOperations = ({
 
       try {
         await authenticateEpic(code);
+        try {
+          localStorage.setItem("checkpoint_epic_linked_uid", userUid);
+        } catch {}
         dispatch({ type: "FINISH_SUCCESS", platform, operationId });
         notify?.("Conta Epic Games conectada com sucesso!", "success");
       } catch (err: any) {

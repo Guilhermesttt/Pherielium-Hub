@@ -86,6 +86,7 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
     onClose,
     onLibraryChanged,
     onOpenMods,
+    playSound,
   });
 
   // Reset de abas e estado ao trocar de jogo

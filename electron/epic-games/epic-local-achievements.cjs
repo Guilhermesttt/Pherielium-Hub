@@ -3,7 +3,7 @@ const os = require("node:os");
 const path = require("node:path");
 const {
   parseGenericIniAchievements,
-} = require("./emulator-detector.cjs");
+} = require("../games/emulator-detector.cjs");
 const { readInstalledEpicGames } = require("./epic-manifests.cjs");
 
 const MAX_DEPTH = 7;

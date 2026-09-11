@@ -333,106 +333,79 @@ export const buildGameTierMap = <T extends RawAchievement>(
   const { hasNativePlatinum, platinumTrophy, baseAchievements } = extractAndProcessPlatinum(achievements);
 
   if (hasNativePlatinum) {
-    result.set(platinumTrophy.key, { tierIndex: 0, tierId: "platinum", isPlatina: true });
+    const platAssignment: UnifiedTierAssignment = { tierIndex: 0, tierId: "platinum", isPlatina: true };
+    const platKeys = [platinumTrophy.key, platinumTrophy.apiName, platinumTrophy.id, platinumTrophy.name].filter(Boolean) as string[];
+    platKeys.forEach((k) => result.set(k, platAssignment));
   }
 
   const remaining = baseAchievements.length;
   if (remaining === 0) return result;
 
-  if (remaining === 1 && !hasNativePlatinum) {
-    const a = baseAchievements[0];
-    const key = String(a.apiName ?? a.id ?? a.name ?? "0");
-    result.set(key, { tierIndex: 0, tierId: "platinum", isPlatina: true });
-    return result;
-  }
+  // Ordenar conquistas base por raridade (menor percentual primeiro = mais raras)
+  const sorted = [...baseAchievements].sort((a, b) => {
+    const pa = typeof a.percent === "number" && a.percent > 0 ? a.percent : 999;
+    const pb = typeof b.percent === "number" && b.percent > 0 ? b.percent : 999;
+    return pa - pb;
+  });
 
-  const hasRarityData = baseAchievements.some((a) => (a.percent ?? 0) > 0);
+  // Distribuição equilibrada padrão PlayStation / Phelierium:
+  // ~12-15% Ouro (mais raras / chefes finais / maestria)
+  // ~28-30% Prata (intermediárias / avançadas)
+  // ~55-60% Bronze (iniciais / comuns)
+  let goldCount = 0;
+  let silverCount = 0;
 
-  if (hasRarityData) {
-    // Modo 1: Temos percentual global da Steam/comunidade
-    baseAchievements.forEach((ach) => {
-      const key = String(ach.apiName ?? ach.id ?? ach.name ?? "");
-      const pct = ach.percent ?? 0;
-
-      if (pct > 0 && pct < RARITY_THRESHOLDS.gold) {
-        result.set(key, { tierIndex: 1, tierId: "gold", isPlatina: false }); // < 5% = Ouro
-      } else if (pct >= RARITY_THRESHOLDS.gold && pct <= RARITY_THRESHOLDS.silver) {
-        result.set(key, { tierIndex: 2, tierId: "silver", isPlatina: false }); // 5% a 10% = Prata
-      } else if (pct > RARITY_THRESHOLDS.silver) {
-        result.set(key, { tierIndex: 3, tierId: "bronze", isPlatina: false }); // > 10% = Bronze
-      } else if (ach.achieved) {
-        result.set(key, { tierIndex: 3, tierId: "bronze", isPlatina: false });
-      } else {
-        result.set(key, { tierIndex: 4, tierId: "iron", isPlatina: false });
-      }
-    });
+  if (remaining === 1) {
+    goldCount = 1;
+  } else if (remaining === 2) {
+    goldCount = 1;
+    silverCount = 1;
+  } else if (remaining === 3) {
+    goldCount = 1;
+    silverCount = 1;
   } else {
-    // Modo 2: Jogo sem dados de raridade global (Epic, local, emulador)
-    let goldCount = 0;
-    let silverCount = 0;
-    let bronzeCount = 0;
-
-    if (remaining === 1) {
-      goldCount = 1;
-    } else if (remaining === 2) {
-      goldCount = 1;
-      silverCount = 1;
-    } else if (remaining === 3) {
-      goldCount = 1;
-      silverCount = 1;
-      bronzeCount = 1;
-    } else {
-      goldCount = Math.max(1, Math.round(remaining * 0.12));
-      silverCount = Math.max(1, Math.round(remaining * 0.28));
-      bronzeCount = Math.max(1, remaining - goldCount - silverCount);
-
-      if (goldCount + silverCount + bronzeCount > remaining) {
-        const excess = goldCount + silverCount + bronzeCount - remaining;
-        if (bronzeCount > 1) {
-          bronzeCount -= Math.min(excess, bronzeCount - 1);
-        }
-      }
+    goldCount = Math.max(1, Math.round(remaining * 0.14));
+    silverCount = Math.max(1, Math.round(remaining * 0.28));
+    // Garantir pelo menos 1 bronze se houver >= 3 conquistas
+    if (goldCount + silverCount >= remaining) {
+      silverCount = Math.max(1, remaining - goldCount - 1);
     }
-
-    baseAchievements.forEach((item, idx) => {
-      const key = String(item.apiName ?? item.id ?? item.name ?? "");
-      if (idx >= remaining - goldCount) {
-        result.set(key, { tierIndex: 1, tierId: "gold", isPlatina: false });
-      } else if (idx >= remaining - goldCount - silverCount) {
-        result.set(key, { tierIndex: 2, tierId: "silver", isPlatina: false });
-      } else {
-        result.set(key, { tierIndex: 3, tierId: "bronze", isPlatina: false });
-      }
-    });
   }
+
+  sorted.forEach((item, idx) => {
+    const keys = [item.apiName, item.id, item.name].filter(Boolean) as string[];
+    let assignment: UnifiedTierAssignment;
+    if (idx < goldCount) {
+      assignment = { tierIndex: 1, tierId: "gold", isPlatina: false };
+    } else if (idx < goldCount + silverCount) {
+      assignment = { tierIndex: 2, tierId: "silver", isPlatina: false };
+    } else {
+      assignment = { tierIndex: 3, tierId: "bronze", isPlatina: false };
+    }
+    keys.forEach((k) => result.set(k, assignment));
+  });
 
   return result;
 };
 
 /**
  * Classificação por conquista fiel ao painel (single source).
- * 🥇 Ouro: <5%
- * 🥈 Prata: 5-10%
- * 🥉 Bronze: >10% (ou sem dado global, se já desbloqueada)
- * ⚙️ Ferro: sem dado global e ainda bloqueada
- *
- * Mesma regra de `buildGameTierMap` — mantidas em sincronia de propósito.
+ * Se o jogo tiver conquista embutida de desbloquear tudo -> Platina.
+ * Demais conquistas distribuídas por raridade entre Ouro (<15%), Prata (15-40%) e Bronze (>40%).
  */
 export const getAchievementTierIndex = (
   achievement: { percent?: number; achieved?: boolean; name?: string; description?: string; apiName?: string; id?: string },
   totalInGame: number,
   options?: { isRarest?: boolean; isPlatinaText?: boolean },
 ): number => {
-  if (totalInGame <= 1) return 0; // Platina
-  if (options?.isPlatinaText || isPlatinaByText(achievement as any)) return 0; // Texto "todas as conquistas" -> Platina
-  if (options?.isRarest) return 0;
+  if (options?.isPlatinaText || isPlatinaByText(achievement as any)) return 0; // Platina nativa
+  if (options?.isRarest) return 1; // A mais rara vira Ouro
 
   const pct = achievement.percent ?? 0;
-  if (pct > 0 && pct < RARITY_THRESHOLDS.gold) return 1; // Ouro <5%
-  if (pct >= RARITY_THRESHOLDS.gold && pct <= RARITY_THRESHOLDS.silver) return 2; // Prata 5-10%
-  if (pct > RARITY_THRESHOLDS.silver) return 3; // Bronze >10%
-  if (achievement.achieved) return 3; // Sem % mas já desbloqueada -> Bronze fallback
-  return 4; // Sem % e bloqueada -> Ferro
+  if (pct > 0 && pct < 15) return 1; // Ouro <15%
+  if (pct >= 15 && pct <= 40) return 2; // Prata 15-40%
+  if (pct > 40) return 3; // Bronze >40%
+  return 3; // Fallback para bronze
 };
 
 export const getAchievementTierId = (
@@ -707,12 +680,25 @@ const PSN_LEVEL_BRACKETS: PSNLevelBracket[] = [
 ];
 
 /**
+ * Thresholds de Níveis por Patente no Phelierium:
+ * - 🥉 Bronze: Níveis 1 a 24 (Bronze 1: 1-9, Bronze 2: 10-19, Bronze 3: 20-24)
+ * - 🥈 Prata: Níveis 25 a 49 (Prata 1: 25-32, Prata 2: 33-41, Prata 3: 42-49)
+ * - 🥇 Ouro: Níveis 50 a 99 (Ouro 1: 50-65, Ouro 2: 66-82, Ouro 3: 83-99)
+ * - 🏆 Platina: Nível 100+ (O ápice supremo da jornada)
+ */
+export const TIER_LEVEL_BOUNDARIES = {
+  silver: 25,
+  gold: 50,
+  platinum: 100,
+} as const;
+
+/**
  * Retorna as informações visuais e de classificação do Tier PSN
  */
 export const getPSNTierInfo = (level: number): PSNTierInfo => {
-  const lvl = Math.min(999, Math.max(1, level));
+  const lvl = Math.max(1, level);
 
-  if (lvl >= 999) {
+  if (lvl >= TIER_LEVEL_BOUNDARIES.platinum) {
     return {
       tier: "platinum",
       subTier: 3,
@@ -728,8 +714,8 @@ export const getPSNTierInfo = (level: number): PSNTierInfo => {
     };
   }
 
-  if (lvl >= 600) {
-    const subTier = (lvl >= 800 ? 3 : lvl >= 700 ? 2 : 1) as 1 | 2 | 3;
+  if (lvl >= TIER_LEVEL_BOUNDARIES.gold) {
+    const subTier = (lvl >= 83 ? 3 : lvl >= 66 ? 2 : 1) as 1 | 2 | 3;
     return {
       tier: "gold",
       subTier,
@@ -745,8 +731,8 @@ export const getPSNTierInfo = (level: number): PSNTierInfo => {
     };
   }
 
-  if (lvl >= 300) {
-    const subTier = (lvl >= 500 ? 3 : lvl >= 400 ? 2 : 1) as 1 | 2 | 3;
+  if (lvl >= TIER_LEVEL_BOUNDARIES.silver) {
+    const subTier = (lvl >= 42 ? 3 : lvl >= 33 ? 2 : 1) as 1 | 2 | 3;
     return {
       tier: "silver",
       subTier,
@@ -762,7 +748,7 @@ export const getPSNTierInfo = (level: number): PSNTierInfo => {
     };
   }
 
-  const subTier = (lvl >= 200 ? 3 : lvl >= 100 ? 2 : 1) as 1 | 2 | 3;
+  const subTier = (lvl >= 20 ? 3 : lvl >= 10 ? 2 : 1) as 1 | 2 | 3;
   return {
     tier: "bronze",
     subTier,

@@ -25,44 +25,47 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const toProfile = (uid: string, data?: Record<string, any>): UserProfile => ({
-  uid,
-  email: data?.email ?? null,
-  displayName: data?.displayName ?? data?.display_name ?? null,
-  photoURL: data?.photoURL ?? data?.photo_url ?? null,
-  profileVisibility:
-    data?.profileVisibility === "private" || data?.profile_visibility === "private"
-      ? "private"
-      : "public",
-  bio: data?.bio,
-  location: data?.location,
-  pronouns: data?.pronouns,
-  website: data?.website,
-  favoriteGenres: data?.favoriteGenres ?? data?.favorite_genres,
-  steamId: data?.steamId ?? data?.steam_id,
-  steamAvatar: data?.steamAvatar ?? data?.steam_avatar,
-  steamUsername: data?.steamUsername ?? data?.steam_username,
-  discordId: data?.discordId ?? data?.discord_id,
-  discordUsername: data?.discordUsername ?? data?.discord_username,
-  discordAvatar: data?.discordAvatar ?? data?.discord_avatar,
-  retroAchievementsUlid:
-    data?.retroAchievementsUlid ?? data?.retroachievements_ulid,
-  retroAchievementsUsername:
-    data?.retroAchievementsUsername ?? data?.retroachievements_username,
-  status: data?.status,
-  playing: data?.playing,
-  discordFriends: data?.discordFriends ?? data?.discord_friends,
-  checkpointFriends: data?.checkpointFriends ?? data?.checkpoint_friends,
-  checkpointFriendRequestsIncoming: data?.checkpointFriendRequestsIncoming ?? data?.checkpoint_friend_requests_incoming,
-  checkpointFriendRequestsOutgoing: data?.checkpointFriendRequestsOutgoing ?? data?.checkpoint_friend_requests_outgoing,
-  createdAt: data?.createdAt ?? data?.created_at,
-  updatedAt: data?.updatedAt ?? data?.updated_at,
-  lastSteamSyncAt: data?.lastSteamSyncAt ?? data?.last_steam_sync_at,
-  gamesMigratedAt: data?.gamesMigratedAt ?? data?.games_migrated_at,
-  onboardingCompletedAt: data?.onboardingCompletedAt ?? data?.onboarding_completed_at,
-  achievementSummary: data?.achievementSummary ?? data?.achievement_summary,
-  librarySummary: data?.librarySummary ?? data?.library_summary,
-});
+const toProfile = (uid: string, data?: Record<string, any>): UserProfile => {
+  const localAvatar = typeof window !== "undefined" ? localStorage.getItem(`phelierium_custom_avatar_${uid}`) : null;
+  return {
+    uid,
+    email: data?.email ?? null,
+    displayName: data?.displayName ?? data?.display_name ?? null,
+    photoURL: localAvatar || (data?.photoURL ?? data?.photo_url ?? null),
+    profileVisibility:
+      data?.profileVisibility === "private" || data?.profile_visibility === "private"
+        ? "private"
+        : "public",
+    bio: data?.bio,
+    location: data?.location,
+    pronouns: data?.pronouns,
+    website: data?.website,
+    favoriteGenres: data?.favoriteGenres ?? data?.favorite_genres,
+    steamId: data?.steamId ?? data?.steam_id,
+    steamAvatar: data?.steamAvatar ?? data?.steam_avatar,
+    steamUsername: data?.steamUsername ?? data?.steam_username,
+    discordId: data?.discordId ?? data?.discord_id,
+    discordUsername: data?.discordUsername ?? data?.discord_username,
+    discordAvatar: data?.discordAvatar ?? data?.discord_avatar,
+    retroAchievementsUlid:
+      data?.retroAchievementsUlid ?? data?.retroachievements_ulid,
+    retroAchievementsUsername:
+      data?.retroAchievementsUsername ?? data?.retroachievements_username,
+    status: data?.status,
+    playing: data?.playing,
+    discordFriends: data?.discordFriends ?? data?.discord_friends,
+    checkpointFriends: data?.checkpointFriends ?? data?.checkpoint_friends,
+    checkpointFriendRequestsIncoming: data?.checkpointFriendRequestsIncoming ?? data?.checkpoint_friend_requests_incoming,
+    checkpointFriendRequestsOutgoing: data?.checkpointFriendRequestsOutgoing ?? data?.checkpoint_friend_requests_outgoing,
+    createdAt: data?.createdAt ?? data?.created_at,
+    updatedAt: data?.updatedAt ?? data?.updated_at,
+    lastSteamSyncAt: data?.lastSteamSyncAt ?? data?.last_steam_sync_at,
+    gamesMigratedAt: data?.gamesMigratedAt ?? data?.games_migrated_at,
+    onboardingCompletedAt: data?.onboardingCompletedAt ?? data?.onboarding_completed_at,
+    achievementSummary: data?.achievementSummary ?? data?.achievement_summary,
+    librarySummary: data?.librarySummary ?? data?.library_summary,
+  };
+};
 
 const loadSocialGraph = async (uid: string) => {
   const { data: relationships, error } = await supabase
@@ -318,6 +321,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (window.electronAPI && typeof (window.electronAPI as any).clearLocalSteamId === "function") {
           await (window.electronAPI as any).clearLocalSteamId(user.uid).catch((e: unknown) => console.warn("[Auth] clearLocalSteamId error:", e));
         }
+        if (window.electronAPI && typeof (window.electronAPI as any).logoutEpic === "function") {
+          await (window.electronAPI as any).logoutEpic().catch((e: unknown) => console.warn("[Auth] logoutEpic error:", e));
+        }
+        try {
+          localStorage.removeItem("checkpoint_epic_linked_uid");
+          localStorage.removeItem(`checkpoint_epic_user_${user.uid}`);
+        } catch {}
       }
     } catch (e) {
       console.warn("Erro ao limpar cache de logout:", e);
@@ -426,7 +436,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user?.uid, refreshProfile]);
 
+  useEffect(() => {
+    const handleProfileUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        uid: string;
+        displayName?: string;
+        photoURL?: string;
+        bio?: string;
+        favoriteGenres?: string[];
+      }>;
+      const detail = customEvent.detail;
+      if (!detail) return;
+      setUserProfile((prev) => {
+        if (!prev) return prev;
+        if (detail.uid && prev.uid && detail.uid !== prev.uid) return prev;
+        return {
+          ...prev,
+          displayName: detail.displayName || prev.displayName,
+          photoURL: detail.photoURL !== undefined ? detail.photoURL : prev.photoURL,
+          bio: detail.bio !== undefined ? detail.bio : prev.bio,
+          favoriteGenres: detail.favoriteGenres !== undefined ? detail.favoriteGenres : prev.favoriteGenres,
+        };
+      });
+      setUser((prev) => {
+        if (!prev) return prev;
+        if (detail.uid && prev.uid && detail.uid !== prev.uid) return prev;
+        return {
+          ...prev,
+          displayName: detail.displayName || prev.displayName,
+          photoURL: detail.photoURL !== undefined ? detail.photoURL : prev.photoURL,
+        };
+      });
+    };
 
+    window.addEventListener("checkpoint:profile-updated", handleProfileUpdated);
+    return () => {
+      window.removeEventListener("checkpoint:profile-updated", handleProfileUpdated);
+    };
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -457,13 +504,12 @@ export const useAuth = (): AuthContextValue => {
       user: null,
       userProfile: null,
       loading: false,
-      signInWithGoogle: async () => {},
-      signUpWithEmail: async () => {},
-      signInWithEmail: async () => {},
-      signOutUser: async () => {},
+      signInWithGoogle: async () => { },
+      signUpWithEmail: async () => { },
+      signInWithEmail: async () => { },
+      signOutUser: async () => { },
       refreshProfile: async () => null,
     };
   }
   return ctx;
 };
-

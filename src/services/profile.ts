@@ -44,59 +44,98 @@ export const normalizeEditableProfile = (
 
 export const saveCurrentUserProfile = async ({
   profile,
+  userId,
 }: {
   profile: EditableProfile;
+  userId?: string;
 }) => {
-  const session = (await supabase.auth.getSession()).data.session;
-  if (!session?.user) throw new Error("Faça login novamente para editar o perfil.");
+  let uid = userId;
+  if (!uid) {
+    const sessionRes = await supabase.auth.getSession();
+    uid = sessionRes.data.session?.user?.id;
+  }
+  if (!uid) {
+    const userRes = await supabase.auth.getUser();
+    uid = userRes.data.user?.id;
+  }
+  if (!uid) {
+    throw new Error("Faça login novamente para editar o perfil.");
+  }
 
-  const uid = session.user.id;
   const normalized = normalizeEditableProfile(profile);
   const photoURL = profile.photoURL || "";
 
-  const payload = {
+  const payload: Record<string, any> = {
     uid,
     display_name: normalized.displayName,
     bio: normalized.bio,
-    location: normalized.location,
-    pronouns: normalized.pronouns,
     website: normalized.website,
     favorite_genres: normalized.favoriteGenres,
     photo_url: photoURL || null,
   };
+
+  if (normalized.location) payload.location = normalized.location;
+  if (normalized.pronouns) payload.pronouns = normalized.pronouns;
 
   try {
     const { data, error } = await supabase
       .from("profiles")
       .upsert(payload, { onConflict: "uid" })
       .select("uid")
-      .single();
+      .maybeSingle();
 
-    if (error || !data?.uid) {
-      throw error || new Error("Upsert profile falhou.");
+    if (error) {
+      throw error;
     }
-  } catch (upsertError) {
-    // Fallback: tentar update direto caso a linha já exista e upsert tenha tido permissao/conflito
-    const updatePayload = {
+  } catch (upsertError: any) {
+    // Fallback 1: se der erro de coluna desconhecida (ex: location/pronouns), tenta sem elas
+    const safePayload: Record<string, any> = {
       display_name: normalized.displayName,
       bio: normalized.bio,
-      location: normalized.location,
-      pronouns: normalized.pronouns,
       website: normalized.website,
       favorite_genres: normalized.favoriteGenres,
       photo_url: photoURL || null,
     };
-    const { data: updateData, error: updateError } = await supabase
-      .from("profiles")
-      .update(updatePayload)
-      .eq("uid", uid)
-      .select("uid")
-      .single();
 
-    if (updateError || !updateData?.uid) {
-      throw upsertError instanceof Error && upsertError.message.includes("salvar o perfil")
-        ? upsertError
-        : (updateError || new Error("Nao foi possivel salvar o perfil."));
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update(safePayload)
+      .eq("uid", uid);
+
+    if (updateError) {
+      console.error("[saveCurrentUserProfile] Falha ao salvar perfil:", updateError);
+      throw new Error(updateError.message || "Não foi possível salvar o perfil.");
+    }
+  }
+
+  if (uid) {
+    try {
+      if (photoURL) {
+        localStorage.setItem(`phelierium_custom_avatar_${uid}`, photoURL);
+      }
+      localStorage.setItem(`phelierium_profile_cache_${uid}`, JSON.stringify({
+        displayName: normalized.displayName,
+        photoURL,
+        bio: normalized.bio,
+        location: normalized.location,
+        pronouns: normalized.pronouns,
+        website: normalized.website,
+        favoriteGenres: normalized.favoriteGenres,
+      }));
+    } catch {}
+
+    // Atualiza metadados do Supabase Auth para consistência
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          avatar_url: photoURL || undefined,
+          picture: photoURL || undefined,
+          full_name: normalized.displayName,
+          name: normalized.displayName,
+        },
+      });
+    } catch (authMetaErr) {
+      console.warn("[saveCurrentUserProfile] Aviso ao atualizar user_metadata do auth:", authMetaErr);
     }
   }
 
@@ -104,6 +143,21 @@ export const saveCurrentUserProfile = async ({
     invalidate("profile");
     invalidate("trophies");
   } catch {}
+
+  // Emite evento global para que todo o app (Home, Perfil, Dropdowns) atualize a imagem instantaneamente
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("checkpoint:profile-updated", {
+        detail: {
+          uid,
+          displayName: normalized.displayName,
+          photoURL,
+          bio: normalized.bio,
+          favoriteGenres: normalized.favoriteGenres,
+        },
+      })
+    );
+  }
 
   return { ...normalized, photoURL };
 };

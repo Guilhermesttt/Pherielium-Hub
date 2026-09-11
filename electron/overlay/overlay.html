@@ -808,7 +808,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       margin: 0;
-      display: none;
+      display: none !important;
       pointer-events: auto;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 26px;
@@ -1424,13 +1424,16 @@
     }
 
     /* Overlay Mode Modifiers */
-    body[data-overlay-mode="passive"] #command-panel {
+    body[data-overlay-mode="passive"] #command-panel,
+    body:not(.panel-open) #command-panel,
+    #command-panel:not(.is-open) {
       display: none !important;
+      pointer-events: none !important;
     }
 
     /* Modo Compacto (Centralizado e Flutuante no centro da tela) */
-    body[data-overlay-mode="quick"] #command-panel,
-    #command-panel.mode-quick {
+    body.panel-open[data-overlay-mode="quick"] #command-panel.is-open,
+    body.panel-open #command-panel.is-open.mode-quick {
       top: 50% !important;
       left: 50% !important;
       right: auto !important;
@@ -1447,6 +1450,7 @@
       background: radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.08) 0%, rgba(10, 10, 14, 0.94) 45%, rgba(4, 4, 6, 0.98) 100%) !important;
       box-shadow: 0 32px 90px rgba(0, 0, 0, 0.94), 0 0 40px rgba(255, 255, 255, 0.04) !important;
       overflow: hidden !important;
+      pointer-events: auto !important;
     }
 
     body[data-overlay-mode="quick"] .panel-sidebar,
@@ -1642,9 +1646,9 @@
       display: none !important;
     }
 
-    /* Modo Expandido (Full Command Center - Centralizado no meio da tela) */
-    body[data-overlay-mode="full"] #command-panel,
-    #command-panel:not(.mode-quick) {
+    /* Modo Expandido (Full Command Center - Centralizado no meio da tela) - SOMENTE quando aberto */
+    body.panel-open[data-overlay-mode="full"] #command-panel.is-open,
+    body.panel-open:not([data-overlay-mode="quick"]) #command-panel.is-open:not(.mode-quick) {
       top: 50% !important;
       left: 50% !important;
       right: auto !important;
@@ -1658,6 +1662,7 @@
       display: grid !important;
       grid-template-columns: 82px minmax(0, 1fr) !important;
       overflow: hidden !important;
+      pointer-events: auto !important;
     }
 
     /* ---- Hub Hero Card (Início / Social) ---- */
@@ -4039,7 +4044,7 @@
   </style>
 </head>
 
-<body>
+<body data-overlay-mode="passive">
   <svg aria-hidden="true" width="0" height="0" style="position:absolute;overflow:hidden">
     <defs>
       <symbol id="icon-home" viewBox="0 0 24 24">
@@ -4884,6 +4889,12 @@
     const achievementStack = document.getElementById("achievement-stack");
     const socialStack = document.getElementById("social-stack");
     const commandPanel = document.getElementById("command-panel");
+
+    // Garante que o overlay inicie estritamente em modo passivo/fechado
+    document.body.dataset.overlayMode = "passive";
+    commandPanel?.classList.remove("is-open", "mode-quick");
+    commandPanel?.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("panel-open");
 
     const checkpointIconUrl = new URL("../assets/icon.png", window.location.href).toString();
 

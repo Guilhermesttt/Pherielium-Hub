@@ -210,7 +210,13 @@ const OverlayApp: React.FC = () => {
       window.clearTimeout(timer);
       toastTimersRef.current.delete(id);
     }
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts((prev) => {
+      const remaining = prev.filter((t) => t.id !== id);
+      if (remaining.length === 0) {
+        (window as any).achievementOverlay?.panelAction?.({ kind: "toasts-cleared" });
+      }
+      return remaining;
+    });
   }, []);
 
   const addToast = useCallback(
@@ -516,7 +522,7 @@ const OverlayApp: React.FC = () => {
     >
       {/* ─── TOASTS FLUTUANTES ──────────────────────────────────────────────── */}
       {/* Top Right: Toasts de Conquistas */}
-      <div className="fixed top-6 right-6 flex flex-col gap-3 z-[10000] max-w-sm w-full pointer-events-auto">
+      <div className="fixed top-6 right-6 flex flex-col gap-3 z-[10000] max-w-sm w-full pointer-events-none">
         <AnimatePresence>
           {toasts
             .filter((t): t is AchievementToast => t.kind === "achievement")
@@ -559,7 +565,7 @@ const OverlayApp: React.FC = () => {
                   animate={{ opacity: 1, x: 0, scale: 1 }}
                   exit={{ opacity: 0, x: 80, scale: 0.92 }}
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="flex flex-col gap-2 rounded-2xl border p-3.5 backdrop-blur-xl shadow-2xl bg-black/85"
+                  className="flex flex-col gap-2 rounded-2xl border p-3.5 backdrop-blur-xl shadow-2xl bg-black/85 pointer-events-auto"
                   style={{
                     borderColor: tier.border,
                     boxShadow: `${tier.glow}, 0 20px 50px rgba(0,0,0,0.85)`,
@@ -619,7 +625,7 @@ const OverlayApp: React.FC = () => {
       </div>
 
       {/* Bottom Left: Toasts Sociais e de Chamada */}
-      <div className="fixed bottom-6 left-6 flex flex-col-reverse gap-3 z-[10000] max-w-sm w-full pointer-events-auto">
+      <div className="fixed bottom-6 left-6 flex flex-col-reverse gap-3 z-[10000] max-w-sm w-full pointer-events-none">
         <AnimatePresence>
           {toasts
             .filter((t): t is SocialToast => t.kind !== "achievement")
@@ -630,7 +636,7 @@ const OverlayApp: React.FC = () => {
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: -40, scale: 0.95 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col gap-3 rounded-2xl border border-white/15 bg-black/90 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl"
+                className="flex flex-col gap-3 rounded-2xl border border-white/15 bg-black/90 p-4 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl pointer-events-auto"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/10 border border-white/10">

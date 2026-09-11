@@ -335,6 +335,23 @@ const notificationSoundTypes = new Set<SoundEffectType>([
 const isNotificationSoundType = (type: SoundEffectType) =>
   notificationSoundTypes.has(type);
 
+// ─── Tipos de som que nunca devem ser descartados quando a janela perde foco ─────
+// (ex: início de jogo quando o executável rouba o foco da tela ou conquistas desbloqueadas)
+const alwaysAllowedSoundTypes = new Set<SoundEffectType>([
+  "play",
+  "boot",
+  "overlayAchievement",
+  "overlayAchievementPlatinum",
+  "friendRequest",
+  "chatReceived",
+  "chatSent",
+  "notification",
+  "callEnter",
+]);
+
+const isAlwaysAllowedSoundType = (type: SoundEffectType) =>
+  alwaysAllowedSoundTypes.has(type);
+
 // ─── Motor de Áudio Web Audio API (Latência Zero & Zero Bugs de Promise) ──────
 let globalAudioCtx: AudioContext | null = null;
 
@@ -437,16 +454,22 @@ export const useSoundEffects = (
     });
   }, [soundPaths]);
 
-  // Silencia efeitos sonoros ativos quando a janela perde o foco
+  // Silencia efeitos sonoros ativos comuns quando a janela perde o foco,
+  // mas preserva sons críticos que continuam tocando quando um jogo é iniciado (play/boot)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handleBlur = () => {
+      const remainingAudios = new Set<HTMLAudioElement>();
       activeAudiosRef.current.forEach((audio) => {
-        try {
-          audio.pause();
-        } catch { }
+        if ((audio as any)._keepOnBlur) {
+          remainingAudios.add(audio);
+        } else {
+          try {
+            audio.pause();
+          } catch { }
+        }
       });
-      activeAudiosRef.current.clear();
+      activeAudiosRef.current = remainingAudios;
     };
     window.addEventListener("blur", handleBlur);
     return () => {
@@ -460,9 +483,10 @@ export const useSoundEffects = (
       if (!path) return;
 
       const isNotification = isNotificationSoundType(type);
+      const isAlwaysAllowed = isAlwaysAllowedSoundType(type);
       if (
         typeof document !== "undefined" &&
-        !isNotification &&
+        !isAlwaysAllowed &&
         !document.hasFocus()
       ) {
         return;
@@ -485,11 +509,8 @@ export const useSoundEffects = (
       const ctx = getAudioContext();
       const cachedBuffer = audioBufferCache.get(path);
 
-      if (ctx && cachedBuffer) {
+      if (ctx && cachedBuffer && ctx.state === "running") {
         try {
-          if (ctx.state === "suspended") {
-            void ctx.resume();
-          }
           const source = ctx.createBufferSource();
           source.buffer = cachedBuffer;
 
@@ -503,11 +524,14 @@ export const useSoundEffects = (
         } catch {
           // fallback abaixo
         }
+      } else if (ctx && ctx.state === "suspended") {
+        void ctx.resume().catch(() => { });
       }
 
       // Se não estava no cache ou WebAudio falhou, usa HTMLAudio fallback
       try {
         const audio = getHtmlAudio(path, targetVolume);
+        (audio as any)._keepOnBlur = isAlwaysAllowed;
         if (!isNotification) {
           activeAudiosRef.current.add(audio);
         }

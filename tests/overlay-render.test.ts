@@ -732,4 +732,53 @@ describe("overlay de conquistas", () => {
 
     expect(focusSpy).toHaveBeenCalled();
   });
+
+  it("garante que toasts de conquista ou boas-vindas nao abrem o painel do overlay in-game", () => {
+    // 1. O overlay inicia com body passive e sem classes de painel aberto
+    expect(document.body.dataset.overlayMode).toBe("passive");
+    expect(document.body.classList.contains("panel-open")).toBe(false);
+    expect(document.getElementById("command-panel")?.classList.contains("is-open")).toBe(false);
+
+    // 2. Disparar toast de boas-vindas (game-start)
+    social({
+      kind: "game-start",
+      title: "Divirta-se",
+      description: "O overlay está ativo enquanto você joga.",
+    });
+
+    // Toast deve estar no DOM
+    expect(document.querySelector(".is-game-start")).not.toBeNull();
+    // Modo DEVE continuar estritamente passive e painel fechado
+    expect(document.body.dataset.overlayMode).toBe("passive");
+    expect(document.body.classList.contains("panel-open")).toBe(false);
+    expect(document.getElementById("command-panel")?.classList.contains("is-open")).toBe(false);
+
+    // 3. Disparar toast de conquista
+    unlock({
+      gameId: "test-game",
+      achievementId: "ach-1",
+      tier: "gold",
+      achievement: {
+        id: "ach-1",
+        name: "Troféu de Ouro",
+        description: "Teste",
+        tier: "gold",
+        xp: 90,
+      },
+    });
+
+    // Toast deve estar no DOM
+    expect(document.querySelector(".achievement-card")).not.toBeNull();
+    // Painel NÃO pode ter sido aberto
+    expect(document.body.dataset.overlayMode).toBe("passive");
+    expect(document.body.classList.contains("panel-open")).toBe(false);
+    expect(document.getElementById("command-panel")?.classList.contains("is-open")).toBe(false);
+
+    // 4. Verifica se as regras do CSS em overlay.html proíbem exibição sem panel-open e is-open
+    const html = fs.readFileSync(path.resolve("electron/overlay.html"), "utf8");
+    expect(html).toContain("body.panel-open[data-overlay-mode=\"quick\"] #command-panel.is-open");
+    expect(html).toContain("body.panel-open[data-overlay-mode=\"full\"] #command-panel.is-open");
+    expect(html).not.toMatch(/#command-panel:not\(\.mode-quick\)\s*\{[^}]*display:\s*grid/);
+  });
 });
+

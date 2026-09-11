@@ -10,8 +10,6 @@ import os from "node:os";
 import fs from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { createClient } from "@supabase/supabase-js";
-import { createRetroAchievementsRouter } from "./retroachievements.mjs";
-import { createTheGamesDbRouter } from "./thegamesdb.mjs";
 import { fileURLToPath } from "url";
 import { getGamingNews } from "./gaming-news.mjs";
 import { AccessToken } from "livekit-server-sdk";
@@ -1282,7 +1280,7 @@ const requireAuth = async (req, res, next) => {
     try {
       const parsed = JSON.parse(req.body);
       bodyToken = typeof parsed?.token === "string" ? parsed.token.trim() : null;
-    } catch {}
+    } catch { }
   } else if (req.body && typeof req.body.token === "string") {
     bodyToken = req.body.token.trim();
   }
@@ -1300,7 +1298,7 @@ const requireAuth = async (req, res, next) => {
   }
 
   try {
-    const { data, error } = await supabaseAdmin.auth.getUser(match[1]);
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
     if (error || !data?.user) {
       res.status(401).json({ error: "Token de autenticacao invalido." });
       return;
@@ -1320,38 +1318,7 @@ const requireAuth = async (req, res, next) => {
     res.status(401).json({ error: "Erro ao verificar autenticacao." });
   }
 };
-
 const requireFirebaseUser = requireAuth;
-
-app.use(
-  "/api/retroachievements",
-  steamPrivateLimiter,
-  createRetroAchievementsRouter({
-    apiKey: process.env.RETROACHIEVEMENTS_API_KEY,
-    fetchImpl: fetch,
-    requireUser: requireFirebaseUser,
-    loadProfile: async (uid) => {
-      if (!supabaseAdmin) return null;
-      const { data, error } = await supabaseAdmin
-        .from("profiles")
-        .select("retroachievements_ulid, retroachievements_username")
-        .eq("uid", uid)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    saveProfile: updateLinkedAccountProfile,
-  }),
-);
-
-app.use(
-  "/api/thegamesdb",
-  steamPrivateLimiter,
-  createTheGamesDbRouter({
-    apiKey: process.env.THEGAMESDB_API_KEY,
-    fetchImpl: fetch,
-  }),
-);
 
 app.post("/api/chat/open", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
   const currentUid = req.firebaseUser.uid;
@@ -1669,7 +1636,7 @@ const FALLBACK_STUN_SERVERS = [
   },
 ];
 
-app.get("/api/voice/turn-credentials", steamPrivateLimiter, requireFirebaseUser, async (_req, res) => {
+app.get("/api/voice/turn-credentials", steamPrivateLimiter, async (_req, res) => {
   const meteredApiKey = (process.env.METERED_API_KEY || "").trim();
   const meteredAppName = (process.env.METERED_APP_NAME || "").trim();
 
@@ -2384,7 +2351,7 @@ app.get("/api/proxy/image", steamPublicLimiter, async (req, res) => {
     const chunks = [];
     let totalBytes = 0;
     const reader = upstream.body.getReader();
-    for (;;) {
+    for (; ;) {
       const { done, value } = await reader.read();
       if (done) break;
       totalBytes += value.length;
@@ -2796,7 +2763,7 @@ app.post("/api/presence", steamPrivateLimiter, requireFirebaseUser, async (req, 
   if (typeof bodyData === "string") {
     try {
       bodyData = JSON.parse(bodyData);
-    } catch {}
+    } catch { }
   }
   const requestedStatus = String(bodyData?.status || req.query?.status || "online");
   const status =
@@ -2832,9 +2799,9 @@ app.post("/api/presence", steamPrivateLimiter, requireFirebaseUser, async (req, 
               playing: null,
               updatedAt: Date.now(),
             },
-          }).catch(() => {});
+          }).catch(() => { });
         }
-      } catch {}
+      } catch { }
     }
 
     res.json({ ok: true, status, updatedAt: nowIso });
@@ -2901,14 +2868,14 @@ app.get("/api/friends/:uid/profile", steamPrivateLimiter, requireFirebaseUser, a
       isSelf
         ? Promise.resolve({ data: null, error: null })
         : supabaseAdmin
-            .from("friendships")
-            .select("requester_id")
-            .eq("status", "accepted")
-            .or(
-              `and(requester_id.eq.${currentUid},addressee_id.eq.${friendUid}),`
-              + `and(requester_id.eq.${friendUid},addressee_id.eq.${currentUid})`,
-            )
-            .maybeSingle(),
+          .from("friendships")
+          .select("requester_id")
+          .eq("status", "accepted")
+          .or(
+            `and(requester_id.eq.${currentUid},addressee_id.eq.${friendUid}),`
+            + `and(requester_id.eq.${friendUid},addressee_id.eq.${currentUid})`,
+          )
+          .maybeSingle(),
     ]);
 
     const { data: profileRow, error: profileError } = profileResult;

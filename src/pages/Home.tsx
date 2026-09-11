@@ -28,6 +28,9 @@ import { HomeOverviewPanels } from "../components/HomeOverviewPanels";
 import DashboardContinuePlaying from "../components/DashboardContinuePlaying";
 import LibraryFilterModal, { type LibraryFilters } from "../components/LibraryFilterModal";
 import CommandPalette from "../components/CommandPalette";
+import { Compass } from "lucide-react";
+import { HomeOnboardingQuests } from "../components/home/HomeOnboardingQuests";
+import { getAllQuestsWithStatus, shouldShowOnboardingQuests } from "../services/userQuests";
 
 import { PHERIELIUM_LOGO_PATH } from "../constants/assets";
 import {
@@ -123,7 +126,9 @@ import { activateElementWithController } from "../utils/controllerTextInput";
 import { calculateAchievementTotals } from "../utils/achievementTotals";
 import { formatPlayedHours, getGamePlayedHours } from "../utils/playtime";
 import { calculatePlayerLevel, aggregateTrophyCounts } from "../utils/trophyTiers";
-import { getHubAggregateCounts } from "../utils/hubTrophies";
+import { getHubAggregateCounts, getUserUnifiedLevel } from "../utils/hubTrophies";
+import { progressionEventBus } from "../services/progressionEvents";
+import { completeUserQuest } from "../services/userQuests";
 import InputHints from "../components/ui/InputHints";
 import { resolveLibraryLoadingState, shouldShowLibraryFooter } from "../utils/libraryLoading";
 
@@ -242,20 +247,25 @@ const Home: React.FC = () => {
     }
   }, [games, selectedGame, isDetailOpen]);
 
-  // Nível seguro: só conta XP ganho VIA HUB (anti-farm de importação)
+  const [xpRevision, setXpRevision] = useState(0);
+  useEffect(() => {
+    const onXp = () => setXpRevision((r) => r + 1);
+    const unsub = progressionEventBus.onXpGained(onXp);
+    window.addEventListener("checkpoint:xp-gained", onXp);
+    return () => {
+      unsub();
+      window.removeEventListener("checkpoint:xp-gained", onXp);
+    };
+  }, []);
+
+  // Nível seguro e canônico: calculado unificadamente pelo Hub
   const playerLevel = useMemo(() => {
     if (user?.uid) {
-      const hubAgg = getHubAggregateCounts(user.uid, games);
-      // se já tem progresso no hub, usa ele (mesmo que seja nível 1, mostra hub)
-      // isso evita farm de conquistas antigas importadas do Steam/Epic
-      if ((hubAgg.hubPoints ?? 0) > 0 || games.length > 0) {
-        // quando ainda não tem hub, hubAgg será nível 1 Bronze 1
-        return calculatePlayerLevel(0, 0, 0, hubAgg);
-      }
+      return getUserUnifiedLevel(user.uid, games);
     }
     const agg = aggregateTrophyCounts(games);
     return calculatePlayerLevel(0, 0, 0, agg);
-  }, [games, user?.uid]);
+  }, [games, user?.uid, xpRevision]);
 
   // refs para level-up (efeito real fica após playSound para evitar TDZ)
   const prevLevelRef = React.useRef<number>(0);
@@ -278,6 +288,24 @@ const Home: React.FC = () => {
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isQuestsModalOpen, setIsQuestsModalOpen] = useState(false);
+
+  const isQuestsEligible = useMemo(() => {
+    if (!user?.uid) return false;
+    return shouldShowOnboardingQuests(user.uid, userProfile, {
+      totalGames: games.length,
+      level: playerLevel.level,
+    });
+  }, [user?.uid, userProfile, games.length, playerLevel.level]);
+
+  const questsStatus = useMemo(() => {
+    if (!user?.uid || !isQuestsEligible) return { completed: 0, total: 0 };
+    const list = getAllQuestsWithStatus(user.uid);
+    return {
+      completed: list.filter((q) => q.completed).length,
+      total: list.length,
+    };
+  }, [user?.uid, isQuestsEligible]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -563,6 +591,18 @@ const Home: React.FC = () => {
   // Verifica se o usuário já está autenticado na Epic via Desktop IPC
   const checkEpicStatus = useCallback(async () => {
     try {
+      if (!user?.uid) {
+        setEpicAuthConnected(false);
+        return;
+      }
+      const linkedUid = localStorage.getItem("checkpoint_epic_linked_uid");
+      if (linkedUid !== user.uid) {
+        setEpicAuthConnected(false);
+        if (window.electronAPI?.logoutEpic) {
+          void window.electronAPI.logoutEpic().catch(() => {});
+        }
+        return;
+      }
       const data = await fetchEpicStatus();
       const isConnected = data.authenticated === true;
       setEpicAuthConnected(isConnected);
@@ -571,7 +611,7 @@ const Home: React.FC = () => {
     } catch {
       setEpicAuthConnected(false);
     }
-  }, []);
+  }, [user?.uid]);
 
   useEffect(() => { void checkEpicStatus(); }, [checkEpicStatus]);
 
@@ -790,22 +830,33 @@ const Home: React.FC = () => {
       const title = detail?.title?.trim();
       if (!title) return;
 
+      const soundAlreadyPlayed = Boolean((detail as any)?.soundPlayed);
       const now = Date.now();
       if (
-        lastGameLaunchSoundRef.current.title !== title ||
-        now - lastGameLaunchSoundRef.current.time > 4000
+        !soundAlreadyPlayed &&
+        (lastGameLaunchSoundRef.current.title !== title ||
+        now - lastGameLaunchSoundRef.current.time > 4000)
       ) {
         lastGameLaunchSoundRef.current = { title, time: now };
         playSound("play");
+      } else if (soundAlreadyPlayed) {
+        lastGameLaunchSoundRef.current = { title, time: now };
       }
       lastOverlayWelcomeGameRef.current = title;
       markCurrentPresence(title, detail?.executablePath || null);
       void window.electronAPI?.showGameStartOverlay({ gameTitle: title });
+
+      if (user?.uid) {
+        completeUserQuest(user.uid, "launch_game", {
+          playSound,
+          onNotify: (msg, type) => notify(msg, type),
+        });
+      }
     };
 
     window.addEventListener("checkpoint:game-launch", handleGameLaunch);
     return () => window.removeEventListener("checkpoint:game-launch", handleGameLaunch);
-  }, [markCurrentPresence, playSound]);
+  }, [markCurrentPresence, playSound, user?.uid, notify]);
 
   useEffect(() => {
     if (!currentPresenceGame) {
@@ -2238,6 +2289,7 @@ const Home: React.FC = () => {
               userDisplay={userDisplay}
               email={user?.email || undefined}
               avatarUrl={userProfile?.photoURL || user?.photoURL || userProfile?.discordAvatar || userProfile?.steamAvatar || undefined}
+              userLevel={playerLevel}
               language={launcherLanguage}
               playSound={playSound}
               onOpenProfile={() => {
@@ -2450,7 +2502,7 @@ const Home: React.FC = () => {
               />
             </div>
           ) : displayGames.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center px-10">
+            <div className="flex-1 flex flex-col items-center justify-center px-10 py-6 overflow-y-auto thin-scrollbar">
               {onboardingCompleted ? (
                 <EmptyState
                   searchTerm={searchTerm}
@@ -2691,7 +2743,15 @@ const Home: React.FC = () => {
         <AddGameModal
           isOpen={isAddModalOpen}
           onClose={closeAddModal}
-          onSaved={() => void refreshLibrary()}
+          onSaved={() => {
+            void refreshLibrary();
+            if (user?.uid) {
+              completeUserQuest(user.uid, "first_game", {
+                playSound,
+                onNotify: (msg, type) => notify(msg, type),
+              });
+            }
+          }}
           playSound={playSound}
           gameToEdit={editingGame}
           initialLauncherType={addModalInitialLauncherType}
@@ -3083,6 +3143,66 @@ const Home: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Botão flutuante no canto da tela para abrir/reaparecer o Guia de Missões */}
+      {isQuestsEligible && activeCategory === "ALL" && (
+        <button
+          type="button"
+          onClick={() => {
+            playSound("select");
+            setIsQuestsModalOpen(true);
+          }}
+          className="fixed bottom-6 right-6 z-[120] flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#0D0E15]/90 hover:bg-[#161824] border border-amber-500/40 hover:border-amber-500/80 shadow-[0_10px_30px_rgba(0,0,0,0.7),0_0_20px_rgba(245,158,11,0.2)] text-white text-xs font-bold transition-all duration-200 backdrop-blur-xl group hover:scale-105 cursor-pointer"
+          title="Abrir Guia de Missões"
+        >
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-amber-400 group-hover:bg-amber-500/30">
+            <Compass className="h-3.5 w-3.5 animate-[spin_20s_linear_infinite]" />
+          </div>
+          <span className="tracking-wide">Missões</span>
+          <span className="rounded-full bg-amber-500/25 px-2 py-0.5 font-mono text-[10px] font-extrabold text-amber-400">
+            {questsStatus.completed}/{questsStatus.total}
+          </span>
+        </button>
+      )}
+
+      {/* Modal/Overlay Flutuante de Missões */}
+      {isQuestsModalOpen && (
+        <HomeOnboardingQuests
+          userId={user?.uid}
+          userProfile={userProfile}
+          userLevel={playerLevel.level}
+          hasFriends={(userProfile?.checkpointFriends?.length || 0) > 0}
+          totalGames={games.length}
+          favoritesCount={games.filter((g) => (g as any).isFavorite || (g as any).favorite).length}
+          hasAchievements={games.some((g) => (g.completedAchievements || 0) > 0)}
+          hasSteamConnected={Boolean(resolvedSteamId)}
+          hasEpicConnected={epicAuthConnected}
+          hasDiscordConnected={Boolean(userProfile?.discordId)}
+          onOpenAddFriend={() => {
+            setIsQuestsModalOpen(false);
+            setIsAddFriendModalOpen(true);
+          }}
+          onOpenAddGame={() => {
+            setIsQuestsModalOpen(false);
+            openAddGameModal(categoryToLauncherType(activeCategory));
+          }}
+          onOpenSettings={() => {
+            setIsQuestsModalOpen(false);
+            selectCategory("SETTINGS");
+          }}
+          onOpenProfile={() => {
+            setIsQuestsModalOpen(false);
+            selectCategory("PROFILE");
+          }}
+          onOpenTrophies={() => {
+            setIsQuestsModalOpen(false);
+            selectCategory("TROPHIES");
+          }}
+          playSound={playSound}
+          isModal={true}
+          onClose={() => setIsQuestsModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
