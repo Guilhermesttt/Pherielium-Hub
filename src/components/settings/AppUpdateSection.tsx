@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Sparkles, Info } from "lucide-react";
+import { Info, Download } from "lucide-react";
 import { usePreferences } from "../../context/PreferencesContext";
 import { useAppUpdater } from "../../hooks/useAppUpdater";
 import { AppUpdateErrorModal } from "./AppUpdateErrorModal";
@@ -60,9 +60,9 @@ export const AppUpdateSection: React.FC = React.memo(() => {
 
   return (
     <>
-      <section className="mt-6 rounded-2xl border border-white/10 bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+      <section className="mt-6 rounded-2xl bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
         <SettingsHeader
-          icon={<Sparkles className="h-5 w-5 text-white/70" />}
+          icon={<Download className="h-5 w-5 text-white/70" />}
           title={updateCopy[0]}
           description={`${updateCopy[1]}: v${currentVersion}`}
         />

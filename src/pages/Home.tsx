@@ -1111,7 +1111,7 @@ const Home: React.FC = () => {
     [playSound],
   );
 
-  const isSystemCategory = ["FRIENDS", "FEED", "MODS", "SETTINGS", "PROFILE", "DEALS"].includes(activeCategory);
+  const isSystemCategory = ["FRIENDS", "FEED", "MODS", "SETTINGS", "PROFILE", "DEALS", "TROPHIES", "RADAR"].includes(activeCategory);
 
   const { moveSystemFocus, adjustFocusedRange } = useGamepadFocusNavigation({
     playSound,
@@ -1184,8 +1184,15 @@ const Home: React.FC = () => {
       setSearchOpen(false);
       setSearchTerm("");
       playSound("back");
+      return;
+    }
+    if (activeCategory !== "ALL") {
+      playSound("back");
+      selectCategory("ALL");
+      return;
     }
   }, [
+    activeCategory,
     activeChatFriend,
     contextMenu,
     disconnectDiscordModalOpen,
@@ -1199,13 +1206,14 @@ const Home: React.FC = () => {
     pendingFriendRemoval,
     playSound,
     searchOpen,
+    selectCategory,
     setActiveChatFriend,
     signOutModalOpen,
   ]);
 
   useGamepadNavigation({
     disableX: true,
-    disableO: isAnyModalOpen,
+    disableO: false,
     onClose: closeTopGamepadSurface,
   });
 
@@ -1285,6 +1293,8 @@ const Home: React.FC = () => {
     // Se a pesquisa estiver focada, DPAD_DOWN volta ao carrossel
     if (document.activeElement === searchInputRef.current) {
       searchInputRef.current?.blur();
+      const cards = document.querySelectorAll<HTMLElement>("[data-game-card]");
+      cards[selectedIndex]?.focus();
       playSound("navigate");
     }
   });
@@ -1294,15 +1304,13 @@ const Home: React.FC = () => {
     // FRIENDS: open chat with focused friend
     if (activeCategory === "FRIENDS") {
       const focused = document.querySelector<HTMLElement>("[data-gamepad-focused='true']");
-      if (focused) {
-        const card = focused.closest<HTMLElement>("[data-friend-id]");
-        const friendId = card?.dataset.friendId;
-        if (friendId) {
-          const friend = socialFriends.find((f) => f.id === friendId);
-          if (friend) {
-            playSound("select");
-            setActiveChatFriend(friend);
-          }
+      const card = focused?.closest<HTMLElement>("[data-friend-id]");
+      const friendId = card?.dataset.friendId || focused?.dataset.friendId;
+      if (friendId) {
+        const friend = socialFriends.find((f) => f.id === friendId);
+        if (friend) {
+          playSound("select");
+          setActiveChatFriend(friend);
         }
       }
       return;
@@ -1319,6 +1327,24 @@ const Home: React.FC = () => {
       } catch (err) {
         console.error("Error toggling favorite via gamepad", err);
       }
+    }
+  });
+
+  useGamepadButton("TRIANGLE", () => {
+    if (isAnyModalOpen || searchOpen) return;
+    // FRIENDS: start call with focused friend
+    if (activeCategory === "FRIENDS") {
+      const focused = document.querySelector<HTMLElement>("[data-gamepad-focused='true']");
+      const card = focused?.closest<HTMLElement>("[data-friend-id]");
+      const friendId = card?.dataset.friendId || focused?.dataset.friendId;
+      if (friendId) {
+        const friend = socialFriends.find((f) => f.id === friendId);
+        if (friend) {
+          playSound("select");
+          void startCall(friend, false);
+        }
+      }
+      return;
     }
   });
 
@@ -2379,6 +2405,10 @@ const Home: React.FC = () => {
               }}
               initialTab={settingsTab}
               onTabChange={handleSettingsTabChange}
+              onClose={() => {
+                playSound("back");
+                selectCategory("ALL");
+              }}
               platformOperations={platformOperations}
             />
           ) : activeCategory === "FRIENDS" ? (
@@ -2553,6 +2583,10 @@ const Home: React.FC = () => {
                     openDetails(game);
                     playSound("select");
                   }}
+                  onOpenDetails={(game) => {
+                    openDetails(game);
+                    playSound("select");
+                  }}
                   playSound={playSound}
                 />
               )}
@@ -2573,12 +2607,6 @@ const Home: React.FC = () => {
                     className="flex items-end justify-between gap-8 transform-gpu"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/[0.06] border border-white/[0.08] backdrop-blur-md mb-2.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-                        <span className="text-[11px] font-mono font-semibold tracking-wider text-white/70 uppercase">
-                          {currentGame?.category ?? "Jogo"} · {canonicalIndex + 1} de {displayGames.length}
-                        </span>
-                      </div>
                       <h1
                         className="tracking-tight font-display font-black text-3xl md:text-5xl text-white leading-[1.08] drop-shadow-[0_8px_32px_rgba(0,0,0,0.85)] line-clamp-1"
                         style={{
@@ -2658,17 +2686,6 @@ const Home: React.FC = () => {
                         </svg>
                         <span>{t("playNow")}</span>
                       </ShinyButton>
-
-                      <button
-                        type="button"
-                        onClick={() => currentGame && openDetails(currentGame)}
-                        onMouseEnter={() => playSound("hover")}
-                        className="cursor-pointer flex items-center gap-2 h-11 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] active:scale-95 border border-white/10 text-white/80 hover:text-white transition-all duration-200 text-xs font-semibold backdrop-blur-md shadow-sm"
-                        title={t("details") || "Ver detalhes"}
-                      >
-                        <Info className="w-4 h-4 text-white/60" />
-                        <span>{t("details") || "Detalhes"}</span>
-                      </button>
                     </div>
                   </motion.div>
                 </AnimatePresence>
@@ -2719,6 +2736,20 @@ const Home: React.FC = () => {
               { button: "DPAD", label: "Selecionar" },
               { button: "SQUARE", label: "Chat" },
               { button: "TRIANGLE", label: "Ligar" },
+              { button: "O", label: "Voltar" }
+            ] : activeCategory === "SETTINGS" ? [
+              { button: "L1_R1", label: "Trocar Aba" },
+              { button: "DPAD", label: "Navegar" },
+              { button: "X", label: "Selecionar" },
+              { button: "O", label: "Voltar" }
+            ] : activeCategory === "TROPHIES" ? [
+              { button: "L1_R1", label: "Filtrar" },
+              { button: "DPAD", label: "Navegar" },
+              { button: "X", label: "Abrir Jogo" },
+              { button: "O", label: "Voltar" }
+            ] : activeCategory === "MODS" ? [
+              { button: "DPAD", label: "Navegar" },
+              { button: "X", label: "Gerenciar" },
               { button: "O", label: "Voltar" }
             ] : [
               { button: "DPAD", label: "Navegar" },

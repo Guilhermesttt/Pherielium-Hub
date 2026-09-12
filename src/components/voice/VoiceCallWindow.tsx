@@ -1516,7 +1516,7 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                           }}
                           onDoubleClick={() => handleToggleFocus(feed.id)}
                           onContextMenu={(e) => handleFeedContextMenu(e, feed)}
-                          className={`group relative flex flex-col items-center justify-center rounded-[26px] border transition-all duration-200 w-full h-full min-h-[220px] overflow-hidden select-none ${feed.type === "video" || hasCameraFill
+                          className={`group relative flex flex-col items-center justify-center rounded-[26px] border transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out transform-gpu will-change-transform w-full h-full min-h-[220px] overflow-hidden select-none ${feed.type === "video" || hasCameraFill
                             ? "bg-black/90 border-white/10 shadow-2xl p-0"
                             : `${assignedBg} border-white/[0.08] hover:border-white/[0.18] shadow-xl p-6`
                             } ${isSpeaking
@@ -1682,7 +1682,7 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
 
                               {/* Center Large Avatar */}
                               <div
-                                className={`relative h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 rounded-full overflow-hidden border-[3px] transition-all duration-200 ${feed.isRinging
+                                className={`relative h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 rounded-full overflow-hidden border-[3px] transition-[transform,border-color,box-shadow,opacity] duration-200 ease-out transform-gpu will-change-transform ${feed.isRinging
                                   ? "border-amber-500/30 opacity-60 grayscale-[20%]"
                                   : feed.isConnecting
                                     ? "border-sky-400/50 ring-4 ring-sky-400/25 shadow-[0_0_20px_rgba(56,189,248,0.25)] opacity-90 animate-pulse"
@@ -2562,13 +2562,13 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2.5 p-2 rounded-2xl bg-black/85 border border-white/15 backdrop-blur-2xl shadow-2xl pointer-events-auto z-20"
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2.5 p-2 rounded-2xl bg-black/85 border border-white/15 backdrop-blur-2xl shadow-2xl pointer-events-auto z-20 transform-gpu"
                 >
                   {/* Mute Mic */}
                   <button
                     type="button"
                     onClick={onToggleMute}
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all cursor-pointer ${isMuted ? "bg-rose-500 text-white shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors cursor-pointer ${isMuted ? "bg-rose-500 text-white shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
                       }`}
                     title={isMuted ? "Desmutar microfone" : "Mutar microfone"}
                   >
@@ -2579,7 +2579,7 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                   <button
                     type="button"
                     onClick={onToggleDeafen}
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all cursor-pointer ${isDeafened ? "bg-rose-500 text-white shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors cursor-pointer ${isDeafened ? "bg-rose-500 text-white shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
                       }`}
                     title={isDeafened ? "Reativar áudio" : "Desativar áudio"}
                   >

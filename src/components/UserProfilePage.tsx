@@ -307,7 +307,7 @@ const Section: React.FC<SectionProps> = ({
   compact = false,
 }) => (
   <section
-    className={`${compact ? "rounded-2xl p-4 md:p-5" : "rounded-2xl p-5 md:p-6"} border border-white/[0.08] ${className}`}
+    className={`${compact ? "rounded-2xl p-4 md:p-5" : "rounded-2xl p-5 md:p-6"} border border-white/[0.08] transform-gpu ${className}`}
     style={{
       background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
       backdropFilter: "blur(48px) saturate(160%)",
@@ -859,7 +859,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               {/* LADO DIREITO: KPIs Unificados + Botão de Edição */}
               <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-4 shrink-0">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  {editable && (
+                  {editable && Boolean(import.meta.env.DEV) && (
                     <div className="relative flex items-center">
                       <button
                         type="button"

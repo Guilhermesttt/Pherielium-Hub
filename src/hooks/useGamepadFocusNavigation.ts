@@ -19,23 +19,32 @@ export function useGamepadFocusNavigation({
   isSystemCategory,
 }: UseGamepadFocusNavigationProps) {
   const getSystemFocusableElements = useCallback(() => {
-    const root = document.querySelector<HTMLElement>("[data-system-page]");
-    if (!root) return [];
+    const root =
+      document.querySelector<HTMLElement>("[data-system-page]") ||
+      document.querySelector<HTMLElement>("main") ||
+      document.body;
 
-    return Array.from(
-      root.querySelectorAll<HTMLElement>(
-        [
-          "button:not(:disabled)",
-          "input:not(:disabled)",
-          "select:not(:disabled)",
-          "textarea:not(:disabled)",
-          "[tabindex]:not([tabindex='-1'])",
-        ].join(","),
-      ),
-    ).filter((element) => {
+    const selectors = [
+      "button:not(:disabled)",
+      "input:not(:disabled)",
+      "select:not(:disabled)",
+      "textarea:not(:disabled)",
+      "[role='button']:not([aria-disabled='true'])",
+      "[tabindex]:not([tabindex='-1'])",
+      "[data-gamepad-focusable='true']",
+    ].join(",");
+
+    return Array.from(root.querySelectorAll<HTMLElement>(selectors)).filter((element) => {
+      if (element.closest("[aria-hidden='true']")) return false;
       const rect = element.getBoundingClientRect();
       const style = window.getComputedStyle(element);
-      return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+      return (
+        rect.width > 0 &&
+        rect.height > 0 &&
+        style.visibility !== "hidden" &&
+        style.display !== "none" &&
+        style.opacity !== "0"
+      );
     });
   }, []);
 
@@ -63,20 +72,27 @@ export function useGamepadFocusNavigation({
       const elements = getSystemFocusableElements();
       if (elements.length === 0) return false;
 
-      const activeElement = document.activeElement;
-      const currentIndex = activeElement instanceof HTMLElement ? elements.indexOf(activeElement) : -1;
+      let currentElement: HTMLElement | null = null;
+      if (document.activeElement instanceof HTMLElement && elements.includes(document.activeElement)) {
+        currentElement = document.activeElement;
+      } else {
+        const marked = document.querySelector<HTMLElement>("[data-gamepad-focused='true']");
+        if (marked && elements.includes(marked)) {
+          currentElement = marked;
+        }
+      }
 
-      if (currentIndex === -1) {
+      if (!currentElement) {
         focusSystemElement(elements[0]);
         return true;
       }
 
-      const currentElement = elements[currentIndex];
       const currentRect = currentElement.getBoundingClientRect();
       const root = document.querySelector<HTMLElement>("[data-system-page]");
       const declaredNeighbor = root
         ? findDeclaredSpatialNeighbor(root, currentElement, direction)
         : null;
+
       const rankedCandidates = rankSpatialCandidates(
         currentRect,
         elements
@@ -87,16 +103,9 @@ export function useGamepadFocusNavigation({
 
       const nextElement = declaredNeighbor ?? rankedCandidates[0]?.id;
 
-      // Task 8: Wrap-around — se não há candidato na direção, volta ao início/fim da lista
       if (!nextElement) {
-        const wrapTarget =
-          direction === "down" || direction === "right"
-            ? elements[0]
-            : elements[elements.length - 1];
-        if (wrapTarget && wrapTarget !== currentElement) {
-          focusSystemElement(wrapTarget, currentElement);
-          return true;
-        }
+        // Natural console UX: when reaching the end of content in that direction,
+        // do not warp to the opposite end of the screen.
         return false;
       }
 

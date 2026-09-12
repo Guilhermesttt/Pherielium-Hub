@@ -1424,10 +1424,17 @@ const createWindow = async () => {
         mainWindow.setFullScreen(!mainWindow.isFullScreen());
         event.preventDefault();
       } else if (
-        input.key === "F12" ||
-        ((input.control || input.meta) && input.shift && input.key.toLowerCase() === "i")
+        !app.isPackaged &&
+        (input.key === "F12" ||
+          ((input.control || input.meta) && input.shift && input.key.toLowerCase() === "i"))
       ) {
         mainWindow.webContents.toggleDevTools();
+        event.preventDefault();
+      } else if (
+        app.isPackaged &&
+        (input.key === "F12" ||
+          ((input.control || input.meta) && input.shift && input.key.toLowerCase() === "i"))
+      ) {
         event.preventDefault();
       } else if ((input.control || input.meta) && input.key.toLowerCase() === "r" && !app.isPackaged) {
         mainWindow.webContents.reload();

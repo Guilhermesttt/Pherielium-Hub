@@ -28,6 +28,7 @@ const GamepadContext = createContext<GamepadContextValue | null>(null);
 export type GamepadButtonName =
   | "X" | "O" | "SQUARE" | "TRIANGLE"
   | "L1" | "R1" | "L2" | "R2"
+  | "L3" | "R3"
   | "SHARE" | "OPTIONS" | "GUIDE"
   | "DPAD_UP" | "DPAD_DOWN" | "DPAD_LEFT" | "DPAD_RIGHT";
 
@@ -46,6 +47,8 @@ const BUTTON_MAP: Record<number, GamepadButtonName> = {
   7: "R2",
   8: "SHARE",
   9: "OPTIONS",
+  10: "L3",
+  11: "R3",
   16: "GUIDE",
 };
 

@@ -27,6 +27,7 @@ import {
 import type { SoundEffectType } from "../hooks/useSoundEffects";
 import { type LauncherLanguage } from "../context/PreferencesContext";
 import { SIDEBAR_NAVIGATION_GROUPS, SIDEBAR_NAVIGATION_ORDER } from "../services/launcherNavigation";
+import { useGamepadButton } from "../context/GamepadContext";
 
 export const SteamBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({ className, style }) => <FontAwesomeIcon icon={faSteam} className={className} style={style as any} />;
 export const DiscordBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({ className, style }) => <FontAwesomeIcon icon={faDiscord} className={className} style={style as any} />;
@@ -167,7 +168,9 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
     transition: "color 0.3s ease, filter 0.3s ease",
   };
 
-  const iconSizeClass = isExpanded ? (nested ? "h-4 w-4" : "h-[22px] w-[22px]") : "h-6 w-6";
+  const iconSizeClass = isExpanded
+    ? (nested ? "h-4 w-4" : "h-[22px] w-[22px]")
+    : (nested ? "h-[20px] w-[20px]" : "h-6 w-6");
 
   const buttonContent = (
     <motion.button
@@ -182,7 +185,7 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
         ${isExpanded
           // Mac Native Layout: Cantos arredondados (rounded-xl) em vez de pílula (rounded-full)
           ? `w-full ${nested ? "h-9 px-3 gap-3" : "h-[42px] px-3.5 gap-3.5"} rounded-xl text-left`
-          : "h-12 w-12 justify-center rounded-[18px]"}
+          : (nested ? "h-10 w-10 justify-center rounded-[14px]" : "h-12 w-12 justify-center rounded-[18px]")}
         ${!active ? "hover:bg-white/[0.06]" : ""}`}
       style={{
         // Fundo com tint do accent color ao ativar
@@ -282,6 +285,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     playSound("navigate");
   };
 
+  useGamepadButton("L3", () => {
+    toggleExpand();
+  });
+
   const sidebarLabels: Record<string, string> = {
     ALL: { "pt-BR": "Todos os Jogos", "en-US": "All Games", "es-ES": "Todos los juegos", "fr-FR": "Tous les jeux", "de-DE": "Alle Spiele", "it-IT": "Tutti i giochi" }[language],
     FAVORITES: { "pt-BR": "Favoritos", "en-US": "Favorites", "es-ES": "Favoritos", "fr-FR": "Favoris", "de-DE": "Favoriten", "it-IT": "Preferiti" }[language],
@@ -344,14 +351,20 @@ const Sidebar: React.FC<SidebarProps> = ({
             const items = group.ids
               .map((id) => SIDEBAR_CATEGORIES.find((item) => item.id === id))
               .filter((item): item is (typeof SIDEBAR_CATEGORIES)[number] => Boolean(item));
+            const isGroupActive = items.some((item) => item.id === activeCategory);
 
             return (
               <div key={group.key} role="group" className="flex w-full flex-col gap-1.5">
-                {isExpanded && (
+                {isExpanded ? (
                   isCollapsible ? (
                     <button
                       onClick={() => toggleGroup(group.key)}
-                      className="flex items-center gap-3 px-2 w-full py-1.5 transition-colors duration-300 hover:bg-white/[0.04] rounded-lg group/folder"
+                      onFocus={() => {
+                        if (document.documentElement.dataset.gamepadNavigation === "active") {
+                          setExpandedGroups((prev) => ({ ...prev, [group.key]: true }));
+                        }
+                      }}
+                      className="flex items-center gap-3 px-2 w-full py-1.5 transition-colors duration-300 hover:bg-white/[0.04] rounded-lg group/folder cursor-pointer"
                       aria-expanded={isOpen}
                     >
                       <motion.span className="flex items-center justify-center shrink-0 text-white/30 group-hover/folder:text-white/60 transition-colors">
@@ -366,21 +379,69 @@ const Sidebar: React.FC<SidebarProps> = ({
                       {groupLabels[group.key]}
                     </span>
                   )
+                ) : (
+                  isCollapsible && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex w-full justify-center">
+                          <motion.button
+                            type="button"
+                            onClick={() => toggleGroup(group.key)}
+                            onFocus={() => {
+                              if (document.documentElement.dataset.gamepadNavigation === "active") {
+                                setExpandedGroups((prev) => ({ ...prev, [group.key]: true }));
+                              }
+                            }}
+                            whileTap={{ scale: 0.95 }}
+                            aria-label={`${groupLabels[group.key]} (${isOpen ? "Aberta" : "Fechada"})`}
+                            className={`relative group flex h-12 w-12 items-center justify-center rounded-[18px] transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50 ${
+                              isGroupActive && !isOpen
+                                ? "bg-[rgb(var(--launcher-accent)/0.14)] text-[rgb(var(--launcher-accent))] shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_0_1px_0_rgb(var(--launcher-accent)/0.20)]"
+                                : isOpen
+                                  ? "bg-white/[0.08] text-white"
+                                  : "text-white/40 hover:text-white/80 hover:bg-white/[0.06]"
+                            }`}
+                          >
+                            {isOpen ? (
+                              <FolderOpen className="h-6 w-6 transition-transform text-[rgb(var(--launcher-accent))]" style={{ filter: "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" }} />
+                            ) : (
+                              <Folder className="h-6 w-6 transition-transform" style={isGroupActive ? { color: "rgb(var(--launcher-accent))", filter: "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" } : undefined} />
+                            )}
+                            {isGroupActive && !isOpen && (
+                              <span
+                                className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full"
+                                style={{ background: "rgb(var(--launcher-accent))", boxShadow: "0 0 8px rgb(var(--launcher-accent))" }}
+                              />
+                            )}
+                          </motion.button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" align="center" sideOffset={16} className="border border-white/10 bg-[#121214]/90 px-3 py-1.5 text-xs text-white/90 tracking-wide backdrop-blur-2xl rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+                        {groupLabels[group.key]} {isOpen ? "(Aberta)" : "(Pasta)"}
+                      </TooltipContent>
+                    </Tooltip>
+                  )
                 )}
 
                 <AnimatePresence initial={false}>
-                  {(isOpen || !isExpanded) && (
+                  {isOpen && (
                     <motion.div
-                      initial={isCollapsible && isExpanded ? { height: 0, opacity: 0 } : false}
+                      initial={isCollapsible ? { height: 0, opacity: 0 } : false}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                      className={`overflow-hidden ${isCollapsible && isExpanded ? "relative pl-3" : ""}`}
+                      className={`overflow-hidden ${
+                        isCollapsible
+                          ? isExpanded
+                            ? "relative pl-3"
+                            : "relative flex flex-col items-center py-1.5 gap-1 rounded-2xl bg-white/[0.03] border border-white/[0.06] shadow-inner"
+                          : ""
+                      }`}
                     >
                       {isCollapsible && isExpanded && (
                         <div className="absolute left-4 top-2 bottom-2 w-[1px] bg-white/[0.08]" />
                       )}
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1 w-full items-center">
                         {items.map((category) => (
                           <SidebarButton
                             key={category.id}
@@ -393,7 +454,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             notificationCount={category.id === "FRIENDS" ? notificationCount : 0}
                             reducedMotion={Boolean(prefersReducedMotion)}
                             isExpanded={isExpanded}
-                            nested={isCollapsible && isExpanded}
+                            nested={isCollapsible}
                           />
                         ))}
                       </div>

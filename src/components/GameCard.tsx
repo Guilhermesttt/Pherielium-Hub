@@ -212,7 +212,9 @@ const GameCard: React.FC<GameCardProps> = ({
             <img
               src={currentImageSrc}
               alt={title}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
+              className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out ${
+                isActive ? "scale-[1.06]" : "group-hover:scale-[1.06]"
+              }`}
               loading="lazy"
               decoding="async"
               draggable={false}
@@ -259,7 +261,11 @@ const GameCard: React.FC<GameCardProps> = ({
               : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-95"
           }`}
         >
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 border border-white/40 backdrop-blur-xl shadow-[0_0_24px_rgba(255,255,255,0.3)] transition-transform duration-200 group-hover:scale-110">
+          <div
+            className={`flex h-11 w-11 items-center justify-center rounded-full bg-white/15 border border-white/40 backdrop-blur-xl shadow-[0_0_24px_rgba(255,255,255,0.3)] transition-transform duration-200 ${
+              isActive ? "scale-110 shadow-[0_0_30px_rgba(255,255,255,0.5)]" : "group-hover:scale-110"
+            }`}
+          >
             <Play className="h-4 w-4 fill-white text-white ml-0.5" />
           </div>
         </div>

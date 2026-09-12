@@ -14,14 +14,6 @@ export interface SpatialCandidate<T> {
   rect: SpatialRect;
 }
 
-const overlapsSecondaryAxis = (
-  current: SpatialRect,
-  candidate: SpatialRect,
-  direction: SpatialDirection,
-) => direction === "up" || direction === "down"
-  ? candidate.right >= current.left && candidate.left <= current.right
-  : candidate.bottom >= current.top && candidate.top <= current.bottom;
-
 export const rankSpatialCandidates = <T>(
   current: SpatialRect,
   candidates: SpatialCandidate<T>[],
@@ -29,43 +21,65 @@ export const rankSpatialCandidates = <T>(
 ) => {
   const currentCenterX = current.left + current.width / 2;
   const currentCenterY = current.top + current.height / 2;
-  const threshold = 8;
 
   return candidates
     .map((candidate, order) => {
-      const centerX = candidate.rect.left + candidate.rect.width / 2;
-      const centerY = candidate.rect.top + candidate.rect.height / 2;
-      const deltaX = centerX - currentCenterX;
-      const deltaY = centerY - currentCenterY;
-      const primaryDelta = direction === "left" || direction === "right" ? deltaX : deltaY;
-      const signedPrimary = direction === "left" || direction === "up" ? -primaryDelta : primaryDelta;
-      if (signedPrimary <= threshold) return null;
+      const { rect } = candidate;
+      const candCenterX = rect.left + rect.width / 2;
+      const candCenterY = rect.top + rect.height / 2;
 
-      const secondaryDistance = direction === "left" || direction === "right"
-        ? Math.abs(deltaY)
-        : Math.abs(deltaX);
-      const secondarySize = direction === "left" || direction === "right"
-        ? current.height
-        : current.width;
-      if (secondaryDistance > signedPrimary * 1.5 + secondarySize) return null;
+      let primaryDelta = 0;
+      let secondaryDelta = 0;
+      let isCandidateInDirection = false;
+      let overlapsSecondary = false;
+
+      switch (direction) {
+        case "down":
+          isCandidateInDirection = candCenterY > currentCenterY + 2 || rect.top >= current.top + 6;
+          primaryDelta = candCenterY - currentCenterY;
+          secondaryDelta = Math.abs(candCenterX - currentCenterX);
+          overlapsSecondary = rect.right >= current.left && rect.left <= current.right;
+          break;
+
+        case "up":
+          isCandidateInDirection = candCenterY < currentCenterY - 2 || rect.bottom <= current.bottom - 6;
+          primaryDelta = currentCenterY - candCenterY;
+          secondaryDelta = Math.abs(candCenterX - currentCenterX);
+          overlapsSecondary = rect.right >= current.left && rect.left <= current.right;
+          break;
+
+        case "right":
+          isCandidateInDirection = candCenterX > currentCenterX + 2 || rect.left >= current.left + 6;
+          primaryDelta = candCenterX - currentCenterX;
+          secondaryDelta = Math.abs(candCenterY - currentCenterY);
+          overlapsSecondary = rect.bottom >= current.top && rect.top <= current.bottom;
+          break;
+
+        case "left":
+          isCandidateInDirection = candCenterX < currentCenterX - 2 || rect.right <= current.right - 6;
+          primaryDelta = currentCenterX - candCenterX;
+          secondaryDelta = Math.abs(candCenterY - currentCenterY);
+          overlapsSecondary = rect.bottom >= current.top && rect.top <= current.bottom;
+          break;
+      }
+
+      if (!isCandidateInDirection || primaryDelta <= 0) return null;
+
+      // Overlapping elements on cross-axis get significant priority, but non-overlapping are not rejected
+      const alignmentPenalty = overlapsSecondary ? 0 : secondaryDelta * 1.5;
+      const score = primaryDelta + alignmentPenalty;
 
       return {
         ...candidate,
         order,
-        aligned: overlapsSecondaryAxis(current, candidate.rect, direction),
-        angle: secondaryDistance / signedPrimary,
-        primaryDistance: signedPrimary,
-        secondaryDistance,
+        score,
+        primaryDelta,
+        secondaryDelta,
+        overlapsSecondary,
       };
     })
-    .filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate))
-    .sort((a, b) =>
-      Number(b.aligned) - Number(a.aligned)
-      || a.angle - b.angle
-      || a.primaryDistance - b.primaryDistance
-      || a.secondaryDistance - b.secondaryDistance
-      || a.order - b.order,
-    );
+    .filter((c): c is NonNullable<typeof c> => Boolean(c))
+    .sort((a, b) => a.score - b.score || a.primaryDelta - b.primaryDelta || a.order - b.order);
 };
 
 export const findDeclaredSpatialNeighbor = (

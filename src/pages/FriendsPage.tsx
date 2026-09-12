@@ -162,7 +162,7 @@ const FriendOnlineCard = React.memo<{
           onMouseEnter={handleMouseEnter}
           onClick={handleChat}
           title="Chat"
-          className="flex-1 h-9 px-3 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.10] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-160 cursor-pointer"
+          className="flex-1 h-9 px-3 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.10] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors duration-160 cursor-pointer"
         >
           <MessageSquare className="w-3.5 h-3.5 text-white/80" />
           <span>Chat</span>
@@ -179,7 +179,7 @@ const FriendOnlineCard = React.memo<{
             onMouseEnter={handleMouseEnter}
             onClick={handleCall}
             title="Ligar"
-            className={`h-9 w-9 rounded-lg border transition-all duration-160 cursor-pointer flex items-center justify-center ${isCallActive
+            className={`h-9 w-9 rounded-lg border transition-colors duration-160 cursor-pointer flex items-center justify-center ${isCallActive
               ? "bg-white text-black border-white shadow-md animate-pulse"
               : "bg-white/[0.05] hover:bg-white/10 border border-white/[0.08] text-white/70 hover:text-white"
               }`}
@@ -194,7 +194,7 @@ const FriendOnlineCard = React.memo<{
           onClick={handleProfile}
           disabled={isLoadingProfile}
           title="Ver Perfil"
-          className={`py-1.5 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+          className={`py-1.5 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
             isLoadingProfile
               ? "bg-white/20 border-white/30 text-white shadow-[0_0_12px_rgba(255,255,255,0.2)] cursor-wait"
               : "bg-white/[0.05] hover:bg-white/10 border-white/[0.08] text-white cursor-pointer"
@@ -244,9 +244,18 @@ const FriendOfflineCard = React.memo<{
 
   return (
     <div
+      tabIndex={0}
+      role="button"
+      data-friend-id={friend.id}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
       onMouseEnter={() => playSound?.("hover")}
-      className={`shrink-0 snap-start relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 backdrop-blur-xl shadow-md ${
+      className={`shrink-0 snap-start relative flex items-center gap-3 p-3 rounded-xl border transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out transform-gpu will-change-transform backdrop-blur-xl shadow-md data-[gamepad-focused='true']:border-white data-[gamepad-focused='true']:ring-2 data-[gamepad-focused='true']:ring-white/40 ${
         isLoadingProfile
           ? "bg-white/[0.08] border-white/40 ring-1 ring-white/25 shadow-[0_0_24px_rgba(255,255,255,0.18)] cursor-wait scale-[0.99]"
           : "bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.08] hover:border-white/15 cursor-pointer hover:scale-[1.02]"
@@ -321,6 +330,7 @@ const FriendChatCard = React.memo<{
     <div
       tabIndex={0}
       role="button"
+      data-friend-id={friend.id}
       onClick={handleChat}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {

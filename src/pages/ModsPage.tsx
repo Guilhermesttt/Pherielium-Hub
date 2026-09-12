@@ -15,6 +15,7 @@ import type { Game } from "../types/domain";
 import { usePreferences } from "../context/PreferencesContext";
 import { useSoundEffects } from "../hooks/useSoundEffects";
 import { useGamepadNavigation } from "../hooks/useGamepadNavigation";
+import { useGamepadButton } from "../context/GamepadContext";
 import ModGameDetailPanel, {
   type InstalledModEntry,
 } from "../components/mods/ModGameDetailPanel";
@@ -403,6 +404,18 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
   const handleCloseDetail = useCallback(() => {
     setSelectedGame(null);
   }, []);
+
+  useGamepadButton(
+    "O",
+    () => {
+      if (selectedGame) {
+        playSound?.("back");
+        setSelectedGame(null);
+      }
+    },
+    Boolean(selectedGame),
+    15,
+  );
 
   return (
     <div

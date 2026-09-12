@@ -14,6 +14,7 @@ import {
   Lock,
   LogOut,
   Mic,
+  MicOff,
   Palette,
   Settings,
   ShieldCheck,
@@ -30,6 +31,7 @@ import {
   Bluetooth,
   Vibrate,
   ChevronDown,
+  X,
 } from "lucide-react";
 import {
   SlidersHorizontal as AnimatedSlidersHorizontal,
@@ -55,7 +57,9 @@ import { AppUpdateSection, SettingsHeader } from "../components/settings/AppUpda
 import { usePreferences, type LauncherLanguage, type SoundTheme, type VisualTheme } from "../context/PreferencesContext";
 import { useVoiceCallContext } from "../context/VoiceCallContext";
 import { useSoundEffects } from "../hooks/useSoundEffects";
-import { useGamepad, playHapticPattern } from "../context/GamepadContext";
+import { useGamepad, useGamepadButton, playHapticPattern } from "../context/GamepadContext";
+import { useGamepadNavigation } from "../hooks/useGamepadNavigation";
+import { activateElementWithController } from "../utils/controllerTextInput";
 import { useControllerLedStatus } from "../hooks/useControllerLed";
 import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "../services/supabase";
@@ -63,6 +67,8 @@ import { saveProfileVisibility } from "../services/profilePrivacy";
 import { PlatformRemovalTransition } from "../components/PlatformRemovalTransition";
 import type { SettingsTab } from "../services/launcherNavigation";
 import type { ProfileVisibility } from "../types/domain";
+import { ElasticSlider } from "../components/ReactBits/ElasticSlider";
+import InputHints from "../components/ui/InputHints";
 
 type TranslationFn = ReturnType<typeof usePreferences>["t"];
 type BrandIcon = React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
@@ -89,6 +95,15 @@ const CONTROLLER_COPY = {
   "fr-FR": ["Manette", "Manette connectée", "Aucune manette connectée", "Connectez-la en USB ou Bluetooth pour naviguer.", "Tester la LED", "Autoriser"],
   "de-DE": ["Controller", "Controller verbunden", "Kein Controller verbunden", "Über USB oder Bluetooth verbinden, um den Launcher zu steuern.", "LED testen", "Autorisieren"],
   "it-IT": ["Controller", "Controller collegato", "Nessun controller collegato", "Collega tramite USB o Bluetooth per navigare.", "Prova LED", "Autorizza"],
+} as const;
+
+const DIAGNOSTICS_COPY = {
+  "pt-BR": { title: "Diagnóstico do Controle", connection: "Conexão", battery: "Bateria", family: "Família", close: "Fechar", unknown: "Desconhecida" },
+  "en-US": { title: "Controller Diagnostics", connection: "Connection", battery: "Battery", family: "Family", close: "Close", unknown: "Unknown" },
+  "es-ES": { title: "Diagnóstico del Mando", connection: "Conexión", battery: "Batería", family: "Familia", close: "Cerrar", unknown: "Desconocida" },
+  "fr-FR": { title: "Diagnostic de la Manette", connection: "Connexion", battery: "Batterie", family: "Famille", close: "Fermer", unknown: "Inconnue" },
+  "de-DE": { title: "Controller-Diagnose", connection: "Verbindung", battery: "Batterie", family: "Familie", close: "Schließen", unknown: "Unbekannt" },
+  "it-IT": { title: "Diagnostica Controller", connection: "Connessione", battery: "Batteria", family: "Famiglia", close: "Chiudi", unknown: "Sconosciuta" },
 } as const;
 
 const SETTINGS_SHELL_COPY = {
@@ -755,7 +770,7 @@ export const ThemePreviewCard: React.FC<{
       <button
         type="button"
         onClick={onClick}
-        className={`relative p-1 rounded-2xl transition-all duration-300 cursor-pointer ${active
+        className={`relative p-1 rounded-2xl transition-[transform,opacity,box-shadow,background-color,border-color] duration-200 ease-out transform-gpu will-change-transform cursor-pointer ${active
           ? "scale-[1.03]"
           : "hover:scale-[1.015] opacity-75 hover:opacity-100"
           }`}
@@ -866,6 +881,7 @@ export interface SettingsPageV2Props {
   onTestOverlayAchievement: (tier?: "bronze" | "silver" | "gold" | "platinum") => void;
   initialTab: SettingsTab;
   onTabChange: (tab: SettingsTab) => void;
+  onClose?: () => void;
   platformOperations?: { steam?: { status?: string; phase?: string }; epic?: { status?: string; phase?: string } };
 }
 
@@ -912,6 +928,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
   onTestOverlayAchievement,
   initialTab,
   onTabChange,
+  onClose,
 }) => {
   const { playSound } = useSoundEffects(
     effectsVolume / 100,
@@ -1189,6 +1206,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
   const detailCopy = SETTINGS_DETAIL_COPY[language] || SETTINGS_DETAIL_COPY["pt-BR"];
   const achievementNotificationCopy = ACHIEVEMENT_NOTIFICATION_COPY[language] || ACHIEVEMENT_NOTIFICATION_COPY["pt-BR"];
   const voiceCopy = VOICE_COPY[language] || VOICE_COPY["pt-BR"];
+  const diagnosticsCopy = DIAGNOSTICS_COPY[language] || DIAGNOSTICS_COPY["pt-BR"];
   const led = useControllerLedStatus();
 
   const selectTab = React.useCallback((tab: SettingsTab) => {
@@ -1196,6 +1214,77 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
     onTabChange(tab);
     playSound("hover");
   }, [onTabChange, playSound]);
+
+  const mainScrollRef = React.useRef<HTMLDivElement | null>(null);
+
+  const SETTINGS_TAB_ORDER: SettingsTab[] = React.useMemo(() => [
+    "general",
+    "personalization",
+    "account",
+    "connections",
+    "controller",
+    "voice",
+    "notifications",
+  ], []);
+
+  useGamepadNavigation({
+    scrollRef: mainScrollRef,
+    scrollSpeed: 24,
+    disableX: true,
+    disableO: true,
+    enabled: true,
+    priority: 10,
+  });
+
+  useGamepadButton("L1", () => {
+    const currentIndex = SETTINGS_TAB_ORDER.indexOf(activeTab);
+    const prevIndex = (currentIndex - 1 + SETTINGS_TAB_ORDER.length) % SETTINGS_TAB_ORDER.length;
+    selectTab(SETTINGS_TAB_ORDER[prevIndex]);
+  }, [activeTab, selectTab, SETTINGS_TAB_ORDER]);
+
+  useGamepadButton("R1", () => {
+    const currentIndex = SETTINGS_TAB_ORDER.indexOf(activeTab);
+    const nextIndex = (currentIndex + 1) % SETTINGS_TAB_ORDER.length;
+    selectTab(SETTINGS_TAB_ORDER[nextIndex]);
+  }, [activeTab, selectTab, SETTINGS_TAB_ORDER]);
+
+  useGamepadButton(
+    "O",
+    () => {
+      if (showControllerStatusModal) {
+        setShowControllerStatusModal(false);
+        playSound("back");
+        return;
+      }
+      if (onClose) {
+        playSound("back");
+        onClose();
+      }
+    },
+    true,
+    10,
+  );
+
+  React.useEffect(() => {
+    if (!isGamepadConnected) return;
+    const timer = window.setTimeout(() => {
+      const mainEl = mainScrollRef.current;
+      if (!mainEl) return;
+      const firstFocusable = mainEl.querySelector<HTMLElement>(
+        "button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex='-1'])"
+      );
+      if (firstFocusable) {
+        document
+          .querySelectorAll<HTMLElement>("[data-gamepad-focused='true']")
+          .forEach((el) => {
+            delete el.dataset.gamepadFocused;
+          });
+        firstFocusable.dataset.gamepadFocused = "true";
+        firstFocusable.focus({ preventScroll: true });
+      }
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [activeTab, isGamepadConnected]);
 
   const behaviorOptions = [
     {
@@ -1268,13 +1357,16 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-8 backdrop-blur-md animate-in fade-in duration-300 pointer-events-auto select-none">
+    <div
+      data-system-page="settings"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 backdrop-blur-md animate-in fade-in duration-300 pointer-events-auto select-none"
+    >
       {/* Wrapper Principal - Split Layout estilo macOS[cite: 1] */}
       <div className="flex w-full max-w-[960px] h-[75vh] min-h-[600px] max-h-[820px] gap-2">
 
         {/* SIDEBAR ESQUERDA - Frosted Glass Obsidian idêntico à Sidebar */}
         <aside
-          className="w-[240px] border border-white/[0.08] rounded-2xl flex flex-col py-6 px-4 shrink-0 shadow-2xl"
+          className="w-[240px] border border-white/[0.08] rounded-2xl flex flex-col py-6 px-4 shrink-0 shadow-2xl transform-gpu"
           style={{
             background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
             backdropFilter: "blur(48px) saturate(160%)",
@@ -1283,12 +1375,21 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
           }}
         >
           <div
-            className="flex items-center gap-2.5 px-3 mb-5 group cursor-default"
+            className="flex items-center justify-between px-3 mb-5 group cursor-default"
             onMouseEnter={() => setIsSettingsTitleHovered(true)}
             onMouseLeave={() => setIsSettingsTitleHovered(false)}
           >
-            <AnimatedSettings size={18} animate={isSettingsTitleHovered} animateOnHover={true} className="text-white/80 group-hover:text-white transition-colors" />
-            <h2 className="text-[14px] font-semibold text-white tracking-wide">{t("settings")}</h2>
+            <div className="flex items-center gap-2.5">
+              <AnimatedSettings size={18} animate={isSettingsTitleHovered} animateOnHover={true} className="text-white/80 group-hover:text-white transition-colors" />
+              <h2 className="text-[14px] font-semibold text-white tracking-wide">{t("settings")}</h2>
+            </div>
+            {isGamepadConnected && (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.1] text-white/70 shadow-sm">
+                <span className="text-[10px] font-bold font-mono">L1</span>
+                <span className="text-[9px] text-white/30">•</span>
+                <span className="text-[10px] font-bold font-mono">R1</span>
+              </div>
+            )}
           </div>
 
           <div className="h-px w-full bg-white/10 mb-4" />
@@ -1312,7 +1413,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   onClick={() => selectTab(id)}
                   onMouseEnter={() => setHoveredTab(id)}
                   onMouseLeave={() => setHoveredTab(null)}
-                  className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[12.5px] font-medium transition-all cursor-pointer ${isActive
+                  className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[12.5px] font-medium transition-colors cursor-pointer ${isActive
                     ? "bg-white/[0.12] text-white shadow-sm"
                     : "text-white/60 hover:bg-white/[0.05] hover:text-white/90"
                     }`}
@@ -1335,7 +1436,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
               onClick={handleQuitApp}
               onMouseEnter={() => setIsQuitHovered(true)}
               onMouseLeave={() => setIsQuitHovered(false)}
-              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[12.5px] font-medium text-white/50 hover:bg-white/[0.05] hover:text-white transition-all cursor-pointer"
+              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[12.5px] font-medium text-white/50 hover:bg-white/[0.05] hover:text-white transition-colors cursor-pointer"
             >
               <AnimatedLogOut size={16} animate={isQuitHovered} animateOnHover={true} className="shrink-0 text-white/40 group-hover:text-white transition-colors" />
               <span>{shellCopy.quit}</span>
@@ -1345,7 +1446,8 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
         {/* PAINEL DIREITO - Card destacado com Frosted Glass Obsidian idêntico à Sidebar */}
         <main
-          className="flex-1 rounded-2xl border border-white/[0.08] overflow-y-auto no-scrollbar relative shadow-2xl"
+          ref={mainScrollRef}
+          className="flex-1 rounded-2xl border border-white/[0.08] overflow-y-auto no-scrollbar relative shadow-2xl transform-gpu"
           style={{
             background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
             backdropFilter: "blur(48px) saturate(160%)",
@@ -1353,6 +1455,20 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
             boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
           }}
         >
+          {onClose && (
+            <button
+              type="button"
+              onClick={() => {
+                playSound("back");
+                onClose();
+              }}
+              className="absolute top-5 right-5 z-20 flex items-center justify-center w-8 h-8 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-white/70 hover:text-white transition-all duration-200 cursor-pointer group"
+              aria-label="Fechar configurações"
+            >
+              <X className="h-4 w-4 transition-transform group-hover:scale-110" />
+            </button>
+          )}
+
           <div className="p-8 md:p-10 space-y-8 max-w-[680px]">
 
             {/* ABA GERAL */}
@@ -1380,11 +1496,16 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                     >
                       <div className="flex items-center gap-3">
                         <Switch checked={option.checked} onCheckedChange={option.onChange} />
-                        <span className="text-[12px] text-white/50 w-16">{option.checked ? 'Enabled' : 'Disabled'}</span>
+                        <span className="text-[12px] text-white/50 w-16">{option.checked ? t("enabled") : t("disabled")}</span>
                       </div>
                     </SettingsRow>
                   ))}
                 </section>
+
+                <div className="h-px w-full bg-white/[0.06]" />
+
+                {/* Seção de Atualização do Launcher */}
+                <AppUpdateSection />
               </div>
             )}
 
@@ -1422,7 +1543,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   <SettingsRow title={detailCopy.performanceTitle} hasBorder={false}>
                     <div className="flex items-center gap-3">
                       <Switch checked={lowPerformanceMode} onCheckedChange={setLowPerformanceMode} />
-                      <span className="text-[12px] text-white/50 w-16">{lowPerformanceMode ? 'Enabled' : 'Disabled'}</span>
+                      <span className="text-[12px] text-white/50 w-16">{lowPerformanceMode ? t("enabled") : t("disabled")}</span>
                     </div>
                   </SettingsRow>
                 </section>
@@ -1435,26 +1556,50 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                     <h2 className="text-[17px] font-semibold text-white tracking-wide">{detailCopy.audioTitle}</h2>
                   </div>
                   <SettingsRow title={t("soundEffects")}>
-                    <div className="flex items-center gap-3 w-[180px]">
-                      <button onClick={onPreviewSound} className="text-[10px] bg-white/10 px-2 py-1 rounded hover:bg-white/20 text-white font-medium">Test</button>
-                      <input type="range" min={0} max={100} value={effectsVolume} onChange={(e) => onEffectsVolumeChange(Number(e.target.value))} className="w-full accent-white" />
+                    <div className="flex items-center gap-4">
+                      <button onClick={onPreviewSound} className="text-[10px] bg-white/10 px-2.5 py-1 rounded-xl hover:bg-white/20 text-white font-medium transition-colors cursor-pointer shrink-0">{t("test")}</button>
+                      <ElasticSlider
+                        value={effectsVolume}
+                        onChange={onEffectsVolumeChange}
+                        startingValue={0}
+                        maxValue={100}
+                        className="ml-6"
+                      />
                     </div>
                   </SettingsRow>
                   <SettingsRow title={t("achievementSound")}>
-                    <div className="flex items-center gap-3 w-[180px]">
-                      <button onClick={() => achievementNotificationsEnabled && onTestOverlayAchievement()} className="text-[10px] bg-white/10 px-2 py-1 rounded hover:bg-white/20 text-white font-medium">Test</button>
-                      <input type="range" min={0} max={100} value={achievementVolume} onChange={(e) => onAchievementVolumeChange(Number(e.target.value))} className="w-full accent-white" />
+                    <div className="flex items-center gap-4">
+                      <button onClick={() => achievementNotificationsEnabled && onTestOverlayAchievement()} className="text-[10px] bg-white/10 px-2.5 py-1 rounded hover:bg-white/20 text-white font-medium transition-colors cursor-pointer shrink-0">{t("test")}</button>
+                      <ElasticSlider
+                        value={achievementVolume}
+                        onChange={onAchievementVolumeChange}
+                        startingValue={0}
+                        maxValue={100}
+                        className="ml-6"
+                      />
                     </div>
                   </SettingsRow>
                   <SettingsRow title={t("notificationSound")}>
-                    <div className="flex items-center gap-3 w-[180px]">
-                      <button onClick={onTestNotificationSound} className="text-[10px] bg-white/10 px-2 py-1 rounded hover:bg-white/20 text-white font-medium">Test</button>
-                      <input type="range" min={0} max={100} value={notificationVolume} onChange={(e) => onNotificationVolumeChange(Number(e.target.value))} className="w-full accent-white" />
+                    <div className="flex items-center gap-4">
+                      <button onClick={onTestNotificationSound} className="text-[10px] bg-white/10 px-2.5 py-1 rounded hover:bg-white/20 text-white font-medium transition-colors cursor-pointer shrink-0">{t("test")}</button>
+                      <ElasticSlider
+                        value={notificationVolume}
+                        onChange={onNotificationVolumeChange}
+                        startingValue={0}
+                        maxValue={100}
+                        className="ml-6"
+                      />
                     </div>
                   </SettingsRow>
                   <SettingsRow title={t("music")} hasBorder={false}>
-                    <div className="w-[180px]">
-                      <input type="range" min={0} max={35} value={musicVolume} onChange={(e) => onMusicVolumeChange(Number(e.target.value))} className="w-full accent-white" />
+                    <div className="flex items-center gap-4">
+                      <ElasticSlider
+                        value={musicVolume}
+                        onChange={onMusicVolumeChange}
+                        startingValue={0}
+                        maxValue={35}
+                        className="ml-2"
+                      />
                     </div>
                   </SettingsRow>
                 </section>
@@ -1503,7 +1648,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   <SettingsRow title={shellCopy.encrypted} hasBorder={false}>
                     <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold">
                       <ShieldCheck className="h-4 w-4" />
-                      <span>Protected</span>
+                      <span>{t("protected")}</span>
                     </div>
                   </SettingsRow>
                 </section>
@@ -1521,17 +1666,17 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
                   <SettingsRow icon={<SteamIcon className="h-5 w-5" />} title="Steam">
                     <div className="flex items-center gap-3">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border ${steamConnected
-                          ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                          : "bg-white/[0.04] text-white/40 border-white/10"
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${steamConnected
+                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                        : "bg-white/[0.04] text-white/40 border-white/10"
                         }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${steamConnected ? "bg-emerald-400" : "bg-white/30"}`} />
                         {steamConnected ? t("connected") : t("notConnected")}
                       </span>
                       {steamConnected ? (
-                        <button onClick={onDisconnectSteam} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-all active:scale-95 cursor-pointer">{t("unlink")}</button>
+                        <button onClick={onDisconnectSteam} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-colors active:scale-95 cursor-pointer">{t("unlink")}</button>
                       ) : (
-                        <button onClick={onConnectSteam} disabled={steamConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-all disabled:opacity-50 active:scale-95 cursor-pointer">
+                        <button onClick={onConnectSteam} disabled={steamConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
                           {steamConnecting ? t("connecting") : t("connectSteam")}
                         </button>
                       )}
@@ -1540,17 +1685,17 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
                   <SettingsRow icon={<DiscordIcon className="h-5 w-5" />} title="Discord">
                     <div className="flex items-center gap-3">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border ${discordConnected
-                          ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                          : "bg-white/[0.04] text-white/40 border-white/10"
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${discordConnected
+                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                        : "bg-white/[0.04] text-white/40 border-white/10"
                         }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${discordConnected ? "bg-emerald-400" : "bg-white/30"}`} />
                         {discordConnected ? (discordUsername || t("connected")) : t("notConnected")}
                       </span>
                       {discordConnected ? (
-                        <button onClick={onDisconnectDiscord} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-all active:scale-95 cursor-pointer">{t("unlink")}</button>
+                        <button onClick={onDisconnectDiscord} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-colors active:scale-95 cursor-pointer">{t("unlink")}</button>
                       ) : (
-                        <button onClick={onConnectDiscord} disabled={discordConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-all disabled:opacity-50 active:scale-95 cursor-pointer">
+                        <button onClick={onConnectDiscord} disabled={discordConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
                           {discordConnecting ? t("connecting") : t("connectDiscord")}
                         </button>
                       )}
@@ -1559,18 +1704,18 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
                   <SettingsRow icon={<EpicIcon className="h-5 w-5" />} title="Epic Games" hasBorder={false}>
                     <div className="flex items-center gap-3">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border ${epicConnected
-                          ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                          : "bg-white/[0.04] text-white/40 border-white/10"
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${epicConnected
+                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                        : "bg-white/[0.04] text-white/40 border-white/10"
                         }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${epicConnected ? "bg-emerald-400" : "bg-white/30"}`} />
                         {epicConnected ? (epicDisplayName || t("connected")) : t("notConnected")}
                       </span>
                       {epicConnected ? (
-                        <button onClick={onDisconnectEpic} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-all active:scale-95 cursor-pointer">{t("unlink")}</button>
+                        <button onClick={onDisconnectEpic} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-colors active:scale-95 cursor-pointer">{t("unlink")}</button>
                       ) : (
-                        <button onClick={onConnectEpic} disabled={epicConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-all disabled:opacity-50 active:scale-95 cursor-pointer">
-                          {epicConnecting ? t("connecting") : "Connect"}
+                        <button onClick={onConnectEpic} disabled={epicConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
+                          {epicConnecting ? t("connecting") : t("connectEpic")}
                         </button>
                       )}
                     </div>
@@ -1584,7 +1729,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                     <ShieldCheck className="h-4 w-4 text-white/70 shrink-0" />
                     <h2 className="text-[17px] font-semibold text-white tracking-wide">{shellCopy.privacy}</h2>
                   </div>
-                  <SettingsRow title="Profile Visibility" hasBorder={false}>
+                  <SettingsRow title={t("profileVisibility")} hasBorder={false}>
                     <SettingsSelect
                       value={profileVisibility}
                       onChange={(v) => handleProfileVisibilityChange(v as ProfileVisibility)}
@@ -1607,29 +1752,29 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                     <Gamepad2 className="h-4 w-4 text-white/70 shrink-0" />
                     <h2 className="text-[17px] font-semibold text-white tracking-wide">{controllerCopy[0]}</h2>
                   </div>
-                  <SettingsRow title="Controller Status">
-                    <span className={`inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-2.5 py-1 rounded-xl border transition-all ${isGamepadConnected
-                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
-                        : "bg-white/[0.06] text-white/50 border-white/10"
+                  <SettingsRow title={t("controllerStatus")}>
+                    <span className={`inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${isGamepadConnected
+                      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+                      : "bg-white/[0.06] text-white/50 border-white/10"
                       }`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${isGamepadConnected ? "bg-emerald-400 animate-pulse" : "bg-white/30"}`} />
-                      {isGamepadConnected ? controllerCopy[1] : "Desconectado"}
+                      {isGamepadConnected ? controllerCopy[1] : t("disconnected")}
                     </span>
                   </SettingsRow>
-                  <SettingsRow title="Battery Level">
+                  <SettingsRow title={t("batteryLevel")}>
                     <div className="flex items-center gap-2.5">
                       <span className="text-[12px] font-semibold text-white/70 tabular-nums">{isGamepadConnected ? `${batteryLevel !== null ? batteryLevel : '--'}%` : "N/A"}</span>
-                      {batteryCharging && <span className="inline-flex items-center gap-1 text-[10.5px] uppercase font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-lg shadow-[0_0_10px_rgba(16,185,129,0.2)]">Charging</span>}
-                      {batteryLevel !== null && batteryLevel <= 20 && !batteryCharging && isGamepadConnected && <span className="inline-flex items-center gap-1 text-[10.5px] uppercase font-bold text-red-300 bg-red-500/15 border border-red-500/30 px-2 py-0.5 rounded-lg shadow-[0_0_10px_rgba(239,68,68,0.2)]">Low</span>}
-                      <button onClick={() => setShowControllerStatusModal(true)} className="px-2.5 py-1 bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white rounded-lg text-[11.5px] font-medium transition-all ml-1 active:scale-95 cursor-pointer">Details</button>
+                      {batteryCharging && <span className="inline-flex items-center gap-1 text-[10.5px] uppercase font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-lg shadow-[0_0_10px_rgba(16,185,129,0.2)]">{t("charging")}</span>}
+                      {batteryLevel !== null && batteryLevel <= 20 && !batteryCharging && isGamepadConnected && <span className="inline-flex items-center gap-1 text-[10.5px] uppercase font-bold text-red-300 bg-red-500/15 border border-red-500/30 px-2 py-0.5 rounded-lg shadow-[0_0_10px_rgba(239,68,68,0.2)]">{t("lowBattery")}</span>}
+                      <button onClick={() => setShowControllerStatusModal(true)} className="px-2.5 py-1 bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white rounded-lg text-[11.5px] font-medium transition-colors ml-1 active:scale-95 cursor-pointer">{t("details")}</button>
                     </div>
                   </SettingsRow>
-                  <SettingsRow title="PlayStation LED">
+                  <SettingsRow title={t("playstationLed")}>
                     {led.status !== "unsupported" && (
                       <button
                         onClick={led.status === "connected" ? led.testLed : led.requestAccess}
                         disabled={led.status === "connecting"}
-                        className="px-4 py-1.5 bg-white/10 text-white rounded-md text-[12.5px] font-medium hover:bg-white/20 disabled:opacity-50"
+                        className="px-4 py-1.5 bg-white/10 text-white rounded-md text-[12.5px] font-medium hover:bg-white/20 transition-colors disabled:opacity-50 cursor-pointer"
                       >
                         {led.status === "connected" ? controllerCopy[4] : led.status === "connecting" ? "..." : controllerCopy[5]}
                       </button>
@@ -1637,9 +1782,9 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   </SettingsRow>
                   <SettingsRow title={t("hapticsEnabled")} hasBorder={false}>
                     <div className="flex items-center gap-3">
-                      <button onClick={() => { try { playHapticPattern("action"); } catch { } }} className="text-white/50 hover:text-white"><Vibrate className="h-4 w-4" /></button>
+                      <button onClick={() => { try { playHapticPattern("action"); } catch { } }} className="text-white/50 hover:text-white transition-colors cursor-pointer"><Vibrate className="h-4 w-4" /></button>
                       <Switch checked={hapticsEnabled} onCheckedChange={(v) => { setHapticsEnabled(v); if (v) try { playHapticPattern("action"); } catch { } }} />
-                      <span className="text-[12px] text-white/50 w-16">{hapticsEnabled ? 'Enabled' : 'Disabled'}</span>
+                      <span className="text-[12px] text-white/50 w-16">{hapticsEnabled ? t("enabled") : t("disabled")}</span>
                     </div>
                   </SettingsRow>
                 </section>
@@ -1673,13 +1818,13 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   <SettingsRow title={voiceCopy.micMonitor}>
                     <div className="flex items-center gap-3">
                       <Switch checked={Boolean(voiceCallContext?.isMicMonitoring)} onCheckedChange={(v) => voiceCallContext?.setIsMicMonitoring(v)} />
-                      <span className="text-[12px] text-white/50 w-16">{voiceCallContext?.isMicMonitoring ? 'Enabled' : 'Disabled'}</span>
+                      <span className="text-[12px] text-white/50 w-16">{voiceCallContext?.isMicMonitoring ? t("enabled") : t("disabled")}</span>
                     </div>
                   </SettingsRow>
 
                   <SettingsRow title={voiceCopy.micTesting}>
                     <div className="flex items-center gap-3 w-[220px]">
-                      <button onClick={() => setIsTestingMic(!isTestingMic)} className={`px-2 py-1 text-[11px] rounded font-medium ${isTestingMic ? 'bg-red-500/80' : 'bg-white/10 hover:bg-white/20'}`}>
+                      <button onClick={() => setIsTestingMic(!isTestingMic)} className={`px-2 py-1 text-[11px] rounded font-medium transition-colors cursor-pointer ${isTestingMic ? 'bg-red-500/80' : 'bg-white/10 hover:bg-white/20'}`}>
                         {isTestingMic ? voiceCopy.stop : voiceCopy.test}
                       </button>
                       <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
@@ -1705,7 +1850,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
                   <SettingsRow title={voiceCopy.camera} hasBorder={false}>
                     <div className="flex gap-2">
-                      <button onClick={() => setIsVideoPreviewOn(!isVideoPreviewOn)} className="px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white rounded-xl text-[12px] font-medium transition-all cursor-pointer active:scale-95">{voiceCopy.preview}</button>
+                      <button onClick={() => setIsVideoPreviewOn(!isVideoPreviewOn)} className="px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white rounded-xl text-[12px] font-medium transition-colors cursor-pointer active:scale-95">{voiceCopy.preview}</button>
                       <SettingsSelect
                         value={voiceCallContext?.selectedVideoInput || "default"}
                         onChange={(v) => voiceCallContext?.changeVideoInputDevice(v)}
@@ -1752,12 +1897,15 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   </SettingsRow>
 
                   <SettingsRow title={voiceCopy.voiceSensitivity}>
-                    <div className="w-[180px]">
-                      <input
-                        type="range" min={0} max={100}
+                    <div className="flex items-center gap-4">
+                      <ElasticSlider
                         value={voiceCallContext?.voiceSensitivity ?? 35}
-                        onChange={(e) => voiceCallContext?.setVoiceSensitivity(Number(e.target.value))}
-                        className="w-full accent-white"
+                        onChange={(val) => voiceCallContext?.setVoiceSensitivity(val)}
+                        startingValue={0}
+                        maxValue={100}
+                        leftIcon={<MicOff className="h-3.5 w-3.5" />}
+                        rightIcon={<Mic className="h-3.5 w-3.5" />}
+                        className="ml-2"
                       />
                     </div>
                   </SettingsRow>
@@ -1765,7 +1913,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   <SettingsRow title={voiceCopy.echoCancellation}>
                     <div className="flex items-center gap-3">
                       <Switch checked={voiceCallContext?.echoCancellation ?? true} onCheckedChange={(checked) => voiceCallContext?.setEchoCancellation(checked)} />
-                      <span className="text-[12px] text-white/50 w-16">{(voiceCallContext?.echoCancellation ?? true) ? 'Enabled' : 'Disabled'}</span>
+                      <span className="text-[12px] text-white/50 w-16">{(voiceCallContext?.echoCancellation ?? true) ? t("enabled") : t("disabled")}</span>
                     </div>
                   </SettingsRow>
 
@@ -1794,7 +1942,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                           };
                           window.addEventListener("keydown", onKey, true);
                         }}
-                        className={`min-w-[80px] px-3 py-1.5 rounded-md border text-[12px] font-mono font-medium transition-all ${isRecordingPttKey ? "bg-amber-500/20 text-amber-300 border-amber-500" : "bg-white/10 text-white border-white/15"}`}
+                        className={`min-w-[80px] px-3 py-1.5 rounded-md border text-[12px] font-mono font-medium transition-colors ${isRecordingPttKey ? "bg-amber-500/20 text-amber-300 border-amber-500" : "bg-white/10 text-white border-white/15"}`}
                       >
                         {isRecordingPttKey ? "..." : voiceCallContext?.pushToTalkKey || "F8"}
                       </button>
@@ -1816,18 +1964,18 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   <SettingsRow title={achievementNotificationCopy.enabled}>
                     <div className="flex items-center gap-3">
                       <Switch checked={achievementNotificationsEnabled} onCheckedChange={setAchievementNotificationsEnabled} />
-                      <span className="text-[12px] text-white/50 w-16">{achievementNotificationsEnabled ? 'Enabled' : 'Disabled'}</span>
+                      <span className="text-[12px] text-white/50 w-16">{achievementNotificationsEnabled ? t("enabled") : t("disabled")}</span>
                     </div>
                   </SettingsRow>
 
                   <SettingsRow title={achievementNotificationCopy.custom}>
                     <div className="flex items-center gap-3">
                       <Switch checked={customAchievementNotifications} disabled={!achievementNotificationsEnabled} onCheckedChange={setCustomAchievementNotifications} />
-                      <span className="text-[12px] text-white/50 w-16">{customAchievementNotifications ? 'Enabled' : 'Disabled'}</span>
+                      <span className="text-[12px] text-white/50 w-16">{customAchievementNotifications ? t("enabled") : t("disabled")}</span>
                     </div>
                   </SettingsRow>
 
-                  <SettingsRow title="Position" hasBorder={false}>
+                  <SettingsRow title={t("position")} hasBorder={false}>
                     <SettingsSelect
                       value={achievementNotificationPosition}
                       disabled={!achievementNotificationsEnabled || !customAchievementNotifications}
@@ -1872,6 +2020,19 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
         </main>
       </div>
 
+      {/* InputHints oficial do sistema (Imagem 2) */}
+      <div className="w-full max-w-[960px] flex justify-end pt-3 px-2">
+        <InputHints
+          hints={[
+            { button: "L1_R1", label: language === "pt-BR" ? "Trocar Aba" : "Switch Tab" },
+            { button: "DPAD", label: language === "pt-BR" ? "Navegar" : "Navigate" },
+            { button: "X", label: language === "pt-BR" ? "Selecionar" : "Select" },
+            { button: "SCROLL", label: language === "pt-BR" ? "Rolar" : "Scroll" },
+            { button: "O", label: language === "pt-BR" ? "Voltar" : "Back" },
+          ]}
+        />
+      </div>
+
       {/* Modal Sobreposto para Controller Status */}
       <AnimatePresence>
         {showControllerStatusModal && (
@@ -1882,29 +2043,29 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
             className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-md"
           >
             <div
-              className="border border-white/[0.08] rounded-2xl p-6 w-[320px] shadow-2xl backdrop-blur-2xl"
+              className="border border-white/[0.08] rounded-2xl p-6 w-[320px] shadow-2xl backdrop-blur-2xl transform-gpu"
               style={{
                 background: "linear-gradient(145deg, rgba(20,20,24,0.7) 0%, rgba(10,10,14,0.85) 100%)",
                 boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
               }}
             >
-              <h3 className="text-white font-semibold mb-4">Controller Diagnostics</h3>
+              <h3 className="text-white font-semibold mb-4">{diagnosticsCopy.title}</h3>
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-[13px]">
-                  <span className="text-white/50">Connection</span>
+                  <span className="text-white/50">{diagnosticsCopy.connection}</span>
                   <span className="text-white">{isGamepadConnected ? (connectedGamepadId?.toLowerCase().includes("bluetooth") ? "Bluetooth" : "USB") : "--"}</span>
                 </div>
                 <div className="flex justify-between text-[13px]">
-                  <span className="text-white/50">Battery</span>
-                  <span className="text-white">{batteryLevel !== null ? `${batteryLevel}%` : "Unknown"}</span>
+                  <span className="text-white/50">{diagnosticsCopy.battery}</span>
+                  <span className="text-white">{batteryLevel !== null ? `${batteryLevel}%` : diagnosticsCopy.unknown}</span>
                 </div>
                 <div className="flex justify-between text-[13px]">
-                  <span className="text-white/50">Family</span>
+                  <span className="text-white/50">{diagnosticsCopy.family}</span>
                   <span className="text-white capitalize">{gamepadFamily}</span>
                 </div>
               </div>
-              <button onClick={() => setShowControllerStatusModal(false)} className="w-full py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[13px] font-medium transition-colors">
-                Close
+              <button onClick={() => setShowControllerStatusModal(false)} className="w-full py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[13px] font-medium transition-colors cursor-pointer active:scale-98">
+                {diagnosticsCopy.close}
               </button>
             </div>
           </motion.div>

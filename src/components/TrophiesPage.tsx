@@ -25,6 +25,8 @@ import { getHubAggregateCounts, getUserUnifiedLevel } from "../utils/hubTrophies
 import { progressionEventBus } from "../services/progressionEvents";
 import { useAuth } from "../auth/AuthProvider";
 import { useGamepadNavigation } from "../hooks/useGamepadNavigation";
+import { useGamepadButton } from "../context/GamepadContext";
+import InputHints from "./ui/InputHints";
 import PherieliumLogoBronze from "../assets/Pherielium_Logo_Bronze.png";
 import PherieliumLogoSilver from "../assets/Pherielium_Logo_Prata.png";
 import PherieliumLogoGold from "../assets/Pherielium_Logo_Ouro.png";
@@ -824,10 +826,26 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
     [gamesWithAchievements, plataformsTab, totalStats.platinum],
   );
 
+  const TROPHY_FILTER_ORDER: TrophyFilter[] = useMemo(() => ["all", "platinum", "in-progress", "not-started"], []);
+
+  useGamepadButton("L1", () => {
+    const currentIndex = TROPHY_FILTER_ORDER.indexOf(filter);
+    const prevIndex = (currentIndex - 1 + TROPHY_FILTER_ORDER.length) % TROPHY_FILTER_ORDER.length;
+    setFilter(TROPHY_FILTER_ORDER[prevIndex]);
+    playSound?.("select");
+  });
+
+  useGamepadButton("R1", () => {
+    const currentIndex = TROPHY_FILTER_ORDER.indexOf(filter);
+    const nextIndex = (currentIndex + 1) % TROPHY_FILTER_ORDER.length;
+    setFilter(TROPHY_FILTER_ORDER[nextIndex]);
+    playSound?.("select");
+  });
 
   return (
     <motion.div
       ref={scrollRef}
+      data-system-page="trophies"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
@@ -1099,6 +1117,19 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
               </p>
             </motion.div>
           )}
+        </div>
+
+        {/* InputHints oficial do sistema (Imagem 2) */}
+        <div className="pt-6 pb-2 flex justify-end">
+          <InputHints
+            hints={[
+              { button: "L1_R1", label: "Filtrar" },
+              { button: "DPAD", label: "Navegar" },
+              { button: "X", label: "Abrir Jogo" },
+              { button: "SCROLL", label: "Rolar" },
+              { button: "O", label: "Voltar" },
+            ]}
+          />
         </div>
       </div>
     </motion.div>
