@@ -227,26 +227,26 @@ const GameCard: React.FC<GameCardProps> = ({
           <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-white/[0.08] to-transparent pointer-events-none" />
         </div>
 
-        {/* Top Badges (Platform & Favorite) */}
-        <div className="absolute left-3 right-3 top-3 z-20 flex items-center justify-between pointer-events-none">
+        {/* Top Badges (Platform & Favorite) - Concentric radius: R_inner (8px) = R_outer (16px) - Offset (8px) */}
+        <div className="absolute left-2.5 right-2.5 top-2.5 z-20 flex items-center justify-between pointer-events-none">
           {platformBadge && (
             <div
-              className="flex items-center gap-1.5 rounded-full px-2.5 py-1 shadow-md backdrop-blur-md"
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1 shadow-sm backdrop-blur-md"
               style={{
                 background: platformBadge.background,
                 border: `1px solid ${platformBadge.border}`,
               }}
             >
               {platformBadge.icon}
-              <span className="text-[10.5px] font-semibold tracking-tight text-white">
+              <span className="text-[10px] font-bold tracking-tight text-white uppercase">
                 {platformBadge.label}
               </span>
             </div>
           )}
 
           {isFavorite && (
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#16171c]/95 border border-white/20 backdrop-blur-md shadow-md">
-              <Star className="h-3 w-3 fill-white text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-black/60 border border-white/20 backdrop-blur-md shadow-sm">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" />
             </div>
           )}
         </div>
@@ -259,17 +259,17 @@ const GameCard: React.FC<GameCardProps> = ({
               : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-95"
           }`}
         >
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/45 border border-white/40 backdrop-blur-xl shadow-[0_0_24px_rgba(255,255,255,0.3)] transition-transform duration-200 group-hover:scale-110">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 border border-white/40 backdrop-blur-xl shadow-[0_0_24px_rgba(255,255,255,0.3)] transition-transform duration-200 group-hover:scale-110">
             <Play className="h-4 w-4 fill-white text-white ml-0.5" />
           </div>
         </div>
 
-        {/* Bottom Title and Source Metadata (Ultra Clean) */}
-        <div className="relative z-20 mt-auto p-4 flex flex-col justify-end pointer-events-none">
-          <h3 className="line-clamp-2 text-sm font-display font-semibold text-white tracking-tight leading-snug drop-shadow-md">
+        {/* Bottom Title and Source Metadata (Consistent Typography Scale) */}
+        <div className="relative z-20 mt-auto p-3.5 flex flex-col justify-end pointer-events-none">
+          <h3 className="line-clamp-2 text-sm font-display font-bold text-white tracking-tight leading-snug drop-shadow-md">
             {title}
           </h3>
-          <p className="mt-0.5 text-[11px] font-body text-white/50 line-clamp-1 drop-shadow-sm">
+          <p className="mt-0.5 text-[11px] font-body font-medium text-white/50 line-clamp-1 drop-shadow-sm">
             {platformBadge?.label || "Jogo"} • Pherielium
           </p>
         </div>

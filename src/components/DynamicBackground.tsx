@@ -1,7 +1,7 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PVideoBackground, PGlow, useLowPerf } from "./PerformanceComponents";
-import bgVideo from "../assets/karavanbraam_pindown.io.mp4";
+import bgVideo from "../assets/karavanbraam_pindown.io.webm";
 
 interface DynamicBackgroundProps {
   backgroundImage: string;

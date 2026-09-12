@@ -4194,7 +4194,7 @@
   <section id="command-panel" aria-hidden="true">
     <div class="panel-game-backdrop" id="panel-game-backdrop"></div>
     <aside class="panel-sidebar">
-      <div class="panel-logo" aria-label="Phelierium"><img src="../assets/icon.png" alt="" /></div>
+      <div class="panel-logo" aria-label="Phelierium"><img src="../../assets/icon.png" alt="" /></div>
       <nav class="panel-navigation" aria-label="Navegação do overlay">
         <button class="panel-tab is-active" data-panel-tab="friends" title="Início & Amigos">
           <span class="nav-icon"><svg class="ui-icon">
@@ -4896,7 +4896,7 @@
     commandPanel?.setAttribute("aria-hidden", "true");
     document.body.classList.remove("panel-open");
 
-    const checkpointIconUrl = new URL("../assets/icon.png", window.location.href).toString();
+    const checkpointIconUrl = new URL("../../assets/icon.png", window.location.href).toString();
 
     if (localStorage.getItem("checkpoint-overlay-animations") === null) {
       localStorage.setItem("checkpoint-overlay-animations", "true");
@@ -5022,82 +5022,89 @@
 
     const overlaySoundMap = {
       "achievement-unlock": {
-        default: new URL("../src/sounds/Phelierium Default/Achievment_Unlock.mp3", window.location.href).toString(),
-        phelierium: new URL("../src/sounds/Phelierium Default/Achievment_Unlock.mp3", window.location.href).toString(),
-        ps5: new URL("../src/sounds/PS5_Plus/deck_ui_achievement_toast.wav", window.location.href).toString(),
-        ps4: new URL("../src/sounds/PS4/21. Src27 Se Msg Trophy.mp3", window.location.href).toString(),
-        psp: new URL("../src/sounds/PSP Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
-        ps2: new URL("../src/sounds/PS2 System Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
-        gamecube: new URL("../src/sounds/Nintendo GameCube Menu SFX/deck_ui_launch_game.wav", window.location.href).toString(),
-        xbox360: new URL("../src/sounds/Xbox One/deck_ui_achievement_toast.wav", window.location.href).toString(),
-        cyberpunk: new URL("../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        default: new URL("../../src/sounds/Phelierium Default/Achievment_Unlock.mp3", window.location.href).toString(),
+        phelierium: new URL("../../src/sounds/Phelierium Default/Achievment_Unlock.mp3", window.location.href).toString(),
+        ps5: new URL("../../src/sounds/PS5_Plus/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        ps4: new URL("../../src/sounds/PS4/21. Src27 Se Msg Trophy.mp3", window.location.href).toString(),
+        psp: new URL("../../src/sounds/PSP Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        ps2: new URL("../../src/sounds/PS2 System Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        playstation: new URL("../../src/sounds/PS2 System Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        gamecube: new URL("../../src/sounds/Nintendo GameCube Menu SFX/deck_ui_launch_game.wav", window.location.href).toString(),
+        xbox360: new URL("../../src/sounds/Xbox One/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        cyberpunk: new URL("../../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_achievement_toast.wav", window.location.href).toString(),
       },
       "achievement-unlock-gold": {
-        default: new URL("../src/sounds/Phelierium Default/Achievment_Unlock_Gold.mp3", window.location.href).toString(),
-        phelierium: new URL("../src/sounds/Phelierium Default/Achievment_Unlock_Gold.mp3", window.location.href).toString(),
-        ps5: new URL("../src/sounds/PS5_Plus/deck_ui_achievement_toast.wav", window.location.href).toString(),
-        ps4: new URL("../src/sounds/PS4/21. Src27 Se Msg Trophy.mp3", window.location.href).toString(),
-        psp: new URL("../src/sounds/PSP Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
-        ps2: new URL("../src/sounds/PS2 System Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
-        gamecube: new URL("../src/sounds/Nintendo GameCube Menu SFX/deck_ui_launch_game.wav", window.location.href).toString(),
-        xbox360: new URL("../src/sounds/Xbox One/deck_ui_achievement_toast.wav", window.location.href).toString(),
-        cyberpunk: new URL("../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        default: new URL("../../src/sounds/Phelierium Default/Achievment_Unlock_Gold.mp3", window.location.href).toString(),
+        phelierium: new URL("../../src/sounds/Phelierium Default/Achievment_Unlock_Gold.mp3", window.location.href).toString(),
+        ps5: new URL("../../src/sounds/PS5_Plus/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        ps4: new URL("../../src/sounds/PS4/21. Src27 Se Msg Trophy.mp3", window.location.href).toString(),
+        psp: new URL("../../src/sounds/PSP Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        ps2: new URL("../../src/sounds/PS2 System Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        playstation: new URL("../../src/sounds/PS2 System Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        gamecube: new URL("../../src/sounds/Nintendo GameCube Menu SFX/deck_ui_launch_game.wav", window.location.href).toString(),
+        xbox360: new URL("../../src/sounds/Xbox One/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        cyberpunk: new URL("../../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_achievement_toast.wav", window.location.href).toString(),
       },
       "achievement-unlock-platinum": {
-        default: new URL("../src/sounds/Phelierium Default/Achievment_Unlock_Platinum.mp3", window.location.href).toString(),
-        phelierium: new URL("../src/sounds/Phelierium Default/Achievment_Unlock_Platinum.mp3", window.location.href).toString(),
-        ps5: new URL("../src/sounds/PS5_Plus/ps5-trophy-platinum.mp3", window.location.href).toString(),
-        ps4: new URL("../src/sounds/PS4/21. Src27 Se Msg Trophy.mp3", window.location.href).toString(),
-        psp: new URL("../src/sounds/PSP Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
-        ps2: new URL("../src/sounds/PS2 System Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
-        gamecube: new URL("../src/sounds/Nintendo GameCube Menu SFX/deck_ui_launch_game.wav", window.location.href).toString(),
-        xbox360: new URL("../src/sounds/Xbox One/xbox-one-rare-achievement.mp3", window.location.href).toString(),
-        cyberpunk: new URL("../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        default: new URL("../../src/sounds/Phelierium Default/Achievment_Unlock_Platinum.mp3", window.location.href).toString(),
+        phelierium: new URL("../../src/sounds/Phelierium Default/Achievment_Unlock_Platinum.mp3", window.location.href).toString(),
+        ps5: new URL("../../src/sounds/PS5_Plus/ps5-trophy-platinum.mp3", window.location.href).toString(),
+        ps4: new URL("../../src/sounds/PS4/21. Src27 Se Msg Trophy.mp3", window.location.href).toString(),
+        psp: new URL("../../src/sounds/PSP Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        ps2: new URL("../../src/sounds/PS2 System Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        playstation: new URL("../../src/sounds/PS2 System Sounds/deck_ui_achievement_toast.wav", window.location.href).toString(),
+        gamecube: new URL("../../src/sounds/Nintendo GameCube Menu SFX/deck_ui_launch_game.wav", window.location.href).toString(),
+        xbox360: new URL("../../src/sounds/Xbox One/xbox-one-rare-achievement.mp3", window.location.href).toString(),
+        cyberpunk: new URL("../../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_achievement_toast.wav", window.location.href).toString(),
       },
       "screenshot": {
-        default: new URL("../src/sounds/Phelierium Default/ui_achievment.mp3", window.location.href).toString(),
-        phelierium: new URL("../src/sounds/Phelierium Default/ui_achievment.mp3", window.location.href).toString(),
-        ps5: new URL("../src/sounds/PS5_Plus/deck_ui_toast.wav", window.location.href).toString(),
-        ps4: new URL("../src/sounds/PS4/deck_ui_toast.wav", window.location.href).toString(),
-        psp: new URL("../src/sounds/PSP Sounds/deck_ui_toast.wav", window.location.href).toString(),
-        ps2: new URL("../src/sounds/PS2 System Sounds/deck_ui_toast.wav", window.location.href).toString(),
-        gamecube: new URL("../src/sounds/Nintendo GameCube Menu SFX/deck_ui_show_modal.wav", window.location.href).toString(),
-        xbox360: new URL("../src/sounds/Xbox One/deck_ui_toast.wav", window.location.href).toString(),
-        cyberpunk: new URL("../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_toast.wav", window.location.href).toString(),
+        default: new URL("../../src/sounds/Phelierium Default/ui_achievment.mp3", window.location.href).toString(),
+        phelierium: new URL("../../src/sounds/Phelierium Default/ui_achievment.mp3", window.location.href).toString(),
+        ps5: new URL("../../src/sounds/PS5_Plus/deck_ui_toast.wav", window.location.href).toString(),
+        ps4: new URL("../../src/sounds/PS4/deck_ui_toast.wav", window.location.href).toString(),
+        psp: new URL("../../src/sounds/PSP Sounds/deck_ui_toast.wav", window.location.href).toString(),
+        ps2: new URL("../../src/sounds/PS2 System Sounds/deck_ui_toast.wav", window.location.href).toString(),
+        playstation: new URL("../../src/sounds/PS2 System Sounds/deck_ui_toast.wav", window.location.href).toString(),
+        gamecube: new URL("../../src/sounds/Nintendo GameCube Menu SFX/deck_ui_show_modal.wav", window.location.href).toString(),
+        xbox360: new URL("../../src/sounds/Xbox One/deck_ui_toast.wav", window.location.href).toString(),
+        cyberpunk: new URL("../../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_toast.wav", window.location.href).toString(),
       },
-      "screenshot-trigger": new URL("../src/sounds/PS5_Plus/37. Take Screenshot Psfx Take Screen.mp3", window.location.href).toString(),
+      "screenshot-trigger": new URL("../../src/sounds/PS5_Plus/37. Take Screenshot Psfx Take Screen.mp3", window.location.href).toString(),
       "ui-hover": {
-        default: new URL("../src/sounds/Phelierium Default/ui_select.wav", window.location.href).toString(),
-        phelierium: new URL("../src/sounds/Phelierium Default/ui_select.wav", window.location.href).toString(),
-        ps5: new URL("../src/sounds/PS5_Plus/deck_ui_slider_down.wav", window.location.href).toString(),
-        ps4: new URL("../src/sounds/PS4/deck_ui_navigation.wav", window.location.href).toString(),
-        psp: new URL("../src/sounds/PSP Sounds/deck_ui_slider_down.wav", window.location.href).toString(),
-        ps2: new URL("../src/sounds/PS2 System Sounds/deck_ui_navigation.wav", window.location.href).toString(),
-        gamecube: new URL("../src/sounds/Nintendo GameCube Menu SFX/deck_ui_slider_down.wav", window.location.href).toString(),
-        xbox360: new URL("../src/sounds/Xbox One/deck_ui_slider_down.wav", window.location.href).toString(),
-        cyberpunk: new URL("../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_slider_down.wav", window.location.href).toString(),
+        default: new URL("../../src/sounds/Phelierium Default/ui_select.wav", window.location.href).toString(),
+        phelierium: new URL("../../src/sounds/Phelierium Default/ui_select.wav", window.location.href).toString(),
+        ps5: new URL("../../src/sounds/PS5_Plus/deck_ui_slider_down.wav", window.location.href).toString(),
+        ps4: new URL("../../src/sounds/PS4/deck_ui_navigation.wav", window.location.href).toString(),
+        psp: new URL("../../src/sounds/PSP Sounds/deck_ui_slider_down.wav", window.location.href).toString(),
+        ps2: new URL("../../src/sounds/PS2 System Sounds/deck_ui_navigation.wav", window.location.href).toString(),
+        playstation: new URL("../../src/sounds/PS2 System Sounds/deck_ui_navigation.wav", window.location.href).toString(),
+        gamecube: new URL("../../src/sounds/Nintendo GameCube Menu SFX/deck_ui_slider_down.wav", window.location.href).toString(),
+        xbox360: new URL("../../src/sounds/Xbox One/deck_ui_slider_down.wav", window.location.href).toString(),
+        cyberpunk: new URL("../../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_slider_down.wav", window.location.href).toString(),
       },
       "ui-click": {
-        default: new URL("../src/sounds/Phelierium Default/ui_click.wav", window.location.href).toString(),
-        phelierium: new URL("../src/sounds/Phelierium Default/ui_click.wav", window.location.href).toString(),
-        ps5: new URL("../src/sounds/PS5_Plus/deck_ui_default_activation.wav", window.location.href).toString(),
-        ps4: new URL("../src/sounds/PS4/deck_ui_show_modal.wav", window.location.href).toString(),
-        psp: new URL("../src/sounds/PSP Sounds/confirmation_positive.wav", window.location.href).toString(),
-        ps2: new URL("../src/sounds/PS2 System Sounds/deck_ui_default_activation.wav", window.location.href).toString(),
-        gamecube: new URL("../src/sounds/Nintendo GameCube Menu SFX/deck_ui_default_activation.wav", window.location.href).toString(),
-        xbox360: new URL("../src/sounds/Xbox One/deck_ui_default_activation.wav", window.location.href).toString(),
-        cyberpunk: new URL("../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_default_activation.wav", window.location.href).toString(),
+        default: new URL("../../src/sounds/Phelierium Default/ui_click.wav", window.location.href).toString(),
+        phelierium: new URL("../../src/sounds/Phelierium Default/ui_click.wav", window.location.href).toString(),
+        ps5: new URL("../../src/sounds/PS5_Plus/deck_ui_default_activation.wav", window.location.href).toString(),
+        ps4: new URL("../../src/sounds/PS4/deck_ui_show_modal.wav", window.location.href).toString(),
+        psp: new URL("../../src/sounds/PSP Sounds/confirmation_positive.wav", window.location.href).toString(),
+        ps2: new URL("../../src/sounds/PS2 System Sounds/deck_ui_default_activation.wav", window.location.href).toString(),
+        playstation: new URL("../../src/sounds/PS2 System Sounds/deck_ui_default_activation.wav", window.location.href).toString(),
+        gamecube: new URL("../../src/sounds/Nintendo GameCube Menu SFX/deck_ui_default_activation.wav", window.location.href).toString(),
+        xbox360: new URL("../../src/sounds/Xbox One/deck_ui_default_activation.wav", window.location.href).toString(),
+        cyberpunk: new URL("../../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_default_activation.wav", window.location.href).toString(),
       },
       "ui-back": {
-        default: new URL("../src/sounds/Phelierium Default/ui_close_game_detail.mp3", window.location.href).toString(),
-        phelierium: new URL("../src/sounds/Phelierium Default/ui_close_game_detail.mp3", window.location.href).toString(),
-        ps5: new URL("../src/sounds/PS5_Plus/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
-        ps4: new URL("../src/sounds/PS4/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
-        psp: new URL("../src/sounds/PSP Sounds/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
-        ps2: new URL("../src/sounds/PS2 System Sounds/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
-        gamecube: new URL("../src/sounds/Nintendo GameCube Menu SFX/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
-        xbox360: new URL("../src/sounds/Xbox One/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
-        cyberpunk: new URL("../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
+        default: new URL("../../src/sounds/Phelierium Default/ui_close_game_detail.mp3", window.location.href).toString(),
+        phelierium: new URL("../../src/sounds/Phelierium Default/ui_close_game_detail.mp3", window.location.href).toString(),
+        ps5: new URL("../../src/sounds/PS5_Plus/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
+        ps4: new URL("../../src/sounds/PS4/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
+        psp: new URL("../../src/sounds/PSP Sounds/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
+        ps2: new URL("../../src/sounds/PS2 System Sounds/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
+        playstation: new URL("../../src/sounds/PS2 System Sounds/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
+        gamecube: new URL("../../src/sounds/Nintendo GameCube Menu SFX/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
+        xbox360: new URL("../../src/sounds/Xbox One/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
+        cyberpunk: new URL("../../src/sounds/Cyberpunk 2077 UI SFX PACK/deck_ui_out_of_game_detail.wav", window.location.href).toString(),
       },
     };
 
@@ -5123,16 +5130,18 @@
 
     const playOverlaySound = (sound, requestedVolume, requestedTheme) => {
       const sourceEntry = overlaySoundMap[sound];
+      const currentTheme = requestedTheme || latestPanelState.settings?.achievementSoundTheme || "default";
+      const normalizedTheme = currentTheme === "playstation" ? "ps2" : currentTheme === "phelierium" ? "default" : currentTheme;
       const src = typeof sourceEntry === "string"
         ? sourceEntry
-        : sourceEntry?.[requestedTheme] || sourceEntry?.default;
+        : sourceEntry?.[normalizedTheme] || sourceEntry?.default;
       if (!src) return;
       const audio = new Audio(src);
       const isUiSound = sound === "ui-hover" || sound === "ui-click" || sound === "ui-back";
-      const normalizedVolume = Number(requestedVolume);
+      const normalizedVolume = Number(requestedVolume !== undefined ? requestedVolume : latestPanelState.settings?.achievementVolume);
       const baseVolume = Number.isFinite(normalizedVolume)
         ? Math.min(1, Math.max(0, normalizedVolume / 100))
-        : 0.22;
+        : 0.35;
       audio.volume = isUiSound ? baseVolume * 0.22 : baseVolume;
       if (isUiSound) {
         lastOverlayUiSoundAt = Date.now();

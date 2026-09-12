@@ -1,17 +1,16 @@
 import React from "react";
-import { Users, MessageSquare, UserPlus, Radio } from "lucide-react";
+import { MessageSquare, Phone, RadioReceiver, Users, UserPlus } from "lucide-react";
 import type { SoundEffectType } from "../../hooks/useSoundEffects";
 
 export type SocialSubTab = "AMIGOS" | "CHAT" | "SALAS" | "SOLICITAÇÕES";
 
-interface FriendsSubTabsProps {
+export interface FriendsSubTabsProps {
   activeTab: SocialSubTab;
   onTabChange: (tab: SocialSubTab) => void;
   incomingRequestsCount: number;
   totalFriendsCount: number;
-  onlineCount?: number;
-  unreadCount?: number;
-  activeRoomsCount?: number;
+  onlineCount: number;
+  unreadCount: number;
   playSound?: (type: SoundEffectType) => void;
 }
 
@@ -19,63 +18,78 @@ export const FriendsSubTabs: React.FC<FriendsSubTabsProps> = ({
   activeTab,
   onTabChange,
   incomingRequestsCount,
-  totalFriendsCount: _totalFriendsCount,
-  onlineCount = 0,
-  unreadCount = 0,
-  activeRoomsCount = 0,
+  onlineCount,
+  unreadCount,
   playSound,
 }) => {
-  const tabs: { id: SocialSubTab; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { id: "AMIGOS", label: "Amigos", icon: <Users className="h-4 w-4" /> },
-    { id: "CHAT", label: "Chats", icon: <MessageSquare className="h-4 w-4" />, badge: unreadCount },
-    { id: "SALAS", label: "Canais de Voz", icon: <Radio className="h-4 w-4" />, badge: activeRoomsCount },
-    { id: "SOLICITAÇÕES", label: "Solicitações", icon: <UserPlus className="h-4 w-4" />, badge: incomingRequestsCount },
+  const tabs = [
+    { id: "AMIGOS" as SocialSubTab, label: "Amigos", icon: Users },
+    { id: "CHAT" as SocialSubTab, label: "Chats", icon: MessageSquare, badge: unreadCount },
+    { id: "SALAS" as SocialSubTab, label: "Canais de Voz", icon: RadioReceiver },
+    { id: "SOLICITAÇÕES" as SocialSubTab, label: "Solicitações", icon: UserPlus, badge: incomingRequestsCount },
   ];
 
   return (
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-2xl p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onMouseEnter={() => playSound?.("hover")}
-              onClick={() => {
-                playSound?.("select");
-                onTabChange(tab.id);
-              }}
-              className={`flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${
-                isActive
-                  ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                  : "text-white/60 hover:bg-white/[0.06] hover:text-white"
-              }`}
-            >
-              {tab.icon}
-              <span className="font-body">{tab.label}</span>
-              {typeof tab.badge === "number" && tab.badge > 0 && (
-                <span
-                  className={`ml-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9.5px] font-bold ${
-                    isActive ? "bg-black text-white" : "bg-white text-black"
-                  }`}
-                >
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+    <div className="w-full flex justify-center mb-6 z-10 relative">
+      {/* Container de fundo translúcido escuro (estilo "Pill" da imagem 1) */}
+      <div
+        className="flex items-center justify-between px-2 py-1.5 rounded-full border border-white/[0.04] backdrop-blur-3xl shadow-[0_8px_30px_rgba(0,0,0,0.6)]"
+        style={{
+          background: "linear-gradient(180deg, rgba(20,20,22,0.85) 0%, rgba(14,14,16,0.95) 100%)",
+          minWidth: "720px", // Garante a largura ampla vista na referência
+        }}
+      >
+        {/* Abas de Navegação */}
+        <nav className="flex items-center gap-1">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
 
-      {/* Online indicator on the right of tabs */}
-      <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs font-semibold text-white/70 font-body">
-        <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-        <span>ONLINE</span>
-        <span className="text-white font-bold">{onlineCount}</span>
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  if (!isActive) {
+                    onTabChange(tab.id);
+                    playSound?.("select");
+                  }
+                }}
+                onMouseEnter={() => playSound?.("hover")}
+                className={`relative flex items-center gap-2 px-5 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 cursor-pointer ${isActive
+                    ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.15)]"
+                    : "text-white/50 hover:text-white/90 hover:bg-white/[0.04]"
+                  }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? "text-black" : "text-white/40"}`} />
+                <span className="tracking-wide">{tab.label}</span>
+
+                {/* Badge numérico para abas inativas (Ex: Solicitações, Chats) */}
+                {tab.badge !== undefined && tab.badge > 0 && (
+                  <span
+                    className={`ml-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${isActive
+                        ? "bg-black/10 text-black"
+                        : "bg-white/10 text-white"
+                      }`}
+                  >
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Status Badge "ONLINE X" à direita */}
+        <div className="pl-4 pr-2">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.05] shadow-inner">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+            <span className="text-[11px] font-bold text-white/80 tracking-widest uppercase">
+              Online {onlineCount}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
-
-export default FriendsSubTabs;

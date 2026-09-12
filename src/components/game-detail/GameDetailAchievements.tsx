@@ -217,16 +217,34 @@ const PlatinumCard: React.FC<{
         </div>
 
         <div className="shrink-0">
-          <span
-            className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider"
-            style={{
-              background: isUnlocked ? "rgba(56,189,248,0.15)" : "rgba(255,255,255,0.03)",
-              color: isUnlocked ? cfg.color : "rgba(255,255,255,0.20)",
-              border: `1px solid ${isUnlocked ? "rgba(56,189,248,0.30)" : "rgba(255,255,255,0.05)"}`,
-            }}
-          >
-            {isUnlocked ? "Platina" : "Bloqueado"}
-          </span>
+          {isUnlocked ? (
+            <div
+              className="flex items-center justify-center px-3 py-1.5 rounded-xl border transition-all duration-300"
+              style={{
+                background: "rgba(56,189,248,0.18)",
+                borderColor: "rgba(56,189,248,0.40)",
+                boxShadow: "0 0 14px rgba(56,189,248,0.30)",
+              }}
+              title="Platina"
+            >
+              <img
+                src={platinaLogo}
+                alt="Platina"
+                className="h-6 w-6 object-contain drop-shadow-md"
+              />
+            </div>
+          ) : (
+            <span
+              className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider"
+              style={{
+                background: "rgba(255,255,255,0.03)",
+                color: "rgba(255,255,255,0.20)",
+                border: "1px solid rgba(255,255,255,0.05)",
+              }}
+            >
+              Bloqueado
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -364,18 +382,36 @@ const AchievementCard: React.FC<{
         )}
       </div>
 
-      {/* Badge de estado + tier */}
+      {/* Badge de estado + tier com imagem do troféu */}
       <div className="shrink-0 flex flex-col items-end gap-1.5">
-        <span
-          className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider"
-          style={{
-            background: isAchieved ? tierCfg.badgeBg : "rgba(255,255,255,0.03)",
-            color: isAchieved ? tierCfg.color : "rgba(255,255,255,0.25)",
-            border: `1px solid ${isAchieved ? tierCfg.border : "rgba(255,255,255,0.05)"}`,
-          }}
-        >
-          {isAchieved ? (tierCfg.label || unlockedLabel) : lockedLabel}
-        </span>
+        {isAchieved && tierCfg.logo ? (
+          <div
+            className="flex items-center justify-center px-2.5 py-1 rounded-xl border transition-all duration-300 group-hover:scale-105"
+            style={{
+              background: tierCfg.badgeBg,
+              borderColor: tierCfg.border,
+              boxShadow: tierCfg.glow || undefined,
+            }}
+            title={tierCfg.label}
+          >
+            <img
+              src={tierCfg.logo}
+              alt={tierCfg.label}
+              className="h-6 w-6 object-contain drop-shadow-md"
+            />
+          </div>
+        ) : (
+          <span
+            className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider"
+            style={{
+              background: isAchieved ? tierCfg.badgeBg : "rgba(255,255,255,0.03)",
+              color: isAchieved ? tierCfg.color : "rgba(255,255,255,0.25)",
+              border: `1px solid ${isAchieved ? tierCfg.border : "rgba(255,255,255,0.05)"}`,
+            }}
+          >
+            {isAchieved ? (tierCfg.label || unlockedLabel) : lockedLabel}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -528,36 +564,28 @@ export const GameDetailAchievements: React.FC<GameDetailAchievementsProps> = Rea
         <div className="flex flex-col gap-2">
           {/* Filtros */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => { onFilterChange("all"); playSound("navigate"); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                filter === "all"
-                  ? "bg-white text-black shadow-md"
-                  : "bg-white/[0.04] text-white/50 hover:text-white border border-white/5"
-              }`}
-            >
-              {copy.filterAll} ({achievements.length})
-            </button>
-            <button
-              onClick={() => { onFilterChange("unlocked"); playSound("navigate"); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                filter === "unlocked"
-                  ? "bg-white text-black shadow-md"
-                  : "bg-white/[0.04] text-white/50 hover:text-white border border-white/5"
-              }`}
-            >
-              {copy.filterUnlocked} ({unlockedCount})
-            </button>
-            <button
-              onClick={() => { onFilterChange("locked"); playSound("navigate"); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                filter === "locked"
-                  ? "bg-white text-black shadow-md"
-                  : "bg-white/[0.04] text-white/50 hover:text-white border border-white/5"
-              }`}
-            >
-              {copy.filterLocked} ({lockedCount})
-            </button>
+            {(["all", "unlocked", "locked"] as const).map((f) => {
+              const isActive = filter === f;
+              const labels = { all: copy.filterAll, unlocked: copy.filterUnlocked, locked: copy.filterLocked };
+              const counts = { all: achievements.length, unlocked: unlockedCount, locked: lockedCount };
+              return (
+                <button
+                  key={f}
+                  onClick={() => { onFilterChange(f); playSound("navigate"); }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    isActive
+                      ? "text-black shadow-md"
+                      : "bg-white/[0.04] text-white/50 hover:text-white border border-white/5"
+                  }`}
+                  style={isActive ? {
+                    background: "rgb(var(--launcher-accent))",
+                    boxShadow: "0 0 12px rgb(var(--launcher-accent) / 0.35)",
+                  } : undefined}
+                >
+                  {labels[f]} ({counts[f]})
+                </button>
+              );
+            })}
           </div>
 
           {/* Resumo de tiers */}

@@ -306,10 +306,18 @@ const Section: React.FC<SectionProps> = ({
   className = "",
   compact = false,
 }) => (
-  <section className={`${compact ? "rounded-2xl p-4 md:p-5" : "rounded-3xl p-5 md:p-6"} border border-white/[0.06] bg-[#0B0C0D] backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.4)] ${className}`}>
+  <section
+    className={`${compact ? "rounded-2xl p-4 md:p-5" : "rounded-2xl p-5 md:p-6"} border border-white/[0.08] ${className}`}
+    style={{
+      background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
+      backdropFilter: "blur(48px) saturate(160%)",
+      WebkitBackdropFilter: "blur(48px) saturate(160%)",
+      boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
+    }}
+  >
     <div className={`${compact ? "mb-3" : "mb-4"} flex items-center gap-2.5`}>
       {icon && (
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] text-neutral-400">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] border border-white/[0.08] text-neutral-300">
           {icon}
         </div>
       )}
@@ -445,6 +453,17 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   // Missões de Engajamento do Jogador (Phelierium Quests)
   const currentUid = userId || userProfile?.uid || authUser?.uid || "";
   const [questsRevision, setQuestsRevision] = useState(0);
+  const [isQuestsVisible, setIsQuestsVisible] = useState(() => {
+    return localStorage.getItem("checkpoint_quests_visible") !== "false";
+  });
+  
+  const toggleQuestsVisibility = useCallback(() => {
+    setIsQuestsVisible(prev => {
+      const next = !prev;
+      localStorage.setItem("checkpoint_quests_visible", String(next));
+      return next;
+    });
+  }, []);
 
   const quests = useMemo(() => {
     if (!currentUid) return [];
@@ -625,7 +644,15 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     >
       <div className={`relative mx-auto max-w-6xl ${compactProfile ? "space-y-4" : "space-y-6"}`}>
         {/* HERO SECTION EDITORIAL MINIMALISTA */}
-        <section className={`relative rounded-3xl border border-white/[0.06] bg-[#0B0C0D] shadow-[0_24px_80px_rgba(0,0,0,0.6)] ${compactProfile ? "p-5 md:p-6" : "p-6 sm:p-8"}`}>
+        <section
+          className={`relative rounded-3xl border border-white/[0.08] ${compactProfile ? "p-5 md:p-6" : "p-6 sm:p-8"}`}
+          style={{
+            background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
+            backdropFilter: "blur(48px) saturate(160%)",
+            WebkitBackdropFilter: "blur(48px) saturate(160%)",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
+          }}
+        >
           {/* Luz ambiente sutil na cor da patente do jogador isolada para não cortar elementos flutuantes */}
           <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
             <div
@@ -967,24 +994,34 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           <>
             {editable && (
               <div className="w-full mb-6">
-                <HomeOnboardingQuests
-                  userId={userId || userProfile?.uid}
-                  userProfile={userProfile}
-                  userLevel={playerLevel.level}
-                  hasFriends={(userProfile?.checkpointFriends?.length || 0) > 0}
-                  totalGames={games.length}
-                  favoritesCount={games.filter((g) => (g as any).isFavorite || (g as any).favorite).length}
-                  hasAchievements={games.some((g) => (g.completedAchievements || 0) > 0)}
-                  hasSteamConnected={Boolean(userProfile?.steamId)}
-                  hasEpicConnected={localStorage.getItem("checkpoint_epic_linked_uid") === (userId || userProfile?.uid)}
-                  hasDiscordConnected={Boolean(userProfile?.discordId)}
-                  onOpenAddFriend={() => {}}
-                  onOpenAddGame={() => {}}
-                  onOpenSettings={() => {}}
-                  onOpenProfile={() => {}}
-                  onOpenTrophies={() => {}}
-                  playSound={playSound}
-                />
+                <div className="flex items-center justify-end mb-2">
+                  <button
+                    onClick={toggleQuestsVisibility}
+                    className="text-[10px] uppercase tracking-wider font-bold text-white/50 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    {isQuestsVisible ? "Ocultar Missões" : "Mostrar Missões"}
+                  </button>
+                </div>
+                {isQuestsVisible && (
+                  <HomeOnboardingQuests
+                    userId={userId || userProfile?.uid}
+                    userProfile={userProfile}
+                    userLevel={playerLevel.level}
+                    hasFriends={(userProfile?.checkpointFriends?.length || 0) > 0}
+                    totalGames={games.length}
+                    favoritesCount={games.filter((g) => (g as any).isFavorite || (g as any).favorite).length}
+                    hasAchievements={games.some((g) => (g.completedAchievements || 0) > 0)}
+                    hasSteamConnected={Boolean(userProfile?.steamId)}
+                    hasEpicConnected={localStorage.getItem("checkpoint_epic_linked_uid") === (userId || userProfile?.uid)}
+                    hasDiscordConnected={Boolean(userProfile?.discordId)}
+                    onOpenAddFriend={() => {}}
+                    onOpenAddGame={() => {}}
+                    onOpenSettings={() => {}}
+                    onOpenProfile={() => {}}
+                    onOpenTrophies={() => {}}
+                    playSound={playSound}
+                  />
+                )}
               </div>
             )}
             <div className={`grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] ${compactProfile ? "gap-4" : "gap-5"}`}>

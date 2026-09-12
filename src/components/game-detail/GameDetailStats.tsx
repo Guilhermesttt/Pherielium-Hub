@@ -34,7 +34,6 @@ export const GameDetailStats: React.FC<GameDetailStatsProps> = React.memo(({
           <div className="flex items-baseline gap-2">
             <span
               className="text-3xl sm:text-5xl font-black text-white tracking-tighter"
-              style={{ textShadow: "0 0 30px rgba(255,255,255,0.15)" }}
             >
               {achievementsUnlocked}
             </span>
@@ -43,7 +42,7 @@ export const GameDetailStats: React.FC<GameDetailStatsProps> = React.memo(({
             </span>
           </div>
 
-          <div className="w-px h-12 bg-gradient-to-b from-transparent via-white/15 to-transparent shrink-0 hidden sm:block" />
+          <div className="w-px h-12 bg-[#292d30] shrink-0 hidden sm:block" />
 
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-black text-white/35 uppercase tracking-[0.28em]">
@@ -54,7 +53,7 @@ export const GameDetailStats: React.FC<GameDetailStatsProps> = React.memo(({
             </span>
           </div>
 
-          <div className="w-px h-12 bg-gradient-to-b from-transparent via-white/15 to-transparent shrink-0 hidden sm:block" />
+          <div className="w-px h-12 bg-[#292d30] shrink-0 hidden sm:block" />
 
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-black text-white/35 uppercase tracking-[0.28em]">
@@ -68,7 +67,7 @@ export const GameDetailStats: React.FC<GameDetailStatsProps> = React.memo(({
 
         {/* Barra de Progresso Suave */}
         {achievementsTotal > 0 && (
-          <div className="w-full h-[3px] rounded-full bg-white/[0.06] overflow-hidden">
+          <div className="w-full h-[3px] rounded-full bg-[#292d30] overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-white/60"
               initial={{ width: 0 }}
@@ -80,7 +79,7 @@ export const GameDetailStats: React.FC<GameDetailStatsProps> = React.memo(({
       </div>
 
       {/* Tags de Metadados / Fonte */}
-      <div className="inline-flex flex-wrap items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.07] self-start">
+      <div className="inline-flex flex-wrap items-center gap-3 px-4 py-2.5 rounded-full bg-black/70 border border-[#292d30] self-start">
         {game.launcherType === "steam" && (
           <span className="text-[10px] font-black text-white/35 uppercase tracking-[0.22em]">
             {copy.appId}{" "}
@@ -104,8 +103,8 @@ export const GameDetailStats: React.FC<GameDetailStatsProps> = React.memo(({
             {game.source === "steam"
               ? copy.sourceSteamSync
               : game.source === "epic"
-              ? copy.sourceEpicCatalog
-              : copy.sourceManual}
+                ? copy.sourceEpicCatalog
+                : copy.sourceManual}
           </span>
         </span>
       </div>

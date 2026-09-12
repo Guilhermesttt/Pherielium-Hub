@@ -132,15 +132,34 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         if (shouldPlaySound && preferences.soundEnabled) {
           try {
-            const rawPrefs = localStorage.getItem("checkpoint_preferences");
-            const parsedTheme = rawPrefs ? JSON.parse(rawPrefs)?.soundTheme : "default";
-            const themeKey = parsedTheme in soundThemes ? (parsedTheme as keyof typeof soundThemes) : "default";
+            const globalTheme = localStorage.getItem("checkpoint_sound_theme_global");
+            let themeKey: keyof typeof soundThemes = "default";
+            if (globalTheme && globalTheme in soundThemes) {
+              themeKey = globalTheme as keyof typeof soundThemes;
+            } else {
+              for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith("checkpoint_sound_theme_")) {
+                  const val = localStorage.getItem(k);
+                  if (val && val in soundThemes) {
+                    themeKey = val as keyof typeof soundThemes;
+                    break;
+                  }
+                }
+              }
+            }
+
             let soundKey: keyof typeof soundThemes.default = "notification";
 
             if (type === "achievement") {
               const rawTier = String(options?.metadata?.tier || "").toLowerCase();
               const isPlatinum = rawTier === "platinum" || rawTier === "platina";
-              soundKey = isPlatinum ? "overlayAchievementPlatinum" : "overlayAchievement";
+              const isGold = rawTier === "gold" || rawTier === "ouro";
+              soundKey = isPlatinum
+                ? "overlayAchievementPlatinum"
+                : isGold
+                  ? "overlayAchievementGold"
+                  : "overlayAchievement";
             } else if (type === "message") {
               soundKey = "chatReceived";
             } else if (type === "friend-request" || type === "friend-accepted") {

@@ -35,7 +35,8 @@ const menuMusicLoaders: Record<SoundTheme, () => Promise<string | null>> = {
     import("./sounds/PS2 System Sounds/menu_music.mp3").then((module) => module.default),
   gamecube: () =>
     import("./sounds/Nintendo GameCube Menu SFX/menu_music.mp3").then((module) => module.default),
-  xbox360: () => Promise.resolve(null),
+  xbox360: () =>
+    import("./sounds/Xbox One/Xbox One Ambient.mp3").then((module) => module.default),
   cyberpunk: () =>
     import(
       "./sounds/Cyberpunk 2077 UI SFX PACK/Cyberpunk_2077_-_Pause_Menu_Theme_KLICKAUD.mp3"
@@ -62,6 +63,7 @@ const AppContent: React.FC = () => {
   const reducedMotionProp = lowPerformanceMode || prefersReduced ? "always" : "never";
   useControllerLed();
   const [isIntroVisible, setIsIntroVisible] = React.useState<boolean | null>(null);
+  const [isPreloaderVisible, setIsPreloaderVisible] = React.useState<boolean>(false);
 
   const musicRef = React.useRef<HTMLAudioElement | null>(null);
   const musicAudioContextRef = React.useRef<AudioContext | null>(null);
@@ -76,7 +78,7 @@ const AppContent: React.FC = () => {
   const {
     release: whatsNewRelease,
     dismiss: dismissWhatsNew,
-  } = useWhatsNewRelease(Boolean(user?.uid) && isIntroVisible === false);
+  } = useWhatsNewRelease(Boolean(user?.uid) && isIntroVisible === false && isPreloaderVisible === false);
 
   React.useEffect(() => {
     const previousHtmlOverflow = document.documentElement.style.overflow;
@@ -261,6 +263,7 @@ const AppContent: React.FC = () => {
     if (!currentUid) {
       completedIntroUserRef.current = null;
       setIsIntroVisible(null);
+      setIsPreloaderVisible(false);
       if (musicStartTimerRef.current) {
         window.clearTimeout(musicStartTimerRef.current);
         musicStartTimerRef.current = null;
@@ -269,13 +272,15 @@ const AppContent: React.FC = () => {
       return;
     }
 
-    if (completedIntroUserRef.current !== currentUid) {
-      setIsIntroVisible(true);
+    if (completedIntroUserRef.current === currentUid) {
+      setIsIntroVisible(false);
+      setIsPreloaderVisible(false);
+      musicStartTimerRef.current = window.setTimeout(startBackgroundMusic, 1200);
       return;
     }
 
+    setIsPreloaderVisible(true);
     setIsIntroVisible(false);
-    musicStartTimerRef.current = window.setTimeout(startBackgroundMusic, 1200);
     return () => {
       if (musicStartTimerRef.current) {
         window.clearTimeout(musicStartTimerRef.current);
@@ -336,7 +341,7 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     const handleFocus = () => {
-      if (user?.uid && !loading && isIntroVisible === false) {
+      if (user?.uid && !loading && isIntroVisible === false && isPreloaderVisible === false) {
         startBackgroundMusic();
       }
     };
@@ -363,40 +368,47 @@ const AppContent: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  if (isIntroVisible === null) {
-    return <AsyncLoader />;
-  }
-
   return (
     <MotionConfig reducedMotion={reducedMotionProp}>
       <div className="fixed inset-0 h-dvh w-full select-none overflow-hidden overscroll-none">
         <React.Suspense fallback={null}>
           <TrophyUnlockToast userId={user?.uid ?? null} />
         </React.Suspense>
-        {isIntroVisible ? (
-          <AnimatePresence mode="wait">
-            <GameBootIntro
-              key="boot-intro"
+        <div className="absolute inset-0">
+          <Home />
+          <GamepadStatusOverlay />
+          <LevelUpModal />
+          <ControllerVirtualKeyboard />
+          {whatsNewRelease && (
+            <WhatsNewModal release={whatsNewRelease} onClose={dismissWhatsNew} />
+          )}
+        </div>
+
+        <AnimatePresence mode="wait">
+          {isPreloaderVisible ? (
+            <AsyncLoader
+              key="hub-preloader"
+              minDurationMs={2400}
               onFinish={() => {
-                completedIntroUserRef.current = user.uid;
-                setIsIntroVisible(false);
-                window.requestAnimationFrame(() => {
-                  startBackgroundMusic();
-                });
+                setIsPreloaderVisible(false);
+                setIsIntroVisible(true);
               }}
             />
-          </AnimatePresence>
-        ) : (
-          <div className="absolute inset-0">
-            <Home />
-            <GamepadStatusOverlay />
-            <LevelUpModal />
-            <ControllerVirtualKeyboard />
-            {whatsNewRelease && (
-              <WhatsNewModal release={whatsNewRelease} onClose={dismissWhatsNew} />
-            )}
-          </div>
-        )}
+          ) : isIntroVisible ? (
+            <MotionConfig key="boot-intro-config" reducedMotion="never">
+              <GameBootIntro
+                key="boot-intro"
+                onFinish={() => {
+                  completedIntroUserRef.current = user.uid;
+                  setIsIntroVisible(false);
+                  window.requestAnimationFrame(() => {
+                    startBackgroundMusic();
+                  });
+                }}
+              />
+            </MotionConfig>
+          ) : null}
+        </AnimatePresence>
       </div>
     </MotionConfig>
   );

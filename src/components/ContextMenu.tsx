@@ -59,7 +59,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 
           {/* Modal com posição fixa e centralizada sobre o card do jogo */}
           <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-60 z-[300] bg-[#0C0D12]/95 backdrop-blur-2xl rounded-2xl border border-white/15 p-2 shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.08)] flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-60 z-[300] bg-black rounded-[8px] border border-[#292d30] p-2 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
             onContextMenu={(e) => {
               e.preventDefault();

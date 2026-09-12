@@ -1,23 +1,12 @@
 import React, { useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
-  User,
-  Star,
-  Gamepad2,
-  Zap,
-  Car,
-  Swords,
-  Trophy,
-  Globe,
-  Crosshair,
-  Settings,
-  Users,
-  Newspaper,
-  Laptop,
-  Puzzle,
+  User, Star, Gamepad2, Zap, Car, Swords, Trophy, Globe, Crosshair,
+  Settings, Users, Newspaper, Laptop, Puzzle, Folder, FolderOpen,
 } from "lucide-react";
 import {
   GamepadIcon as AnimatedGamepadIcon,
+  HammerIcon as AnimatedHammerIcon,
   LaptopIcon as AnimatedLaptopIcon,
   RadioIcon as AnimatedRadioIcon,
   SettingsIcon as AnimatedSettingsIcon,
@@ -31,257 +20,52 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSteam, faDiscord, faXbox } from "@fortawesome/free-brands-svg-icons";
 import {
-  PHERIELIUM_LOGO_PATH,
-  EPIC_GAMES_ICON_PATH,
-  EA_GAMES_ICON_PATH,
-  UBISOFT_ICON_PATH,
-  GOG_ICON_PATH,
-  RIOT_GAMES_ICON_PATH,
-  BATTLENET_ICON_PATH,
-  ROCKSTAR_ICON_PATH,
+  PHERIELIUM_LOGO_PATH, EPIC_GAMES_ICON_PATH, EA_GAMES_ICON_PATH,
+  UBISOFT_ICON_PATH, GOG_ICON_PATH, RIOT_GAMES_ICON_PATH,
+  BATTLENET_ICON_PATH, ROCKSTAR_ICON_PATH,
 } from "../constants/assets";
 import type { SoundEffectType } from "../hooks/useSoundEffects";
 import { type LauncherLanguage } from "../context/PreferencesContext";
-import {
-  SIDEBAR_NAVIGATION_GROUPS,
-  SIDEBAR_NAVIGATION_ORDER,
-} from "../services/launcherNavigation";
+import { SIDEBAR_NAVIGATION_GROUPS, SIDEBAR_NAVIGATION_ORDER } from "../services/launcherNavigation";
 
-export const SteamBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({
-  className,
-  style,
-}) => (
-  <FontAwesomeIcon
-    icon={faSteam}
-    className={className}
-    style={style as React.ComponentProps<typeof FontAwesomeIcon>["style"]}
-  />
-);
+export const SteamBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({ className, style }) => <FontAwesomeIcon icon={faSteam} className={className} style={style as any} />;
+export const DiscordBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({ className, style }) => <FontAwesomeIcon icon={faDiscord} className={className} style={style as any} />;
+export const XboxBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({ className, style }) => <FontAwesomeIcon icon={faXbox} className={className} style={style as any} />;
 
-export const DiscordBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({
-  className,
-  style,
-}) => (
-  <FontAwesomeIcon
-    icon={faDiscord}
-    className={className}
-    style={style as React.ComponentProps<typeof FontAwesomeIcon>["style"]}
-  />
-);
-
-export const EpicBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({
-  className,
-  style,
-}) => {
-  const { color, filter, ...restStyle } = style ?? {};
-
-  return (
-    <span
-      role="img"
-      aria-hidden="true"
-      className={className}
-      style={{
-        ...restStyle,
-        display: "inline-block",
-        backgroundColor: (color as string) ?? "currentColor",
-        WebkitMaskImage: `url(${EPIC_GAMES_ICON_PATH})`,
-        maskImage: `url(${EPIC_GAMES_ICON_PATH})`,
-        WebkitMaskSize: "contain",
-        maskSize: "contain",
-        WebkitMaskRepeat: "no-repeat",
-        maskRepeat: "no-repeat",
-        WebkitMaskPosition: "center",
-        maskPosition: "center",
-        filter: filter && filter !== "none" ? (filter as string) : undefined,
-      }}
-    />
-  );
+const createMaskIcon = (path: string) => {
+  return function MaskIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+    const { color, filter, ...restStyle } = style ?? {};
+    return (
+      <span
+        role="img"
+        aria-hidden="true"
+        className={className}
+        style={{
+          ...restStyle,
+          display: "inline-block",
+          backgroundColor: (color as string) ?? "currentColor",
+          WebkitMaskImage: `url(${path})`,
+          maskImage: `url(${path})`,
+          WebkitMaskSize: "contain",
+          maskSize: "contain",
+          WebkitMaskRepeat: "no-repeat",
+          maskRepeat: "no-repeat",
+          WebkitMaskPosition: "center",
+          maskPosition: "center",
+          filter: filter && filter !== "none" ? (filter as string) : undefined,
+        }}
+      />
+    );
+  };
 };
 
-export const EaBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({
-  className,
-  style,
-}) => {
-  const { color, filter, ...restStyle } = style ?? {};
-
-  return (
-    <span
-      role="img"
-      aria-hidden="true"
-      className={className}
-      style={{
-        ...restStyle,
-        display: "inline-block",
-        backgroundColor: (color as string) ?? "currentColor",
-        WebkitMaskImage: `url(${EA_GAMES_ICON_PATH})`,
-        maskImage: `url(${EA_GAMES_ICON_PATH})`,
-        WebkitMaskSize: "contain",
-        maskSize: "contain",
-        WebkitMaskRepeat: "no-repeat",
-        maskRepeat: "no-repeat",
-        WebkitMaskPosition: "center",
-        maskPosition: "center",
-        filter: filter && filter !== "none" ? (filter as string) : undefined,
-      }}
-    />
-  );
-};
-
-export const UbisoftBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({
-  className,
-  style,
-}) => {
-  const { color, filter, ...restStyle } = style ?? {};
-
-  return (
-    <span
-      role="img"
-      aria-hidden="true"
-      className={className}
-      style={{
-        ...restStyle,
-        display: "inline-block",
-        backgroundColor: (color as string) ?? "currentColor",
-        WebkitMaskImage: `url(${UBISOFT_ICON_PATH})`,
-        maskImage: `url(${UBISOFT_ICON_PATH})`,
-        WebkitMaskSize: "contain",
-        maskSize: "contain",
-        WebkitMaskRepeat: "no-repeat",
-        maskRepeat: "no-repeat",
-        WebkitMaskPosition: "center",
-        maskPosition: "center",
-        filter: filter && filter !== "none" ? (filter as string) : undefined,
-      }}
-    />
-  );
-};
-
-export const GogBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({
-  className,
-  style,
-}) => {
-  const { color, filter, ...restStyle } = style ?? {};
-
-  return (
-    <span
-      role="img"
-      aria-hidden="true"
-      className={className}
-      style={{
-        ...restStyle,
-        display: "inline-block",
-        backgroundColor: (color as string) ?? "currentColor",
-        WebkitMaskImage: `url(${GOG_ICON_PATH})`,
-        maskImage: `url(${GOG_ICON_PATH})`,
-        WebkitMaskSize: "contain",
-        maskSize: "contain",
-        WebkitMaskRepeat: "no-repeat",
-        maskRepeat: "no-repeat",
-        WebkitMaskPosition: "center",
-        maskPosition: "center",
-        filter: filter && filter !== "none" ? (filter as string) : undefined,
-      }}
-    />
-  );
-};
-
-export const XboxBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({
-  className,
-  style,
-}) => (
-  <FontAwesomeIcon
-    icon={faXbox}
-    className={className}
-    style={style as React.ComponentProps<typeof FontAwesomeIcon>["style"]}
-  />
-);
-
-export const RiotBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({
-  className,
-  style,
-}) => {
-  const { color, filter, ...restStyle } = style ?? {};
-
-  return (
-    <span
-      role="img"
-      aria-hidden="true"
-      className={className}
-      style={{
-        ...restStyle,
-        display: "inline-block",
-        backgroundColor: (color as string) ?? "currentColor",
-        WebkitMaskImage: `url(${RIOT_GAMES_ICON_PATH})`,
-        maskImage: `url(${RIOT_GAMES_ICON_PATH})`,
-        WebkitMaskSize: "contain",
-        maskSize: "contain",
-        WebkitMaskRepeat: "no-repeat",
-        maskRepeat: "no-repeat",
-        WebkitMaskPosition: "center",
-        maskPosition: "center",
-        filter: filter && filter !== "none" ? (filter as string) : undefined,
-      }}
-    />
-  );
-};
-
-export const BattlenetBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({
-  className,
-  style,
-}) => {
-  const { color, filter, ...restStyle } = style ?? {};
-
-  return (
-    <span
-      role="img"
-      aria-hidden="true"
-      className={className}
-      style={{
-        ...restStyle,
-        display: "inline-block",
-        backgroundColor: (color as string) ?? "currentColor",
-        WebkitMaskImage: `url(${BATTLENET_ICON_PATH})`,
-        maskImage: `url(${BATTLENET_ICON_PATH})`,
-        WebkitMaskSize: "contain",
-        maskSize: "contain",
-        WebkitMaskRepeat: "no-repeat",
-        maskRepeat: "no-repeat",
-        WebkitMaskPosition: "center",
-        maskPosition: "center",
-        filter: filter && filter !== "none" ? (filter as string) : undefined,
-      }}
-    />
-  );
-};
-
-export const RockstarBrandIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({
-  className,
-  style,
-}) => {
-  const { color, filter, ...restStyle } = style ?? {};
-
-  return (
-    <span
-      role="img"
-      aria-hidden="true"
-      className={className}
-      style={{
-        ...restStyle,
-        display: "inline-block",
-        backgroundColor: (color as string) ?? "currentColor",
-        WebkitMaskImage: `url(${ROCKSTAR_ICON_PATH})`,
-        maskImage: `url(${ROCKSTAR_ICON_PATH})`,
-        WebkitMaskSize: "contain",
-        maskSize: "contain",
-        WebkitMaskRepeat: "no-repeat",
-        maskRepeat: "no-repeat",
-        WebkitMaskPosition: "center",
-        maskPosition: "center",
-        filter: filter && filter !== "none" ? (filter as string) : undefined,
-      }}
-    />
-  );
-};
+export const EpicBrandIcon = createMaskIcon(EPIC_GAMES_ICON_PATH);
+export const EaBrandIcon = createMaskIcon(EA_GAMES_ICON_PATH);
+export const UbisoftBrandIcon = createMaskIcon(UBISOFT_ICON_PATH);
+export const GogBrandIcon = createMaskIcon(GOG_ICON_PATH);
+export const RiotBrandIcon = createMaskIcon(RIOT_GAMES_ICON_PATH);
+export const BattlenetBrandIcon = createMaskIcon(BATTLENET_ICON_PATH);
+export const RockstarBrandIcon = createMaskIcon(ROCKSTAR_ICON_PATH);
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CATEGORIES = [
@@ -289,7 +73,7 @@ export const CATEGORIES = [
   { id: "FAVORITES", label: "Favoritos", Icon: Star, AnimatedIcon: AnimatedStarIcon },
   { id: "FRIENDS", label: "Amigos", Icon: Users, AnimatedIcon: AnimatedUsersIcon },
   { id: "FEED", label: "Radar", Icon: Newspaper, AnimatedIcon: AnimatedRadioIcon },
-  { id: "MODS", label: "Mods", Icon: Puzzle },
+  { id: "MODS", label: "Mods", Icon: Puzzle, AnimatedIcon: AnimatedHammerIcon },
   { id: "STEAM", label: "Steam", Icon: SteamBrandIcon },
   { id: "EPIC", label: "Epic", Icon: EpicBrandIcon },
   { id: "EA", label: "EA App", Icon: EaBrandIcon },
@@ -322,6 +106,8 @@ export const SIDEBAR_CATEGORIES = CATEGORIES.filter(({ id }) =>
     - SIDEBAR_NAVIGATION_ORDER.indexOf(right.id as (typeof SIDEBAR_NAVIGATION_ORDER)[number]),
 );
 
+const COLLAPSIBLE_GROUP_KEYS = new Set(["platforms"]);
+
 interface SidebarProps {
   activeCategory: string;
   onCategory: (id: string) => void;
@@ -345,6 +131,7 @@ interface SidebarButtonProps {
   reducedMotion?: boolean;
   rotateOnHover?: boolean;
   isExpanded?: boolean;
+  nested?: boolean;
 }
 
 type AnimatedSidebarIcon = React.ForwardRefExoticComponent<
@@ -352,142 +139,98 @@ type AnimatedSidebarIcon = React.ForwardRefExoticComponent<
 >;
 
 const SidebarButton: React.FC<SidebarButtonProps> = ({
-  id,
-  label,
-  Icon,
-  AnimatedIcon,
-  active,
-  onClick,
-  notificationCount = 0,
-  reducedMotion = false,
-  rotateOnHover = false,
-  isExpanded = true,
+  id, label, Icon, AnimatedIcon, active, onClick,
+  notificationCount = 0, reducedMotion = false,
+  rotateOnHover = false, isExpanded = true, nested = false,
 }) => {
   const hasNotifications = notificationCount > 0;
   const animatedIconRef = React.useRef<AnimatedIconHandle>(null);
   const animationTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => () => {
-    if (animationTimerRef.current) {
-      clearTimeout(animationTimerRef.current);
-    }
+    if (animationTimerRef.current) clearTimeout(animationTimerRef.current);
   }, []);
 
   const playIconAnimation = () => {
     if (!AnimatedIcon || reducedMotion || animationTimerRef.current) return;
-
     animatedIconRef.current?.startAnimation();
     animationTimerRef.current = setTimeout(() => {
       animatedIconRef.current?.stopAnimation();
       animationTimerRef.current = null;
-    }, 1_300);
+    }, 1300);
   };
 
+  // Ícone com cor e brilho seguindo o tema ativo
   const iconStyle = {
-    color: active ? "rgb(var(--launcher-accent))" : "rgba(255,255,255,0.45)",
-    filter: active ? "drop-shadow(0 0 6px rgb(var(--launcher-accent) / 0.55))" : "none",
+    color: active ? "rgb(var(--launcher-accent))" : "rgba(255,255,255,0.4)",
+    filter: active ? "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" : "none",
+    transition: "color 0.3s ease, filter 0.3s ease",
   };
+
+  const iconSizeClass = isExpanded ? (nested ? "h-4 w-4" : "h-[22px] w-[22px]") : "h-6 w-6";
 
   const buttonContent = (
     <motion.button
       onClick={onClick}
       onMouseEnter={playIconAnimation}
-      aria-label={hasNotifications ? `${label}, ${notificationCount} notificacoes` : label}
+      aria-label={hasNotifications ? `${label}, ${notificationCount} notificações` : label}
       aria-current={active ? "page" : undefined}
       data-sidebar-item={id}
-      data-notification-count={notificationCount}
-      className={`relative group flex cursor-pointer items-center transition-all duration-200 ease-out
-        focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40
-        ${isExpanded ? "w-full h-11 px-3.5 gap-3.5 rounded-2xl text-left" : "h-12 w-12 justify-center rounded-2xl"}
-        ${!active ? "hover:bg-white/[0.05]" : ""}`}
+      whileTap={{ scale: 0.97 }}
+      className={`relative group flex cursor-pointer items-center transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+        focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50
+        ${isExpanded
+          // Mac Native Layout: Cantos arredondados (rounded-xl) em vez de pílula (rounded-full)
+          ? `w-full ${nested ? "h-9 px-3 gap-3" : "h-[42px] px-3.5 gap-3.5"} rounded-xl text-left`
+          : "h-12 w-12 justify-center rounded-[18px]"}
+        ${!active ? "hover:bg-white/[0.06]" : ""}`}
       style={{
-        background: active ? "rgb(var(--launcher-accent) / 0.13)" : "transparent",
+        // Fundo com tint do accent color ao ativar
+        background: active ? "rgb(var(--launcher-accent) / 0.14)" : "transparent",
         boxShadow: active
-          ? "0 4px 20px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgb(var(--launcher-accent) / 0.22)"
+          ? "0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgb(var(--launcher-accent) / 0.20)"
           : "none",
       }}
     >
-      {/* Indicador de item ativo */}
-      {active && (
-        <motion.div
-          layoutId="sb-active"
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-5 rounded-r-full bg-[rgb(var(--launcher-accent))] shadow-[0_0_10px_rgb(var(--launcher-accent)/0.7)]"
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        />
-      )}
-
-      {/* Ícone */}
       <motion.div
-        whileTap={{ scale: 0.9 }}
-        className={`shrink-0 transform transition-transform duration-200 ${
-          AnimatedIcon ? "" : "group-hover:scale-105"
-        } ${rotateOnHover && !AnimatedIcon ? "group-hover:rotate-45" : ""}`}
+        className={`shrink-0 transform transition-transform duration-500 ease-out 
+          ${rotateOnHover && !AnimatedIcon ? "group-hover:rotate-45" : ""}`}
       >
         {AnimatedIcon ? (
-          <AnimatedIcon
-            ref={animatedIconRef}
-            size={isExpanded ? 22 : 24}
-            duration={1}
-            className={`${isExpanded ? "h-6 w-6" : "h-6.5 w-6.5"} transition-colors duration-200`}
-            style={iconStyle}
-          />
+          <AnimatedIcon ref={animatedIconRef} size={isExpanded ? (nested ? 16 : 22) : 24} duration={1} className={`${iconSizeClass}`} style={iconStyle} />
         ) : (
-          <Icon
-            className={`${isExpanded ? "h-6 w-6" : "h-6.5 w-6.5"} transition-colors duration-200`}
-            style={iconStyle}
-          />
+          <Icon className={`${iconSizeClass}`} style={iconStyle} />
         )}
       </motion.div>
 
-      {/* Rótulo e Badge quando expandido */}
       {isExpanded && (
         <div className="flex flex-1 items-center justify-between min-w-0">
           <span
-            className={`truncate text-[13px] font-body transition-colors duration-200 ${
-              active ? "text-[rgb(var(--launcher-accent))] font-semibold" : "text-white/60 group-hover:text-white"
-            }`}
+            className={`truncate font-body tracking-[0.015em] transition-all duration-300 
+              ${nested ? "text-[12.5px]" : "text-[13.5px]"} 
+              ${active ? "font-semibold" : "text-white/50 group-hover:text-white/80"}`}
+            style={active ? { color: "rgb(var(--launcher-accent))", textShadow: "0 0 8px rgb(var(--launcher-accent) / 0.5)" } : undefined}
           >
             {label}
           </span>
           {hasNotifications && (
             <div className="relative flex items-center justify-center">
-              <motion.span
-                animate={{ scale: [1, 1.35, 1], opacity: [0.7, 0, 0.7] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute inset-0 rounded-full bg-white"
-              />
-              <motion.span
-                key={notificationCount}
-                initial={{ scale: 1.5, rotate: -12 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                className="relative z-10 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-white px-1 text-[9px] font-bold text-black shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+              <span
+                className="flex h-5 min-w-[20px] items-center justify-center rounded-md border px-1.5 text-[10px] font-bold text-black shadow-[0_0_12px_rgb(var(--launcher-accent)/0.3)] backdrop-blur-md"
+                style={{ background: "rgb(var(--launcher-accent))", borderColor: "rgb(var(--launcher-accent) / 0.4)" }}
               >
                 {notificationCount > 99 ? "99+" : notificationCount}
-              </motion.span>
+              </span>
             </div>
           )}
         </div>
       )}
 
-      {/* Badge quando colapsado */}
       {!isExpanded && hasNotifications && (
-        <div className="absolute -right-1 -top-1 z-20 flex items-center justify-center">
-          <motion.span
-            animate={{ scale: [1, 1.4, 1], opacity: [0.8, 0, 0.8] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute inset-0 rounded-full bg-white"
-          />
-          <motion.span
-            key={notificationCount}
-            initial={{ scale: 1.5 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 400, damping: 15 }}
-            className="relative z-10 flex h-4.5 min-w-[18px] items-center justify-center rounded-full border border-black/50 bg-white px-1 text-[9px] font-bold text-black shadow-[0_0_10px_rgba(255,255,255,0.8)]"
-          >
-            {notificationCount > 99 ? "99+" : notificationCount}
-          </motion.span>
-        </div>
+        <div
+          className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full"
+          style={{ background: "rgb(var(--launcher-accent))", boxShadow: "0 0 8px rgb(var(--launcher-accent) / 1)" }}
+        />
       )}
     </motion.button>
   );
@@ -496,16 +239,9 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="inline-flex w-full justify-center">
-            {buttonContent}
-          </span>
+          <span className="inline-flex w-full justify-center">{buttonContent}</span>
         </TooltipTrigger>
-        <TooltipContent
-          side="right"
-          align="center"
-          sideOffset={14}
-          className="border border-white/10 bg-[#0c0d12]/95 px-3 py-1.5 font-medium text-xs text-white shadow-xl backdrop-blur-xl"
-        >
+        <TooltipContent side="right" align="center" sideOffset={16} className="border border-white/10 bg-[#121214]/80 px-3 py-1.5 text-xs text-white/90 tracking-wide backdrop-blur-2xl rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
           {label}
         </TooltipContent>
       </Tooltip>
@@ -516,33 +252,34 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
 };
 
 const Sidebar: React.FC<SidebarProps> = ({
-  activeCategory,
-  onCategory,
-  settingsLabel,
-  playSound,
-  notificationCount = 0,
-  language = "pt-BR",
+  activeCategory, onCategory, settingsLabel, playSound, notificationCount = 0, language = "pt-BR",
 }) => {
   const prefersReducedMotion = useReducedMotion();
   const [isExpanded, setIsExpanded] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem("checkpoint_sidebar_expanded");
-      return stored !== null ? stored === "true" : true;
-    } catch {
-      return true;
-    }
+    try { return localStorage.getItem("checkpoint_sidebar_expanded") !== "false"; }
+    catch { return true; }
+  });
+
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem("checkpoint_sidebar_groups") || '{"platforms": false}'); }
+    catch { return { platforms: false }; }
   });
 
   const toggleExpand = () => {
     const next = !isExpanded;
     setIsExpanded(next);
-    try {
-      localStorage.setItem("checkpoint_sidebar_expanded", String(next));
-    } catch { void 0; }
+    try { localStorage.setItem("checkpoint_sidebar_expanded", String(next)); } catch { void 0; }
     playSound("navigate");
-    window.dispatchEvent(
-      new CustomEvent("checkpoint:sidebar-toggle", { detail: { expanded: next } }),
-    );
+    window.dispatchEvent(new CustomEvent("checkpoint:sidebar-toggle", { detail: { expanded: next } }));
+  };
+
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try { localStorage.setItem("checkpoint_sidebar_groups", JSON.stringify(next)); } catch { void 0; }
+      return next;
+    });
+    playSound("navigate");
   };
 
   const sidebarLabels: Record<string, string> = {
@@ -551,8 +288,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     FRIENDS: { "pt-BR": "Amigos", "en-US": "Friends", "es-ES": "Amigos", "fr-FR": "Amis", "de-DE": "Freunde", "it-IT": "Amici" }[language],
     FEED: { "pt-BR": "Radar Gamer", "en-US": "Gaming Radar", "es-ES": "Radar Gamer", "fr-FR": "Radar Gamer", "de-DE": "Gaming Radar", "it-IT": "Radar Gamer" }[language],
     MODS: "Gerenciador de Mods",
-    STEAM: "Steam",
-    EPIC: "Epic Games",
+    STEAM: "Steam", EPIC: "Epic Games",
     LOCAL: { "pt-BR": "Jogos Locais", "en-US": "Local Games", "es-ES": "Juegos Locales", "fr-FR": "Jeux Locaux", "de-DE": "Lokale Spiele", "it-IT": "Giochi Locali" }[language],
     PROFILE: { "pt-BR": "Perfil", "en-US": "Profile", "es-ES": "Perfil", "fr-FR": "Profil", "de-DE": "Profil", "it-IT": "Profilo" }[language],
   };
@@ -564,104 +300,122 @@ const Sidebar: React.FC<SidebarProps> = ({
     mods: { "pt-BR": "FERRAMENTAS", "en-US": "TOOLS", "es-ES": "HERRAMIENTAS", "fr-FR": "OUTILS", "de-DE": "WERKZEUGE", "it-IT": "STRUMENTI" }[language],
   };
 
-  const handleSelect = (id: string) => {
-    onCategory(id);
-    playSound("showModal");
-  };
-
   return (
     <motion.aside
-      initial={{ x: -48, opacity: 0 }}
+      initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.48, ease: [0.32, 0.72, 0, 1] }}
-      className="fixed left-3.5 top-3.5 bottom-3.5 z-50 flex flex-col pointer-events-none hub-60fps transition-[width] duration-[280ms] ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform transform-gpu"
-      style={{ width: isExpanded ? 240 : 80 }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      // Generous Negative Space: Sidebar mais larga (280px)
+      className="fixed left-4 top-4 bottom-4 z-50 flex flex-col pointer-events-none transition-[width] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu"
+      style={{ width: isExpanded ? 280 : 88 }}
     >
       <div
-        className="pointer-events-auto flex-1 flex flex-col py-4 px-2.5 min-h-0 rounded-[32px] border border-white/[0.08]"
+        className="pointer-events-auto flex-1 flex flex-col py-6 px-4 min-h-0 rounded-[28px] border border-white/[0.08]"
         style={{
-          background: "rgba(12, 14, 20, 0.26)",
-          boxShadow: "0 20px 50px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
+          // Frosted Glassmorphism - Deep Charcoal / Obsidian
+          background: "linear-gradient(145deg, rgba(20,20,22,0.55) 0%, rgba(10,10,12,0.7) 100%)",
+          backdropFilter: "blur(48px) saturate(160%)",
+          WebkitBackdropFilter: "blur(48px) saturate(160%)",
+          boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
         }}
       >
-        {/* Cabeçalho Topo - Clicar no Logo abre/fecha a sidebar */}
         <div
           onClick={toggleExpand}
           role="button"
           tabIndex={0}
-          title={isExpanded ? "Recolher sidebar" : "Expandir sidebar"}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") toggleExpand();
-          }}
-          className={`relative mb-2 flex items-center cursor-pointer group rounded-2xl p-1.5 transition-all duration-200 hover:bg-white/[0.05] active:scale-98 ${
-            isExpanded ? "justify-start gap-2.5 px-2" : "justify-center"
-          }`}
+          className={`relative mb-8 flex items-center cursor-pointer group p-1 transition-all duration-300 ${isExpanded ? "justify-start gap-4 px-1" : "justify-center"}`}
         >
-          <div className="relative w-10 h-10 rounded-2xl flex items-center justify-center bg-white/[0.05] border border-white/[0.08] group-hover:border-white/20 transition-all duration-200 group-hover:scale-105 shadow-md shrink-0">
-            <img src={PHERIELIUM_LOGO_PATH} alt="Pherielium" className="h-6 w-6 object-contain" />
+          <div className="relative w-10 h-10 rounded-2xl flex items-center justify-center bg-white/[0.05] border border-white/[0.1] shadow-[0_4px_16px_rgba(0,0,0,0.2)] group-hover:bg-white/[0.08] group-hover:shadow-[0_4px_20px_rgba(255,255,255,0.05)] transition-all duration-300 shrink-0">
+            <img src={PHERIELIUM_LOGO_PATH} alt="Pherielium" className="h-[22px] w-[22px] object-contain grayscale brightness-200 opacity-90 group-hover:opacity-100 transition-opacity" />
           </div>
           {isExpanded && (
-            <div className="flex flex-1 items-center justify-between min-w-0 pr-1">
-              <span className="font-display font-bold text-[15px] text-white tracking-tight group-hover:text-white">
+            <div className="flex flex-1 items-center min-w-0">
+              <span className="font-display font-medium text-[15px] text-white tracking-[0.2em] uppercase drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">
                 Pherielium
               </span>
             </div>
           )}
         </div>
 
-        <div className="w-full h-px mb-2 shrink-0 bg-white/[0.06]" />
-
-        {/* Lista de Navegação */}
-        <nav
-          aria-label="Navegação principal"
-          className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto overscroll-contain px-1 no-scrollbar gap-3.5"
-        >
+        <nav aria-label="Navegação principal" className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto overscroll-contain no-scrollbar gap-6">
           {SIDEBAR_NAVIGATION_GROUPS.map((group) => {
+            const isCollapsible = COLLAPSIBLE_GROUP_KEYS.has(group.key);
+            const isOpen = !isCollapsible || Boolean(expandedGroups[group.key]);
+            const items = group.ids
+              .map((id) => SIDEBAR_CATEGORIES.find((item) => item.id === id))
+              .filter((item): item is (typeof SIDEBAR_CATEGORIES)[number] => Boolean(item));
+
             return (
-              <div key={group.key} role="group" aria-label={groupLabels[group.key]} className="flex w-full flex-col gap-1">
+              <div key={group.key} role="group" className="flex w-full flex-col gap-1.5">
                 {isExpanded && (
-                  <span className="px-3 mb-0.5 text-[9.5px] font-semibold uppercase tracking-[0.22em] text-white/30 font-body">
-                    {groupLabels[group.key]}
-                  </span>
+                  isCollapsible ? (
+                    <button
+                      onClick={() => toggleGroup(group.key)}
+                      className="flex items-center gap-3 px-2 w-full py-1.5 transition-colors duration-300 hover:bg-white/[0.04] rounded-lg group/folder"
+                      aria-expanded={isOpen}
+                    >
+                      <motion.span className="flex items-center justify-center shrink-0 text-white/30 group-hover/folder:text-white/60 transition-colors">
+                        {isOpen ? <FolderOpen className="h-[14px] w-[14px]" /> : <Folder className="h-[14px] w-[14px]" />}
+                      </motion.span>
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/40 font-body group-hover/folder:text-white/80 transition-colors">
+                        {groupLabels[group.key]}
+                      </span>
+                    </button>
+                  ) : (
+                    <span className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30 font-body">
+                      {groupLabels[group.key]}
+                    </span>
+                  )
                 )}
-                {group.ids.map((id) => {
-                  const category = SIDEBAR_CATEGORIES.find((item) => item.id === id);
-                  if (!category) return null;
-                  return (
-                    <SidebarButton
-                      key={category.id === "FRIENDS"
-                        ? `${category.id}-${notificationCount}`
-                        : category.id}
-                      id={category.id}
-                      label={sidebarLabels[category.id] || category.label}
-                      Icon={category.Icon}
-                      AnimatedIcon={category.AnimatedIcon}
-                      active={activeCategory === category.id}
-                      onClick={() => handleSelect(category.id)}
-                      notificationCount={category.id === "FRIENDS" ? notificationCount : 0}
-                      reducedMotion={Boolean(prefersReducedMotion)}
-                      isExpanded={isExpanded}
-                    />
-                  );
-                })}
+
+                <AnimatePresence initial={false}>
+                  {(isOpen || !isExpanded) && (
+                    <motion.div
+                      initial={isCollapsible && isExpanded ? { height: 0, opacity: 0 } : false}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                      className={`overflow-hidden ${isCollapsible && isExpanded ? "relative pl-3" : ""}`}
+                    >
+                      {isCollapsible && isExpanded && (
+                        <div className="absolute left-4 top-2 bottom-2 w-[1px] bg-white/[0.08]" />
+                      )}
+                      <div className="flex flex-col gap-1">
+                        {items.map((category) => (
+                          <SidebarButton
+                            key={category.id}
+                            id={category.id}
+                            label={sidebarLabels[category.id] || category.label}
+                            Icon={category.Icon}
+                            AnimatedIcon={category.AnimatedIcon}
+                            active={activeCategory === category.id}
+                            onClick={() => { onCategory(category.id); playSound("showModal"); }}
+                            notificationCount={category.id === "FRIENDS" ? notificationCount : 0}
+                            reducedMotion={Boolean(prefersReducedMotion)}
+                            isExpanded={isExpanded}
+                            nested={isCollapsible && isExpanded}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             );
           })}
         </nav>
 
-        <div className="w-full h-px mt-auto mb-2 shrink-0 bg-linear-to-r from-transparent via-white/10 to-transparent" />
+        {/* Separador inferior com gradient sutil */}
+        <div className="w-full h-[1px] mt-4 mb-4 shrink-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
 
-        {/* Rodapé: Ajustes */}
-        <div className="w-full flex flex-col gap-1 shrink-0 px-1">
+        <div className="w-full flex flex-col gap-1 shrink-0">
           <SidebarButton
             id="SETTINGS"
             label={settingsLabel}
             Icon={Settings}
             AnimatedIcon={AnimatedSettingsIcon}
             active={activeCategory === "SETTINGS"}
-            onClick={() => handleSelect("SETTINGS")}
+            onClick={() => { onCategory("SETTINGS"); playSound("showModal"); }}
             reducedMotion={Boolean(prefersReducedMotion)}
             rotateOnHover
             isExpanded={isExpanded}

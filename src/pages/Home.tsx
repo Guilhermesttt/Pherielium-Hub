@@ -15,6 +15,7 @@ import {
   X,
   Filter,
   Trophy,
+  Info,
 } from "lucide-react";
 
 import DynamicBackground from "../components/DynamicBackground";
@@ -599,7 +600,7 @@ const Home: React.FC = () => {
       if (linkedUid !== user.uid) {
         setEpicAuthConnected(false);
         if (window.electronAPI?.logoutEpic) {
-          void window.electronAPI.logoutEpic().catch(() => {});
+          void window.electronAPI.logoutEpic().catch(() => { });
         }
         return;
       }
@@ -835,7 +836,7 @@ const Home: React.FC = () => {
       if (
         !soundAlreadyPlayed &&
         (lastGameLaunchSoundRef.current.title !== title ||
-        now - lastGameLaunchSoundRef.current.time > 4000)
+          now - lastGameLaunchSoundRef.current.time > 4000)
       ) {
         lastGameLaunchSoundRef.current = { title, time: now };
         playSound("play");
@@ -1971,7 +1972,7 @@ const Home: React.FC = () => {
         user.uid,
         userProfile?.displayName || undefined,
         userProfile?.photoURL,
-      ).catch(() => {});
+      ).catch(() => { });
     }
     await new Promise((r) => window.setTimeout(r, 450));
     await signOutUser();
@@ -2101,8 +2102,8 @@ const Home: React.FC = () => {
       />
 
       <div
-        className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden hub-60fps transition-[margin-left] duration-[280ms] ease-[cubic-bezier(0.32,0.72,0,1)]"
-        style={{ marginLeft: isSidebarExpanded ? 272 : 96 }}
+        className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden hub-60fps transition-[margin-left] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+        style={{ marginLeft: isSidebarExpanded ? 328 : 104 }}
       >
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -2172,7 +2173,7 @@ const Home: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+            <div className="flex items-center gap-1 p-1 rounded-2xl bg-[#0b0d14]/80 border border-white/[0.08] backdrop-blur-xl shadow-lg shadow-black/30">
               <button
                 type="button"
                 aria-label={t("new") || "Adicionar novo jogo"}
@@ -2572,69 +2573,72 @@ const Home: React.FC = () => {
                     className="flex items-end justify-between gap-8 transform-gpu"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="mb-1.5 text-[10px] font-body font-bold tracking-[0.16em] text-white/50 uppercase">
-                        {currentGame?.category ?? "Jogo"} · {canonicalIndex + 1} de {displayGames.length}
-                      </p>
+                      <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/[0.06] border border-white/[0.08] backdrop-blur-md mb-2.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
+                        <span className="text-[11px] font-mono font-semibold tracking-wider text-white/70 uppercase">
+                          {currentGame?.category ?? "Jogo"} · {canonicalIndex + 1} de {displayGames.length}
+                        </span>
+                      </div>
                       <h1
-                        className="tracking-tight font-display font-bold text-3xl md:text-[40px] text-white leading-[0.95] drop-shadow-[0_4px_24px_rgba(0,0,0,0.75)] line-clamp-1"
+                        className="tracking-tight font-display font-black text-3xl md:text-5xl text-white leading-[1.08] drop-shadow-[0_8px_32px_rgba(0,0,0,0.85)] line-clamp-1"
                         style={{
                           maxWidth: "64vw",
                         }}
                       >
                         {currentGame?.title}
                       </h1>
-                      <div className="mt-2.5 flex items-center gap-2 flex-wrap font-body">
+                      <div className="mt-4 flex items-center gap-2.5 flex-wrap font-body">
                         {(currentGame?.launcherType === "steam" || currentGame?.source === "steam") ? (
-                          <span className="flex items-center gap-1.5 rounded-full bg-[#16171c]/90 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
+                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
                             <SteamBrandIcon className="w-3.5 h-3.5 text-white" /> Steam
                           </span>
                         ) : (currentGame?.launcherType === "epic" || currentGame?.source === "epic") ? (
-                          <span className="flex items-center gap-1.5 rounded-full bg-[#16171c]/90 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
+                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
                             <EpicBrandIcon className="w-3.5 h-3.5 text-white" /> Epic Games
                           </span>
                         ) : currentGame?.launcherType === "ea" ? (
-                          <span className="flex items-center gap-1.5 rounded-full bg-[#16171c]/90 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
+                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
                             <EaBrandIcon className="w-3.5 h-3.5 text-white" /> EA App
                           </span>
                         ) : currentGame?.launcherType === "ubisoft" ? (
-                          <span className="flex items-center gap-1.5 rounded-full bg-[#16171c]/90 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
+                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
                             <UbisoftBrandIcon className="w-3.5 h-3.5 text-white" /> Ubisoft
                           </span>
                         ) : currentGame?.launcherType === "gog" ? (
-                          <span className="flex items-center gap-1.5 rounded-full bg-[#16171c]/90 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
+                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
                             <GogBrandIcon className="w-3.5 h-3.5 text-white" /> GOG
                           </span>
                         ) : currentGame?.launcherType === "xbox" ? (
-                          <span className="flex items-center gap-1.5 rounded-full bg-[#16171c]/90 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
+                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
                             <XboxBrandIcon className="w-3.5 h-3.5 text-white" /> Xbox
                           </span>
                         ) : currentGame?.launcherType === "riot" ? (
-                          <span className="flex items-center gap-1.5 rounded-full bg-[#16171c]/90 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
+                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
                             <RiotBrandIcon className="w-3.5 h-3.5 text-white" /> Riot Games
                           </span>
                         ) : currentGame?.launcherType === "battlenet" ? (
-                          <span className="flex items-center gap-1.5 rounded-full bg-[#16171c]/90 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
+                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
                             <BattlenetBrandIcon className="w-3.5 h-3.5 text-white" /> Battle.net
                           </span>
                         ) : currentGame?.launcherType === "rockstar" ? (
-                          <span className="flex items-center gap-1.5 rounded-full bg-[#16171c]/90 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
+                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
                             <RockstarBrandIcon className="w-3.5 h-3.5 text-white" /> Rockstar
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1.5 rounded-full bg-[#16171c]/90 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
+                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
                             <Gamepad2 className="w-3.5 h-3.5 text-white" /> Executável Local
                           </span>
                         )}
 
                         {currentGame && (
-                          <span className="rounded-full bg-[#16171c]/70 border border-white/[0.08] px-3 py-1 text-xs font-medium text-white/50">
+                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/70 border border-white/[0.08] px-3 py-1 text-xs font-medium text-white/60 backdrop-blur-md">
                             {formatPlayedHours(getGamePlayedHours(currentGame))}h jogadas
                           </span>
                         )}
 
                         {currentGame?.isFavorite && (
-                          <span className="flex items-center gap-1.5 rounded-full bg-[#16171c]/90 border border-white/[0.15] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm">
-                            <Star className="w-3 h-3 fill-white text-white" /> Favorito
+                          <span className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-400/25 px-3 py-1 text-xs font-semibold text-amber-300 shadow-sm backdrop-blur-md">
+                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> Favorito
                           </span>
                         )}
                       </div>
@@ -2644,7 +2648,7 @@ const Home: React.FC = () => {
                       <ShinyButton
                         onClick={() => currentGame && openDetails(currentGame)}
                         onMouseEnter={() => playSound("hover")}
-                        className="!shrink-0 !flex !items-center shadow-[0_4px_20px_rgba(255,255,255,0.12)]"
+                        className="!shrink-0 !flex !items-center gap-2 shadow-[0_4px_20px_rgba(255,255,255,0.12)] !px-6 !py-3 !text-sm cursor-pointer"
                       >
                         <svg
                           viewBox="0 0 24 24"
@@ -2654,6 +2658,17 @@ const Home: React.FC = () => {
                         </svg>
                         <span>{t("playNow")}</span>
                       </ShinyButton>
+
+                      <button
+                        type="button"
+                        onClick={() => currentGame && openDetails(currentGame)}
+                        onMouseEnter={() => playSound("hover")}
+                        className="cursor-pointer flex items-center gap-2 h-11 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] active:scale-95 border border-white/10 text-white/80 hover:text-white transition-all duration-200 text-xs font-semibold backdrop-blur-md shadow-sm"
+                        title={t("details") || "Ver detalhes"}
+                      >
+                        <Info className="w-4 h-4 text-white/60" />
+                        <span>{t("details") || "Detalhes"}</span>
+                      </button>
                     </div>
                   </motion.div>
                 </AnimatePresence>
@@ -2684,9 +2699,9 @@ const Home: React.FC = () => {
         </div>
 
         {shouldShowLibraryFooter(activeCategory) && <div
-          className="fixed bottom-0 z-30 flex items-center justify-between px-8 py-3.5 pointer-events-none transition-[left] duration-300 ease-out"
+          className="fixed bottom-0 z-30 flex items-center justify-between px-8 py-3.5 pointer-events-none transition-[left] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
           style={{
-            left: isSidebarExpanded ? 272 : 96,
+            left: isSidebarExpanded ? 328 : 104,
             right: 0,
             background:
               "linear-gradient(to top, var(--background) 0%, transparent 100%)",

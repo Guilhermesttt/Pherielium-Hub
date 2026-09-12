@@ -88,6 +88,7 @@
       "assets/icon.ico",
       "src/assets/hedrabionics_pindown.io.mp4",
       "src/assets/Overlay_Background.mp4",
+      "src/sounds/**/*",
       "node_modules/node-hid/**/*"
     ],
     "win": {
@@ -131,6 +132,7 @@
     "html2canvas": "^1.4.1",
     "livekit-client": "^2.22.0",
     "livekit-server-sdk": "^2.18.0",
+    "motion": "^13.2.0",
     "node-fetch": "^3.3.2",
     "node-hid": "^3.4.0",
     "node-stream-zip": "^1.16.0",

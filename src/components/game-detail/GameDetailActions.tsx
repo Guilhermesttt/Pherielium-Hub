@@ -54,7 +54,7 @@ export const GameDetailActions: React.FC<GameDetailActionsProps> = React.memo(({
         onClick={onLaunch}
         disabled={isLaunching || isRunning}
         onMouseEnter={() => playSound("hover")}
-        className="!w-full !flex !items-center !justify-center shadow-[0_0_24px_rgba(255,255,255,0.12)] cursor-pointer"
+        className="!w-full !flex !items-center !justify-center cursor-pointer"
       >
         {activeInputType === "gamepad" && isGamepadConnected ? (
           <span

@@ -29,7 +29,7 @@ export class PeerAudioNode {
 
     // Resume AudioContext if suspended (required by browser autoplay policies)
     if (this.ctx.state === "suspended") {
-      this.ctx.resume().catch(() => {});
+      this.ctx.resume().catch(() => { });
     }
 
     this.source = this.ctx.createMediaStreamSource(stream);

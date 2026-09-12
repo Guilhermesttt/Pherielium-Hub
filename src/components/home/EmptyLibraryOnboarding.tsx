@@ -91,10 +91,10 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md rounded-[20px] p-8 text-center bg-[rgba(14,16,24,0.42)] border border-white/[0.10] shadow-[0_20px_50px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+        className="w-full max-w-md rounded-2xl p-8 text-center bg-[#0b0d14]/85 border border-white/[0.08] backdrop-blur-xl shadow-2xl shadow-black/50"
       >
         <div
-          className="w-12 h-12 mx-auto mb-4 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shadow-sm"
+          className="w-12 h-12 mx-auto mb-4 rounded-xl bg-white/[0.05] border border-white/[0.1] flex items-center justify-center shadow-inner"
         >
           <img
             src={PHERIELIUM_LOGO_PATH}
@@ -119,7 +119,7 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
                   type="button"
                   onClick={onSyncSteam}
                   disabled={isSyncingSteam}
-                  className="cursor-pointer h-10 rounded-lg px-4 text-xs font-body font-medium bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-50"
+                  className="cursor-pointer h-10 rounded-xl px-4 text-xs font-body font-semibold bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSteam ? "animate-spin" : ""}`} />
                   {isSyncingSteam ? "Sincronizando..." : "Sincronizar Steam"}
@@ -129,7 +129,7 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
                   type="button"
                   onClick={onConnect}
                   disabled={isConnectingSteam}
-                  className="cursor-pointer h-10 rounded-lg px-4 text-xs font-body font-medium bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-60"
+                  className="cursor-pointer h-10 rounded-xl px-4 text-xs font-body font-semibold bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-60"
                 >
                   {isConnectingSteam ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -145,7 +145,7 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
                   type="button"
                   onClick={onSyncEpic}
                   disabled={isSyncingEpic}
-                  className="cursor-pointer h-10 rounded-lg px-4 text-xs font-body font-medium bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-50"
+                  className="cursor-pointer h-10 rounded-xl px-4 text-xs font-body font-semibold bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isSyncingEpic ? "animate-spin" : ""}`} />
                   {isSyncingEpic ? "Sincronizando..." : "Sincronizar Epic"}
@@ -155,7 +155,7 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
                   type="button"
                   onClick={onConnectEpic}
                   disabled={isConnectingEpic}
-                  className="cursor-pointer h-10 rounded-lg px-4 text-xs font-body font-medium bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-60"
+                  className="cursor-pointer h-10 rounded-xl px-4 text-xs font-body font-semibold bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-60"
                 >
                   {isConnectingEpic ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -170,7 +170,7 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
             <button
               type="button"
               onClick={onAddGame}
-              className="cursor-pointer h-10 rounded-lg bg-white hover:bg-white/90 px-5 text-xs font-body font-semibold text-black transition-all duration-160 flex items-center gap-2 shadow-sm"
+              className="cursor-pointer h-10 rounded-xl bg-white hover:bg-white/90 px-5 text-xs font-body font-bold text-black transition-all hover:scale-105 active:scale-95 flex items-center gap-2 shadow-md shadow-white/10"
             >
               <Plus className="w-4 h-4 text-black" />
               <span>
@@ -221,7 +221,7 @@ export const EmptyLibraryOnboarding: React.FC<EmptyLibraryOnboardingProps> = Rea
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-xl rounded-2xl p-8 md:p-10 bg-[rgba(14,16,24,0.34)] border border-white/[0.08] shadow-[0_25px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl font-sans"
+        className="w-full max-w-xl rounded-3xl p-8 md:p-10 bg-[#0b0d14]/90 border border-white/[0.08] backdrop-blur-2xl shadow-2xl shadow-black/60 font-sans"
       >
         <div className="flex items-center justify-between mb-8">
           <p className="text-xs font-semibold tracking-wider uppercase text-white/60">
@@ -252,10 +252,10 @@ export const EmptyLibraryOnboarding: React.FC<EmptyLibraryOnboardingProps> = Rea
                 transition={{ duration: 0.2 }}
                 className="space-y-3"
               >
-                <h3 className="text-2xl md:text-3xl font-display font-semibold tracking-tight text-white">
+                <h3 className="text-2xl md:text-3xl font-display font-bold tracking-tight text-white">
                   Sua biblioteca está vazia
                 </h3>
-                <p className="text-xs md:text-sm font-body text-white/50 leading-relaxed">
+                <p className="text-xs md:text-sm font-body text-white/60 leading-relaxed">
                   Centralize todos os seus jogos, mods e acompanhe estatísticas em um único hub limpo e veloz.
                 </p>
               </motion.div>
@@ -270,17 +270,17 @@ export const EmptyLibraryOnboarding: React.FC<EmptyLibraryOnboardingProps> = Rea
                 transition={{ duration: 0.2 }}
                 className="space-y-4"
               >
-                <h3 className="text-2xl md:text-3xl font-display font-semibold tracking-tight text-white">
+                <h3 className="text-2xl md:text-3xl font-display font-bold tracking-tight text-white">
                   Conecte com a Steam
                 </h3>
-                <p className="text-xs md:text-sm font-body text-white/50 leading-relaxed">
+                <p className="text-xs md:text-sm font-body text-white/60 leading-relaxed">
                   Vincule sua conta para importar seus jogos e conquistas automaticamente em segundos.
                 </p>
                 <div className="pt-1">
                   <button
                     type="button"
                     onClick={onConnectSteam}
-                    className="cursor-pointer h-11 rounded-full px-6 text-xs font-body font-medium bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-200 flex items-center gap-2"
+                    className="cursor-pointer h-11 rounded-xl px-6 text-xs font-body font-semibold bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-200 flex items-center gap-2 active:scale-95"
                   >
                     <Link2 className="w-3.5 h-3.5" />
                     Conectar Steam
@@ -298,10 +298,10 @@ export const EmptyLibraryOnboarding: React.FC<EmptyLibraryOnboardingProps> = Rea
                 transition={{ duration: 0.2 }}
                 className="space-y-4"
               >
-                <h3 className="text-2xl md:text-3xl font-display font-semibold tracking-tight text-white">
+                <h3 className="text-2xl md:text-3xl font-display font-bold tracking-tight text-white">
                   Adicione manualmente
                 </h3>
-                <p className="text-xs md:text-sm font-body text-white/50 leading-relaxed">
+                <p className="text-xs md:text-sm font-body text-white/60 leading-relaxed">
                   Cadastre qualquer jogo local, instalador ou emulador diretamente no seu launcher.
                 </p>
                 <div className="pt-1">
@@ -311,7 +311,7 @@ export const EmptyLibraryOnboarding: React.FC<EmptyLibraryOnboardingProps> = Rea
                       playSound("select");
                       onOpenAddGame();
                     }}
-                    className="cursor-pointer h-11 rounded-full bg-white hover:bg-white/90 px-6 text-xs font-body font-semibold text-black transition-all duration-200 flex items-center gap-2 shadow-[0_4px_20px_rgba(255,255,255,0.15)]"
+                    className="cursor-pointer h-11 rounded-xl bg-white hover:bg-white/90 px-6 text-xs font-body font-bold text-black transition-all duration-200 flex items-center gap-2 shadow-[0_4px_20px_rgba(255,255,255,0.15)] hover:scale-105 active:scale-95"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Adicionar Jogo
@@ -327,7 +327,7 @@ export const EmptyLibraryOnboarding: React.FC<EmptyLibraryOnboardingProps> = Rea
             type="button"
             onClick={handleBack}
             disabled={step === 0}
-            className="cursor-pointer flex items-center gap-1.5 text-xs font-body font-medium text-white/40 hover:text-white disabled:opacity-0 transition-all duration-200"
+            className="cursor-pointer flex items-center gap-1.5 text-xs font-body font-semibold text-white/50 hover:text-white disabled:opacity-0 transition-all duration-200"
           >
             <ChevronLeft className="h-4 w-4" /> Voltar
           </button>
@@ -335,7 +335,7 @@ export const EmptyLibraryOnboarding: React.FC<EmptyLibraryOnboardingProps> = Rea
           <button
             type="button"
             onClick={handleNext}
-            className="cursor-pointer flex items-center gap-1.5 h-10 rounded-full bg-white hover:bg-white/90 px-6 text-xs font-body font-semibold text-black transition-all duration-200 shadow-[0_4px_20px_rgba(255,255,255,0.12)]"
+            className="cursor-pointer flex items-center gap-1.5 h-10 rounded-xl bg-white hover:bg-white/90 px-6 text-xs font-body font-bold text-black transition-all duration-200 shadow-[0_4px_20px_rgba(255,255,255,0.12)] hover:scale-105 active:scale-95"
           >
             {step === 2 ? (
               <>Concluir <Check className="h-3.5 w-3.5" /></>

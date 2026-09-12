@@ -134,11 +134,10 @@ export const ScreenPickerModal: React.FC<ScreenPickerModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("screens")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "screens"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === "screens"
                   ? "bg-white text-black font-black shadow-sm"
                   : "text-white/40 hover:text-white hover:bg-white/5"
-              }`}
+                }`}
             >
               <Monitor className="h-3.5 w-3.5" />
               Telas Inteiras ({screens.length})
@@ -146,11 +145,10 @@ export const ScreenPickerModal: React.FC<ScreenPickerModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("windows")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "windows"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === "windows"
                   ? "bg-white text-black font-black shadow-sm"
                   : "text-white/40 hover:text-white hover:bg-white/5"
-              }`}
+                }`}
             >
               <AppWindow className="h-3.5 w-3.5" />
               Janelas & Jogos ({windows.length})
@@ -181,11 +179,10 @@ export const ScreenPickerModal: React.FC<ScreenPickerModalProps> = ({
                       key={source.id}
                       type="button"
                       onClick={() => setSelectedSourceId(source.id)}
-                      className={`group relative flex flex-col overflow-hidden rounded-2xl p-3 text-left transition-all duration-200 cursor-pointer ${
-                        isSelected
+                      className={`group relative flex flex-col overflow-hidden rounded-2xl p-3 text-left transition-all duration-200 cursor-pointer ${isSelected
                           ? "border-2 border-white bg-white/10 ring-2 ring-white/20 shadow-[0_0_25px_rgba(255,255,255,0.15)] scale-[1.01]"
                           : "border border-white/8 bg-white/[0.025] hover:border-white/20 hover:bg-white/[0.06] hover:scale-[1.01]"
-                      }`}
+                        }`}
                     >
                       {/* Thumbnail Preview */}
                       <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black/60 border border-white/5">
@@ -219,9 +216,8 @@ export const ScreenPickerModal: React.FC<ScreenPickerModalProps> = ({
                           />
                         )}
                         <span
-                          className={`truncate text-xs font-bold transition-colors ${
-                            isSelected ? "text-white" : "text-white/80 group-hover:text-white"
-                          }`}
+                          className={`truncate text-xs font-bold transition-colors ${isSelected ? "text-white" : "text-white/80 group-hover:text-white"
+                            }`}
                         >
                           {source.name}
                         </span>
@@ -245,11 +241,10 @@ export const ScreenPickerModal: React.FC<ScreenPickerModalProps> = ({
                       key={r}
                       type="button"
                       onClick={() => setResolution(r)}
-                      className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        resolution === r
+                      className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${resolution === r
                           ? "bg-white text-black font-black shadow-sm"
                           : "text-white/50 hover:text-white hover:bg-white/5"
-                      }`}
+                        }`}
                     >
                       {r === "source" ? "Fonte" : r}
                     </button>
@@ -266,11 +261,10 @@ export const ScreenPickerModal: React.FC<ScreenPickerModalProps> = ({
                       key={f}
                       type="button"
                       onClick={() => setFps(f)}
-                      className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        fps === f
+                      className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${fps === f
                           ? "bg-white text-black font-black shadow-sm"
                           : "text-white/50 hover:text-white hover:bg-white/5"
-                      }`}
+                        }`}
                     >
                       {f} FPS
                     </button>

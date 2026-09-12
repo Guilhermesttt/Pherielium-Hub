@@ -749,7 +749,13 @@ export const TrophyHistoryTimeline: React.FC<TrophyHistoryTimelineProps> = ({
 
   return (
     <section
-      className="rounded-3xl border border-white/[0.06] bg-[#0A0B0D] p-5 sm:p-6 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.4)]"
+      className="rounded-3xl border border-white/[0.08] p-5 sm:p-6"
+      style={{
+        background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
+        backdropFilter: "blur(48px) saturate(160%)",
+        WebkitBackdropFilter: "blur(48px) saturate(160%)",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
+      }}
       aria-label={copy.title}
     >
       {/* Cabeçalho Editorial com Underline Minimalista */}

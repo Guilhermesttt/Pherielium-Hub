@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import bgVideo from "../assets/karavanbraam_pindown.io.mp4";
+import bgVideo from "../assets/karavanbraam_pindown.io.webm";
 
 const MainVideoBackground: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);

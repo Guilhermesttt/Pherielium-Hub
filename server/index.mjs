@@ -17,11 +17,31 @@ import { AccessToken } from "livekit-server-sdk";
 export const app = express();
 
 const supabaseUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").trim();
+const supabasePublishableKey = (
+  process.env.SUPABASE_PUBLISHABLE_KEY
+  || process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  || ""
+).trim();
+const supabaseAnonKey = (
+  process.env.SUPABASE_ANON_KEY
+  || process.env.VITE_SUPABASE_ANON_KEY
+  || ""
+).trim();
+const supabasePublicKey = supabasePublishableKey || supabaseAnonKey;
 const supabaseServiceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
 const isValidUrl = (url) => typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://"));
 
 export const supabaseAdmin = (isValidUrl(supabaseUrl) && supabaseServiceRoleKey)
   ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+  : null;
+
+export const supaAuthClient = (isValidUrl(supabaseUrl) && supabasePublicKey)
+  ? createClient(supabaseUrl, supabasePublicKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -294,7 +314,7 @@ const steamPrivateLimiter = rateLimit({
 const steamAchievementSummaryLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 10,
-  keyGenerator: (req) => String(req.authUid || req.user?.id || req.firebaseUser?.uid || "unauthenticated"),
+  keyGenerator: (req) => String(req.authUid || req.user?.id || req.supabaseUser?.uid || "unauthenticated"),
   standardHeaders: true,
   legacyHeaders: false,
   validate: { keyGeneratorIpFallback: false },
@@ -1307,7 +1327,7 @@ const requireAuth = async (req, res, next) => {
     const user = data.user;
     req.user = user;
     req.supabaseUser = user;
-    req.firebaseUser = {
+    req.supabaseUser = {
       uid: user.id,
       email: user.email || "",
       name: user.user_metadata?.full_name || user.user_metadata?.name || null,
@@ -1318,10 +1338,9 @@ const requireAuth = async (req, res, next) => {
     res.status(401).json({ error: "Erro ao verificar autenticacao." });
   }
 };
-const requireFirebaseUser = requireAuth;
 
-app.post("/api/chat/open", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
-  const currentUid = req.firebaseUser.uid;
+app.post("/api/chat/open", steamPrivateLimiter, requireAuth, async (req, res) => {
+  const currentUid = req.supabaseUser.uid;
   const friendUid = String(req.body?.friendUid || "").trim();
   if (!/^[0-9a-f-]{36}$/i.test(friendUid) || friendUid === currentUid) {
     res.status(400).json({ error: "Usuario invalido." });
@@ -1542,7 +1561,7 @@ const requireLinkedSteamId = async (req, res, next) => {
     return;
   }
 
-  const uid = req.firebaseUser.uid;
+  const uid = req.supabaseUser.uid;
 
   // 🔥 PASSO 1: Verifica se este usuário já foi validado e está no cache de memória
   const cacheKey = `${uid}_${requestedSteamId}`;
@@ -1668,11 +1687,11 @@ app.get("/api/voice/turn-credentials", steamPrivateLimiter, async (_req, res) =>
   }
 });
 
-app.post("/api/voice/livekit-token", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/voice/livekit-token", steamPrivateLimiter, requireAuth, async (req, res) => {
   try {
     const { roomName, name, metadata } = req.body || {};
     const effectiveRoom = String(roomName || "").trim();
-    const uid = req.firebaseUser.uid;
+    const uid = req.supabaseUser.uid;
 
     if (!effectiveRoom) {
       return res.status(400).json({ error: "roomName é obrigatório." });
@@ -1688,7 +1707,7 @@ app.post("/api/voice/livekit-token", steamPrivateLimiter, requireFirebaseUser, a
 
     const at = new AccessToken(apiKey, apiSecret, {
       identity: uid,
-      name: String(name || req.firebaseUser.name || uid),
+      name: String(name || req.supabaseUser.name || uid),
       metadata: typeof metadata === "string" ? metadata : JSON.stringify(metadata || {}),
       ttl: "24h",
     });
@@ -1729,12 +1748,12 @@ function verifyVoiceRoomPassword(password, storedHash) {
 }
 
 // Criar sala de voz
-app.post("/api/voice/rooms", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/voice/rooms", steamPrivateLimiter, requireAuth, async (req, res) => {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Banco de dados não configurado no servidor." });
   }
 
-  const uid = req.firebaseUser.uid;
+  const uid = req.supabaseUser.uid;
   const {
     name,
     category = "resenha_games",
@@ -1826,7 +1845,7 @@ app.post("/api/voice/rooms", steamPrivateLimiter, requireFirebaseUser, async (re
 });
 
 // Listar salas públicas ativas
-app.get("/api/voice/rooms/public", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.get("/api/voice/rooms/public", steamPrivateLimiter, requireAuth, async (req, res) => {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Banco de dados não configurado no servidor." });
   }
@@ -1926,12 +1945,12 @@ app.get("/api/voice/rooms/public", steamPrivateLimiter, requireFirebaseUser, asy
 });
 
 // Listar minhas salas (host ou participante)
-app.get("/api/voice/rooms/my", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.get("/api/voice/rooms/my", steamPrivateLimiter, requireAuth, async (req, res) => {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Banco de dados não configurado no servidor." });
   }
 
-  const uid = req.firebaseUser.uid;
+  const uid = req.supabaseUser.uid;
 
   try {
     let { data: hostedRooms, error: hostError } = await supabaseAdmin
@@ -2022,13 +2041,13 @@ app.get("/api/voice/rooms/my", steamPrivateLimiter, requireFirebaseUser, async (
 });
 
 // Obter detalhes de uma sala
-app.get("/api/voice/rooms/:roomId", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.get("/api/voice/rooms/:roomId", steamPrivateLimiter, requireAuth, async (req, res) => {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Banco de dados não configurado no servidor." });
   }
 
   const { roomId } = req.params;
-  const uid = req.firebaseUser.uid;
+  const uid = req.supabaseUser.uid;
 
   try {
     const { data: room, error } = await supabaseAdmin
@@ -2086,13 +2105,13 @@ app.get("/api/voice/rooms/:roomId", steamPrivateLimiter, requireFirebaseUser, as
 });
 
 // Entrar em uma sala (Join com validação de senha server-side e trava de 4 pessoas)
-app.post("/api/voice/rooms/:roomId/join", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/voice/rooms/:roomId/join", steamPrivateLimiter, requireAuth, async (req, res) => {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Banco de dados não configurado no servidor." });
   }
 
   const { roomId } = req.params;
-  const uid = req.firebaseUser.uid;
+  const uid = req.supabaseUser.uid;
   const { password, fromInvite = false, displayName, avatarUrl } = req.body || {};
 
   try {
@@ -2138,8 +2157,8 @@ app.post("/api/voice/rooms/:roomId/join", steamPrivateLimiter, requireFirebaseUs
     }
 
     // Registrar ou reativar membro
-    const name = displayName || req.firebaseUser.name || "Jogador";
-    const avatar = avatarUrl || req.firebaseUser.picture || null;
+    const name = displayName || req.supabaseUser.name || "Jogador";
+    const avatar = avatarUrl || req.supabaseUser.picture || null;
 
     const { error: upsertError } = await supabaseAdmin
       .from("voice_room_members")
@@ -2191,13 +2210,13 @@ app.post("/api/voice/rooms/:roomId/join", steamPrivateLimiter, requireFirebaseUs
 });
 
 // Sair de uma sala
-app.post("/api/voice/rooms/:roomId/leave", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/voice/rooms/:roomId/leave", steamPrivateLimiter, requireAuth, async (req, res) => {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Banco de dados não configurado no servidor." });
   }
 
   const { roomId } = req.params;
-  const uid = req.firebaseUser.uid;
+  const uid = req.supabaseUser.uid;
 
   try {
     const { error } = await supabaseAdmin
@@ -2218,13 +2237,13 @@ app.post("/api/voice/rooms/:roomId/leave", steamPrivateLimiter, requireFirebaseU
 });
 
 // Encerrar / Deletar sala (Apenas Host)
-app.delete("/api/voice/rooms/:roomId", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.delete("/api/voice/rooms/:roomId", steamPrivateLimiter, requireAuth, async (req, res) => {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Banco de dados não configurado no servidor." });
   }
 
   const { roomId } = req.params;
-  const uid = req.firebaseUser.uid;
+  const uid = req.supabaseUser.uid;
 
   try {
     const { data: room, error: fetchError } = await supabaseAdmin
@@ -2631,7 +2650,7 @@ const isAlreadyExistsError = (error) =>
   || error?.code === "already-exists"
   || /already exists/i.test(String(error?.message || ""));
 
-app.post("/api/social/activity", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/social/activity", steamPrivateLimiter, requireAuth, async (req, res) => {
   let activity;
   try {
     activity = normalizeSocialActivityInput(req.body);
@@ -2643,7 +2662,7 @@ app.post("/api/social/activity", steamPrivateLimiter, requireFirebaseUser, async
   }
 
   try {
-    const uid = req.firebaseUser.uid;
+    const uid = req.supabaseUser.uid;
     const [{ data: profile, error: profileError }, { data: friendships, error: friendsError }] =
       await Promise.all([
         supabaseAdmin.from("profiles").select("*").eq("uid", uid).single(),
@@ -2665,8 +2684,8 @@ app.post("/api/social/activity", steamPrivateLimiter, requireFirebaseUser, async
     const userName = socialText(
       profile.display_name
       || profile.discord_username
-      || req.firebaseUser.name
-      || req.firebaseUser.email?.split("@")[0]
+      || req.supabaseUser.name
+      || req.supabaseUser.email?.split("@")[0]
       || "Jogador",
       80,
     ) || "Jogador";
@@ -2674,7 +2693,7 @@ app.post("/api/social/activity", steamPrivateLimiter, requireFirebaseUser, async
       profile.discord_avatar
       || profile.photo_url
       || profile.steam_avatar
-      || req.firebaseUser.picture,
+      || req.supabaseUser.picture,
     );
     const payload = {
       user_id: uid,
@@ -2709,7 +2728,7 @@ app.post("/api/social/activity", steamPrivateLimiter, requireFirebaseUser, async
   }
 });
 
-app.get("/api/friends/search", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.get("/api/friends/search", steamPrivateLimiter, requireAuth, async (req, res) => {
   const term = String(req.query.q ?? "").trim();
   if (term.length < 2) {
     res.status(400).json({ error: "Informe pelo menos 2 caracteres." });
@@ -2723,14 +2742,14 @@ app.get("/api/friends/search", steamPrivateLimiter, requireFirebaseUser, async (
     const nameQuery = supabaseAdmin
       .from("profiles")
       .select(columns)
-      .neq("uid", req.firebaseUser.uid)
+      .neq("uid", req.supabaseUser.uid)
       .or(`display_name.ilike.%${safeTerm}%,discord_username.ilike.%${safeTerm}%,steam_username.ilike.%${safeTerm}%`)
       .limit(25);
     const emailQuery = term.includes("@")
       ? supabaseAdmin
         .from("profiles")
         .select(columns)
-        .neq("uid", req.firebaseUser.uid)
+        .neq("uid", req.supabaseUser.uid)
         .eq("email", term)
         .limit(1)
       : Promise.resolve({ data: [], error: null });
@@ -2758,7 +2777,7 @@ const getServerPresenceChannel = () => {
   return serverPresenceChannel;
 };
 
-app.post("/api/presence", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/presence", steamPrivateLimiter, requireAuth, async (req, res) => {
   let bodyData = req.body;
   if (typeof bodyData === "string") {
     try {
@@ -2783,7 +2802,7 @@ app.post("/api/presence", steamPrivateLimiter, requireFirebaseUser, async (req, 
         playing: status === "playing" ? currentGameTitle : null,
         presence_updated_at: nowIso,
       })
-      .eq("uid", req.firebaseUser.uid);
+      .eq("uid", req.supabaseUser.uid);
     if (error) throw error;
 
     if (supabaseAdmin && status === "offline") {
@@ -2794,7 +2813,7 @@ app.post("/api/presence", steamPrivateLimiter, requireFirebaseUser, async (req, 
             type: "broadcast",
             event: "presence:status_update",
             payload: {
-              uid: req.firebaseUser.uid,
+              uid: req.supabaseUser.uid,
               status: "offline",
               playing: null,
               updatedAt: Date.now(),
@@ -2811,9 +2830,9 @@ app.post("/api/presence", steamPrivateLimiter, requireFirebaseUser, async (req, 
   }
 });
 
-app.get("/api/friends/status", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.get("/api/friends/status", steamPrivateLimiter, requireAuth, async (req, res) => {
   try {
-    const uid = req.firebaseUser.uid;
+    const uid = req.supabaseUser.uid;
     const { data: friendships, error: friendshipsError } = await supabaseAdmin
       .from("friendships")
       .select("requester_id,addressee_id")
@@ -2847,15 +2866,15 @@ app.get("/api/friends/status", steamPrivateLimiter, requireFirebaseUser, async (
   }
 });
 
-app.get("/api/friends/:uid/profile", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.get("/api/friends/:uid/profile", steamPrivateLimiter, requireAuth, async (req, res) => {
   const friendUid = String(req.params.uid || "").trim();
-  if (!friendUid || friendUid === req.firebaseUser.uid) {
+  if (!friendUid || friendUid === req.supabaseUser.uid) {
     res.status(400).json({ error: "Usuário inválido." });
     return;
   }
 
   try {
-    const currentUid = req.firebaseUser.uid;
+    const currentUid = req.supabaseUser.uid;
     const isSelf = currentUid === friendUid;
 
     // 1. Carregar perfil completo do usuário alvo a partir de profiles
@@ -3082,15 +3101,15 @@ app.get("/api/friends/:uid/profile", steamPrivateLimiter, requireFirebaseUser, a
   }
 });
 
-app.post("/api/friends/request", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/friends/request", steamPrivateLimiter, requireAuth, async (req, res) => {
   const friendUid = String(req.body?.uid ?? "").trim();
-  if (!friendUid || friendUid === req.firebaseUser.uid) {
+  if (!friendUid || friendUid === req.supabaseUser.uid) {
     res.status(400).json({ error: "Usuário inválido." });
     return;
   }
 
   try {
-    const currentUid = req.firebaseUser.uid;
+    const currentUid = req.supabaseUser.uid;
     const { data: target, error: targetError } = await supabaseAdmin
       .from("profiles")
       .select("uid,display_name,photo_url,discord_username,discord_avatar,steam_username,steam_avatar,status,playing,presence_updated_at")
@@ -3137,15 +3156,15 @@ app.post("/api/friends/request", steamPrivateLimiter, requireFirebaseUser, async
   }
 });
 
-app.post("/api/friends/accept", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/friends/accept", steamPrivateLimiter, requireAuth, async (req, res) => {
   const requesterUid = String(req.body?.uid ?? "").trim();
-  if (!requesterUid || requesterUid === req.firebaseUser.uid) {
+  if (!requesterUid || requesterUid === req.supabaseUser.uid) {
     res.status(400).json({ error: "Usuário inválido." });
     return;
   }
 
   try {
-    const currentUid = req.firebaseUser.uid;
+    const currentUid = req.supabaseUser.uid;
     const { data: accepted, error: acceptError } = await supabaseAdmin
       .from("friendships")
       .update({ status: "accepted" })
@@ -3171,9 +3190,9 @@ app.post("/api/friends/accept", steamPrivateLimiter, requireFirebaseUser, async 
   }
 });
 
-app.post("/api/friends/reject", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/friends/reject", steamPrivateLimiter, requireAuth, async (req, res) => {
   const targetUid = String(req.body?.uid ?? "").trim();
-  const currentUid = req.firebaseUser.uid;
+  const currentUid = req.supabaseUser.uid;
   if (!targetUid || targetUid === currentUid) {
     res.status(400).json({ error: "Usuário inválido." });
     return;
@@ -3201,9 +3220,9 @@ app.post("/api/friends/reject", steamPrivateLimiter, requireFirebaseUser, async 
   }
 });
 
-app.post("/api/friends/unfriend", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/friends/unfriend", steamPrivateLimiter, requireAuth, async (req, res) => {
   const friendUid = String(req.body?.uid ?? "").trim();
-  const currentUid = req.firebaseUser.uid;
+  const currentUid = req.supabaseUser.uid;
   if (!friendUid || friendUid === currentUid) {
     res.status(400).json({ error: "Usuário inválido." });
     return;
@@ -3235,15 +3254,15 @@ app.post("/api/friends/unfriend", steamPrivateLimiter, requireFirebaseUser, asyn
   }
 });
 
-app.post("/api/friends/add", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/friends/add", steamPrivateLimiter, requireAuth, async (req, res) => {
   const friendUid = String(req.body?.uid ?? "").trim();
-  if (!friendUid || friendUid === req.firebaseUser.uid) {
+  if (!friendUid || friendUid === req.supabaseUser.uid) {
     res.status(400).json({ error: "Usuário inválido." });
     return;
   }
 
   try {
-    const currentUid = req.firebaseUser.uid;
+    const currentUid = req.supabaseUser.uid;
     const { data: target, error: targetError } = await supabaseAdmin
       .from("profiles")
       .select("uid,display_name,photo_url,discord_username,discord_avatar,steam_username,steam_avatar,status,playing,presence_updated_at")
@@ -3269,7 +3288,7 @@ app.post("/api/friends/add", steamPrivateLimiter, requireFirebaseUser, async (re
   }
 });
 
-app.post("/api/friends/remove", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/friends/remove", steamPrivateLimiter, requireAuth, async (req, res) => {
   const friendUid = String(req.body?.uid ?? "").trim();
   if (!friendUid) {
     res.status(400).json({ error: "Usuário inválido." });
@@ -3277,7 +3296,7 @@ app.post("/api/friends/remove", steamPrivateLimiter, requireFirebaseUser, async 
   }
 
   try {
-    const currentUid = req.firebaseUser.uid;
+    const currentUid = req.supabaseUser.uid;
     const { error } = await supabaseAdmin
       .from("friendships")
       .delete()
@@ -3292,8 +3311,8 @@ app.post("/api/friends/remove", steamPrivateLimiter, requireFirebaseUser, async 
   }
 });
 
-app.post("/api/auth/logout", requireFirebaseUser, (req, res) => {
-  const uid = req.firebaseUser.uid;
+app.post("/api/auth/logout", requireAuth, (req, res) => {
+  const uid = req.supabaseUser.uid;
 
   for (const key of steamIdCache.keys()) {
     if (key.startsWith(`${uid}_`)) {
@@ -3305,18 +3324,18 @@ app.post("/api/auth/logout", requireFirebaseUser, (req, res) => {
   res.json({ ok: true });
 });
 
-app.post("/auth/steam/start", steamAuthLimiter, requireFirebaseUser, (req, res) => {
+app.post("/auth/steam/start", steamAuthLimiter, requireAuth, (req, res) => {
   cleanupPendingStates();
   const token = crypto.randomUUID();
   pendingStates.set(token, {
-    userUid: req.authUid || req.user?.id || req.firebaseUser?.uid,
+    userUid: req.authUid || req.user?.id || req.supabaseUser?.uid,
     createdAt: Date.now(),
   });
 
   res.json({ url: buildSteamOpenIdUrl(token) });
 });
 
-app.post("/auth/discord/start", steamAuthLimiter, requireFirebaseUser, (req, res) => {
+app.post("/auth/discord/start", steamAuthLimiter, requireAuth, (req, res) => {
   cleanupPendingDiscordStates();
   if (!discordClientId || !discordClientSecret) {
     res.status(500).json({ error: "Credenciais Discord nao configuradas no backend." });
@@ -3325,7 +3344,7 @@ app.post("/auth/discord/start", steamAuthLimiter, requireFirebaseUser, (req, res
 
   const state = crypto.randomUUID();
   pendingDiscordStates.set(state, {
-    userUid: req.authUid || req.user?.id || req.firebaseUser?.uid,
+    userUid: req.authUid || req.user?.id || req.supabaseUser?.uid,
     createdAt: Date.now(),
   });
 
@@ -3435,106 +3454,151 @@ app.get("/auth/google/callback", steamAuthLimiter, async (req, res) => {
       throw new Error("Google nao retornou email.");
     }
 
-    let emailOtp = null;
     let supaUid = null;
-    let hashedToken = null;
-    let actionLink = null;
     let accessToken = null;
     let refreshToken = null;
 
-    if (supabaseAdmin) {
-      let linkData;
-      let linkErr;
+    if (!supaAuthClient) {
+      throw new Error(
+        "Cliente publico do Supabase Auth nao configurado. "
+        + "Defina SUPABASE_PUBLISHABLE_KEY (preferencial) ou SUPABASE_ANON_KEY.",
+      );
+    }
+
+    let linkData;
+    let linkErr;
+    ({ data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email: userEmail,
+    }));
+
+    if (linkErr) {
+      console.warn(
+        "[google-oauth] generateLink falhou; tentando garantir o usuario antes de repetir:",
+        linkErr.message,
+      );
+
+      const { error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email: userEmail,
+        email_confirm: true,
+        user_metadata: {
+          full_name: payload.name || payload.given_name || userEmail.split("@")[0],
+          name: payload.name || userEmail.split("@")[0],
+          avatar_url: payload.picture || null,
+        },
+      });
+
+      if (createErr && !/already been registered|already registered|already exists/i.test(createErr.message || "")) {
+        console.error("[google-oauth] Erro ao criar usuario:", {
+          message: createErr.message,
+          code: createErr.code || null,
+        });
+        throw createErr;
+      }
+
       ({ data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
         type: "magiclink",
         email: userEmail,
       }));
+      if (linkErr) throw linkErr;
+    }
 
-      if (linkErr) {
-        console.warn("[google-oauth] generateLink falhou, criando novo usuário no Supabase Auth:", linkErr.message);
-        const { data: createdUserData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-          email: userEmail,
-          email_confirm: true,
-          user_metadata: {
-            full_name: payload.name || payload.given_name || userEmail.split("@")[0],
-            name: payload.name || userEmail.split("@")[0],
-            avatar_url: payload.picture || null,
-          },
-        });
+    const hashedToken = linkData?.properties?.hashed_token || null;
+    supaUid = linkData?.user?.id || null;
 
-        if (createErr && !createErr.message?.includes("already been registered")) {
-          console.error("[google-oauth] Erro ao criar usuário:", createErr);
-          throw linkErr;
-        }
+    if (!hashedToken || !supaUid) {
+      throw new Error("Supabase nao retornou credenciais validas para concluir o login Google.");
+    }
 
-        ({ data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
-          type: "magiclink",
-          email: userEmail,
-        }));
-        if (linkErr) throw linkErr;
+    /*
+     * O token hash e one-time. Ele e consumido EXATAMENTE UMA VEZ no backend.
+     * O renderer recebe apenas access_token + refresh_token e nunca tenta verifyOtp.
+     */
+    const { data: verifyData, error: verifyErr } = await supaAuthClient.auth.verifyOtp({
+      token_hash: hashedToken,
+      type: "email",
+    });
+
+    if (verifyErr || !verifyData?.session) {
+      console.error("[google-oauth] Falha ao criar sessao Supabase:", {
+        message: verifyErr?.message || "Sessao ausente.",
+        status: verifyErr?.status || null,
+        code: verifyErr?.code || null,
+      });
+      throw new Error(
+        `Falha ao criar sessao Supabase para o Google: ${verifyErr?.message || "sessao ausente"}`,
+      );
+    }
+
+    accessToken = verifyData.session.access_token;
+    refreshToken = verifyData.session.refresh_token;
+
+    if (!accessToken || !refreshToken) {
+      throw new Error("Supabase criou a sessao sem access token ou refresh token.");
+    }
+
+    try {
+      const updatedAt = new Date().toISOString();
+
+      // Mantem os metadados do Auth coerentes com a identidade atual do Google.
+      const { error: metadataError } = await supabaseAdmin.auth.admin.updateUserById(supaUid, {
+        email: userEmail,
+        email_confirm: true,
+        user_metadata: {
+          full_name: payload.name || payload.given_name || userEmail.split("@")[0],
+          name: payload.name || userEmail.split("@")[0],
+          avatar_url: payload.picture || null,
+          picture: payload.picture || null,
+        },
+      });
+      if (metadataError) {
+        console.warn("[google-oauth] Aviso ao atualizar metadata do usuario:", metadataError.message);
       }
 
-      emailOtp = linkData?.properties?.email_otp || null;
-      hashedToken = linkData?.properties?.hashed_token || null;
-      actionLink = linkData?.properties?.action_link || null;
-      supaUid = linkData?.user?.id || null;
+      const { data: existingProfile, error: updateError } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          email: userEmail,
+          display_name: payload.name || payload.given_name || userEmail.split("@")[0],
+          photo_url: payload.picture || null,
+          updated_at: updatedAt,
+        })
+        .eq("uid", supaUid)
+        .select("uid")
+        .maybeSingle();
 
-      if (actionLink) {
-        try {
-          // O backend resolve o link mágico diretamente com o GoTrue do Supabase (sem passar pelo navegador)
-          const verifyRes = await fetch(actionLink, { method: "GET", redirect: "manual" });
-          const location = verifyRes.headers.get("location") || "";
-          if (location) {
-            const hashPart = location.includes("#") ? location.split("#")[1] : (location.includes("?") ? location.split("?")[1] : "");
-            const parsedParams = new URLSearchParams(hashPart);
-            accessToken = parsedParams.get("access_token");
-            refreshToken = parsedParams.get("refresh_token");
-          }
-        } catch (ex) {
-          console.warn("[google-oauth] Erro ao resolver tokens no backend:", ex?.message || ex);
-        }
-      }
+      if (updateError) throw updateError;
 
-      try {
-        const updatedAt = new Date().toISOString();
-        const { data: existingProfile, error: updateError } = await supabaseAdmin
-          .from("profiles")
-          .update({
+      if (!existingProfile) {
+        const { error: insertError } = await supabaseAdmin.from("profiles").upsert(
+          {
+            uid: supaUid,
             email: userEmail,
+            display_name: payload.name || payload.given_name || userEmail.split("@")[0],
+            photo_url: payload.picture || null,
             updated_at: updatedAt,
-          })
-          .eq("uid", supaUid)
-          .select("uid")
-          .maybeSingle();
-        if (updateError) throw updateError;
-
-        if (!existingProfile) {
-          const { error: insertError } = await supabaseAdmin.from("profiles").upsert(
-            {
-              uid: supaUid,
-              email: userEmail,
-              display_name: payload.name || userEmail.split("@")[0],
-              photo_url: payload.picture || null,
-              updated_at: updatedAt,
-            },
-            {
-              onConflict: "uid",
-              ignoreDuplicates: true,
-            },
-          );
-          if (insertError) throw insertError;
-        }
-      } catch (err) {
-        console.warn("[google-oauth] Aviso ao atualizar perfil:", err?.message || err);
+          },
+          {
+            onConflict: "uid",
+            ignoreDuplicates: false,
+          },
+        );
+        if (insertError) throw insertError;
       }
+    } catch (err) {
+      /*
+       * Nao invalida a sessao Google se apenas a sincronizacao do perfil falhar.
+       * O AuthProvider buscara o profile novamente depois que a sessao for estabelecida.
+       */
+      console.warn("[google-oauth] Aviso ao atualizar perfil:", {
+        message: err?.message || String(err),
+        code: err?.code || null,
+      });
     }
 
     pendingDesktopGoogleStates.set(state, {
       status: "complete",
       email: userEmail,
-      emailOtp,
-      hashedToken,
-      actionLink,
       accessToken,
       refreshToken,
       uid: supaUid,
@@ -3560,6 +3624,7 @@ app.post("/auth/desktop/google/complete", steamAuthLimiter, async (req, res) => 
 
 app.get("/auth/desktop/google/status", steamPublicLimiter, (req, res) => {
   cleanupPendingDesktopGoogleStates();
+  res.setHeader("Cache-Control", "no-store");
 
   const state = String(req.query.state ?? "").trim();
   if (!state) {
@@ -3579,23 +3644,33 @@ app.get("/auth/desktop/google/status", steamPublicLimiter, (req, res) => {
     return;
   }
 
-  if (!pending.emailOtp && !pending.email && !pending.actionLink && !pending.accessToken) {
+  if (
+    pending.status !== "complete"
+    || !pending.accessToken
+    || !pending.refreshToken
+    || !pending.uid
+  ) {
     res.json({ status: "pending" });
     return;
   }
 
+  /*
+   * A sessao ja foi criada e validada no backend. O renderer deve apenas
+   * persistir esses tokens via supabase.auth.setSession().
+   *
+   * Nao retornamos hashed_token, email_otp ou action_link: sao credenciais
+   * one-time e nao devem ter um segundo consumidor.
+   */
   pendingDesktopGoogleStates.delete(state);
   res.json({
     status: "complete",
     email: pending.email,
-    emailOtp: pending.emailOtp,
-    hashedToken: pending.hashedToken,
-    actionLink: pending.actionLink,
     accessToken: pending.accessToken,
     refreshToken: pending.refreshToken,
     uid: pending.uid,
   });
 });
+
 
 app.get("/auth/steam/callback", steamAuthLimiter, async (req, res) => {
   cleanupPendingStates();
@@ -3654,32 +3729,48 @@ app.get("/auth/steam/callback", steamAuthLimiter, async (req, res) => {
 
 app.get("/auth/discord/callback", steamAuthLimiter, async (req, res) => {
   cleanupPendingDiscordStates();
-  const state = String(req.query.state ?? "");
+
+  const state = String(req.query.state ?? "").trim();
   const pending = pendingDiscordStates.get(state);
+
   if (!pending) {
+    console.warn("[discord-oauth] callback rejeitado: state ausente, expirado ou desconhecido.");
     res.redirect(buildLauncherAuthCallback("discord", "invalid_state"));
     return;
   }
+
+  // State e one-time: depois que o callback valido chega, ele nao pode ser reutilizado.
   pendingDiscordStates.delete(state);
+
+  const linkedUserUid = String(pending.userUid || pending.firebaseUid || "").trim();
+  if (!linkedUserUid) {
+    console.error("[discord-oauth] callback sem UID Pherielium associado.");
+    res.redirect(buildLauncherAuthCallback("discord", "invalid_state"));
+    return;
+  }
 
   const oauthError = String(req.query.error ?? "").trim();
   if (oauthError) {
+    console.warn("[discord-oauth] autorizacao negada/cancelada:", oauthError.slice(0, 120));
     res.redirect(buildLauncherAuthCallback("discord", "denied"));
     return;
   }
 
   const code = String(req.query.code ?? "").trim();
   if (!code) {
+    console.warn("[discord-oauth] callback sem authorization code.");
     res.redirect(buildLauncherAuthCallback("discord", "missing_code"));
     return;
   }
 
   if (!discordClientId || !discordClientSecret) {
+    console.error("[discord-oauth] DISCORD_CLIENT_ID/DISCORD_CLIENT_SECRET ausentes.");
     res.redirect(buildLauncherAuthCallback("discord", "client_not_configured"));
     return;
   }
 
   if (!supabaseAdmin) {
+    console.error("[discord-oauth] Supabase Admin nao configurado.");
     res.redirect(buildLauncherAuthCallback("discord", "server_not_configured"));
     return;
   }
@@ -3688,49 +3779,91 @@ app.get("/auth/discord/callback", steamAuthLimiter, async (req, res) => {
     const { response: tokenResponse, payload: tokenPayload } =
       await requestDiscordToken(code);
 
-    if (!tokenResponse.ok) {
+    if (!tokenResponse.ok || !tokenPayload?.access_token) {
+      console.error("[discord-oauth] token exchange falhou:", {
+        status: tokenResponse.status,
+        error: String(tokenPayload?.error || "unknown").slice(0, 120),
+        description: String(tokenPayload?.error_description || "").slice(0, 240),
+      });
       res.redirect(buildLauncherAuthCallback("discord", "token_error"));
       return;
     }
 
+    const tokenType = String(tokenPayload.token_type || "Bearer");
     const userResponse = await fetch(discordCurrentUserEndpoint, {
       headers: {
-        Authorization: `${tokenPayload.token_type ?? "Bearer"} ${tokenPayload.access_token}`,
+        Authorization: `${tokenType} ${tokenPayload.access_token}`,
       },
     });
     const discordUser = await userResponse.json().catch(() => ({}));
 
     if (!userResponse.ok || !discordUser?.id) {
+      console.error("[discord-oauth] /users/@me falhou:", {
+        status: userResponse.status,
+        discordError: String(discordUser?.message || "").slice(0, 240),
+      });
       res.redirect(buildLauncherAuthCallback("discord", "missing_id"));
       return;
     }
 
     const username = discordDisplayName(discordUser);
     const avatar = discordAvatarUrl(discordUser);
+
+    // Falha ao ler relationships nao deve impedir a vinculacao da conta.
     const discordFriends = await fetchDiscordFriends(
       tokenPayload.access_token,
-      tokenPayload.token_type ?? "Bearer",
+      tokenType,
     );
 
-    await updateLinkedAccountProfile(pending.userUid || pending.firebaseUid, {
-      discord_id: String(discordUser.id),
-      discord_username: username,
-      discord_avatar: avatar,
-      discord_friends: discordFriends,
+    try {
+      await updateLinkedAccountProfile(linkedUserUid, {
+        discord_id: String(discordUser.id),
+        discord_username: username,
+        discord_avatar: avatar,
+        discord_friends: discordFriends,
+      });
+    } catch (profileError) {
+      const isDuplicateDiscord =
+        String(profileError?.code || "") === "23505"
+        && /discord|profiles_discord_id_unique/i.test(
+          `${profileError?.message || ""} ${profileError?.details || ""} ${profileError?.hint || ""}`,
+        );
+
+      console.error("[discord-oauth] Falha ao persistir conta vinculada:", {
+        code: profileError?.code || null,
+        message: String(profileError?.message || profileError).slice(0, 300),
+        userUid: linkedUserUid,
+      });
+
+      if (isDuplicateDiscord) {
+        res.redirect(buildLauncherAuthCallback("discord", "already_linked"));
+        return;
+      }
+
+      throw profileError;
+    }
+
+    console.info("[discord-oauth] conta vinculada com sucesso:", {
+      userUid: linkedUserUid,
+      friendsImported: discordFriends.length,
     });
 
     res.type("html").send(
       renderAuthSuccessScreen("Discord", buildLauncherAuthCallback("discord", "ok")),
     );
   } catch (error) {
-    console.error("[discord] Falha ao concluir vinculacao:", error);
+    console.error("[discord-oauth] Falha ao concluir vinculacao:", {
+      code: error?.code || null,
+      message: String(error?.message || error).slice(0, 300),
+    });
     res.redirect(buildLauncherAuthCallback("discord", "error"));
   }
 });
 
-app.post("/api/steam/disconnect", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+
+app.post("/api/steam/disconnect", steamPrivateLimiter, requireAuth, async (req, res) => {
   try {
-    await updateLinkedAccountProfile(req.firebaseUser.uid, {
+    await updateLinkedAccountProfile(req.supabaseUser.uid, {
       steam_id: null,
       steam_username: null,
       steam_avatar: null,
@@ -3742,9 +3875,9 @@ app.post("/api/steam/disconnect", steamPrivateLimiter, requireFirebaseUser, asyn
   }
 });
 
-app.post("/api/discord/disconnect", steamPrivateLimiter, requireFirebaseUser, async (req, res) => {
+app.post("/api/discord/disconnect", steamPrivateLimiter, requireAuth, async (req, res) => {
   try {
-    await updateLinkedAccountProfile(req.firebaseUser.uid, {
+    await updateLinkedAccountProfile(req.supabaseUser.uid, {
       discord_id: null,
       discord_username: null,
       discord_avatar: null,
@@ -3756,7 +3889,7 @@ app.post("/api/discord/disconnect", steamPrivateLimiter, requireFirebaseUser, as
   }
 });
 
-app.get("/api/steam/library", steamPrivateLimiter, requireFirebaseUser, requireLinkedSteamId, async (req, res) => {
+app.get("/api/steam/library", steamPrivateLimiter, requireAuth, requireLinkedSteamId, async (req, res) => {
   if (!steamApiKey) {
     res
       .status(500)
@@ -3804,7 +3937,7 @@ app.get("/api/steam/library", steamPrivateLimiter, requireFirebaseUser, requireL
       return null;
     });
     if (steamProfile) {
-      await updateLinkedAccountProfile(req.firebaseUser.uid, steamProfile);
+      await updateLinkedAccountProfile(req.supabaseUser.uid, steamProfile);
     }
 
     res.json({
@@ -3821,7 +3954,7 @@ app.get("/api/steam/library", steamPrivateLimiter, requireFirebaseUser, requireL
   }
 });
 
-app.get("/api/steam/current-game", steamPrivateLimiter, requireFirebaseUser, requireLinkedSteamId, async (req, res) => {
+app.get("/api/steam/current-game", steamPrivateLimiter, requireAuth, requireLinkedSteamId, async (req, res) => {
   if (!steamApiKey) {
     res.status(500).json({ error: "STEAM_API_KEY não configurada no backend." });
     return;
@@ -3873,7 +4006,7 @@ app.get("/api/steam/current-game", steamPrivateLimiter, requireFirebaseUser, req
   }
 });
 
-app.post("/api/steam/achievement-summary", steamPrivateLimiter, requireFirebaseUser, steamAchievementSummaryLimiter, requireLinkedSteamId, async (req, res) => {
+app.post("/api/steam/achievement-summary", steamPrivateLimiter, requireAuth, steamAchievementSummaryLimiter, requireLinkedSteamId, async (req, res) => {
   if (!steamApiKey) {
     res.status(500).json({ error: "STEAM_API_KEY não configurada no backend." });
     return;
@@ -4144,7 +4277,7 @@ app.get("/api/steam/app-size", steamPublicLimiter, async (req, res) => {
   }
 });
 
-app.get("/api/steam/achievements", steamPrivateLimiter, requireFirebaseUser, requireLinkedSteamId, async (req, res) => {
+app.get("/api/steam/achievements", steamPrivateLimiter, requireAuth, requireLinkedSteamId, async (req, res) => {
   if (!steamApiKey) {
     res
       .status(500)

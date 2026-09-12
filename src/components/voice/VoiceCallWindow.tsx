@@ -52,9 +52,9 @@ import { ChannelInviteModal } from "./ChannelInviteModal";
 import { CallPrivacyPanel } from "./CallPrivacyPanel";
 import { CreateChannelModal } from "./CreateChannelModal";
 import { CallTelemetryLeft, CallTelemetryRight } from "./CallTelemetryOverlay";
-import spaceBgVideo from "../../assets/Space-BG.mp4";
-import friendCallingVideo from "../../assets/BG-Video-Calling.mp4";
-import friendConnectedVideo from "../../assets/BG-Video-Friend.mp4";
+import spaceBgVideo from "../../assets/Space-BG.webm";
+import friendCallingVideo from "../../assets/BG-Video-Calling.webm";
+import friendConnectedVideo from "../../assets/BG-Video-Friend.webm";
 
 interface VoiceCallWindowProps {
   isOpen: boolean;
@@ -2568,9 +2568,8 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                   <button
                     type="button"
                     onClick={onToggleMute}
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all cursor-pointer ${
-                      isMuted ? "bg-rose-500 text-white shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all cursor-pointer ${isMuted ? "bg-rose-500 text-white shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
+                      }`}
                     title={isMuted ? "Desmutar microfone" : "Mutar microfone"}
                   >
                     {isMuted ? <MicOff className="h-4.5 w-4.5" /> : <Mic className="h-4.5 w-4.5" />}
@@ -2580,9 +2579,8 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                   <button
                     type="button"
                     onClick={onToggleDeafen}
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all cursor-pointer ${
-                      isDeafened ? "bg-rose-500 text-white shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all cursor-pointer ${isDeafened ? "bg-rose-500 text-white shadow-lg" : "bg-white/10 text-white hover:bg-white/20"
+                      }`}
                     title={isDeafened ? "Reativar áudio" : "Desativar áudio"}
                   >
                     {isDeafened ? <VolumeX className="h-4.5 w-4.5" /> : <Volume2 className="h-4.5 w-4.5" />}

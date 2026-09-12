@@ -459,12 +459,22 @@ const LoginContent: React.FC = () => {
       setTimeout(() => navigate("/app", { replace: true }), 1500);
       return;
     } catch (err: any) {
-      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+      const msg = String(err?.message || "").toLowerCase();
+      if (
+        err.code === "auth/user-not-found" ||
+        err.code === "auth/wrong-password" ||
+        err.code === "auth/invalid-credential" ||
+        err.code === "invalid_credentials" ||
+        msg.includes("invalid login credentials") ||
+        msg.includes("invalid credential")
+      ) {
         setError("E-mail ou senha incorretos.");
-      } else if (err.code === "auth/email-already-in-use") {
+      } else if (err.code === "auth/email-already-in-use" || msg.includes("already registered") || msg.includes("already in use")) {
         setError("Este e-mail já está em uso.");
-      } else if (err.code === "auth/weak-password") {
+      } else if (err.code === "auth/weak-password" || msg.includes("password should be at least")) {
         setError("A senha deve ter pelo menos 6 caracteres.");
+      } else if (err?.message) {
+        setError(err.message);
       } else {
         setError("Ocorreu um erro. Tente novamente.");
       }

@@ -31,6 +31,7 @@ import {
 import achievementUnlockDefault from "../sounds/Phelierium Default/Achievment_Unlock.mp3";
 import achievementUnlockGold from "../sounds/Phelierium Default/Achievment_Unlock_Gold.mp3";
 import achievementUnlockPlatinum from "../sounds/Phelierium Default/Achievment_Unlock_Platinum.mp3";
+import { soundThemes } from "../hooks/useSoundEffects";
 import { Button } from "@/components/ui/Shandc/button";
 import { useGamepadButton } from "../context/GamepadContext";
 import { useGamepadFocusNavigation } from "../hooks/useGamepadFocusNavigation";
@@ -143,17 +144,23 @@ export interface CommandPanelState {
 }
 
 // ─── Gerenciamento de Sons ─────────────────────────────────────────────────────
-const playOverlaySound = (type: "unlock" | "welcome" | "toast" | "toggle" | "unlockGold" | "unlockPlatinum") => {
+const playOverlaySound = (
+  type: "unlock" | "welcome" | "toast" | "toggle" | "unlockGold" | "unlockPlatinum",
+  theme: string = "default",
+  volume: number = 0.5,
+) => {
   try {
     if (type === "unlock" || type === "unlockGold" || type === "unlockPlatinum") {
+      const normalizedTheme = theme === "playstation" ? "ps2" : theme === "phelierium" ? "default" : theme;
+      const themeSounds = (soundThemes as any)[normalizedTheme] || soundThemes.default;
       const src =
         type === "unlockPlatinum"
-          ? achievementUnlockPlatinum
+          ? (themeSounds.overlayAchievementPlatinum || achievementUnlockPlatinum)
           : type === "unlockGold"
-          ? achievementUnlockGold
-          : achievementUnlockDefault;
+          ? (themeSounds.overlayAchievementGold || themeSounds.overlayAchievement || achievementUnlockGold)
+          : (themeSounds.overlayAchievement || achievementUnlockDefault);
       const audio = new Audio(src);
-      audio.volume = 0.5;
+      audio.volume = Math.max(0, Math.min(1, volume));
       audio.play().catch((e) => overlayLogger.warn("Falha ao tocar som de conquista:", e));
       return;
     }
@@ -199,6 +206,11 @@ const OverlayApp: React.FC = () => {
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [activeCall, setActiveCall] = useState<ActiveCallState | null>(null);
   const [autoContrast, setAutoContrast] = useState(false);
+
+  const panelDataRef = useRef<CommandPanelState>(panelData);
+  useEffect(() => {
+    panelDataRef.current = panelData;
+  }, [panelData]);
 
   const toastTimersRef = useRef<Map<string, number>>(new Map());
   const chatMessagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -288,8 +300,30 @@ const OverlayApp: React.FC = () => {
         currentLevel: payload.currentLevel,
         currentXP: payload.currentXP,
       };
-      playOverlaySound(tier === "platinum" ? "unlockPlatinum" : tier === "gold" ? "unlockGold" : "unlock");
+      const theme = panelDataRef.current?.settings?.achievementSoundTheme || "default";
+      const vol = typeof panelDataRef.current?.settings?.achievementVolume === "number"
+        ? panelDataRef.current.settings.achievementVolume / 100
+        : 0.5;
+      playOverlaySound(
+        tier === "platinum" ? "unlockPlatinum" : tier === "gold" ? "unlockGold" : "unlock",
+        theme,
+        vol
+      );
       addToast(toast, 6500);
+    });
+
+    const unbindPlaySound = api.onPlaySound?.(({ sound, volume, theme }: any) => {
+      const vol = typeof volume === "number" ? volume / 100 : 0.35;
+      const t = theme || panelDataRef.current?.settings?.achievementSoundTheme || "default";
+      if (sound === "achievement-unlock-platinum") {
+        playOverlaySound("unlockPlatinum", t, vol);
+      } else if (sound === "achievement-unlock-gold") {
+        playOverlaySound("unlockGold", t, vol);
+      } else if (sound === "achievement-unlock") {
+        playOverlaySound("unlock", t, vol);
+      } else if (sound === "screenshot") {
+        playOverlaySound("toast", t, vol);
+      }
     });
 
     const unbindWelcome = api.onWelcome?.((payload: any) => {
@@ -355,6 +389,7 @@ const OverlayApp: React.FC = () => {
 
     return () => {
       unbindUnlock?.();
+      unbindPlaySound?.();
       unbindWelcome?.();
       unbindSocial?.();
       unbindVisibility?.();

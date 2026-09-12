@@ -131,7 +131,7 @@ describe("TrophiesPage", () => {
 
     expect(screen.getByRole("heading", { name: "Alan Wake 2" })).toBeDefined();
     expect(screen.getByText("Epic Games")).toBeDefined();
-    expect(screen.getByText("50%")).toBeDefined();
+    expect(screen.getByText("50% Concluído")).toBeDefined();
   });
 
   it("handles large game collections efficiently with windowed rendering", () => {

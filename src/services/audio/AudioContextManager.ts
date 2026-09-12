@@ -14,7 +14,7 @@ class AudioContextManager {
   private refCount = 0;
   private sinkId: string | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): AudioContextManager {
     if (!AudioContextManager.instance) {
@@ -27,7 +27,7 @@ class AudioContextManager {
     if (this.ctx && this.ctx.state !== "closed") {
       this.refCount++;
       if (this.ctx.state === "suspended") {
-        await this.ctx.resume().catch(() => {});
+        await this.ctx.resume().catch(() => { });
       }
       return this.ctx;
     }
@@ -46,7 +46,7 @@ class AudioContextManager {
     if (this.sinkId && typeof (this.ctx as any).setSinkId === "function") {
       try {
         await (this.ctx as any).setSinkId(this.sinkId === "default" ? "" : this.sinkId);
-      } catch {}
+      } catch { }
     }
 
     return this.ctx;
@@ -75,7 +75,7 @@ class AudioContextManager {
     if (this.ctx && this.ctx.state !== "closed") {
       try {
         await this.ctx.close();
-      } catch {}
+      } catch { }
       this.ctx = null;
       this.refCount = 0;
     }

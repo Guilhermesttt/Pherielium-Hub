@@ -14,6 +14,7 @@ app.commandLine.appendSwitch("force-fieldtrials", "WebRTC-H264HighProfile/Enable
 app.commandLine.appendSwitch("js-flags", "--max-old-space-size=512");
 app.commandLine.appendSwitch("disable-background-timer-throttling", "false");
 app.commandLine.appendSwitch("disable-renderer-backgrounding", "false");
+app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
 const { execFile, spawn } = require("node:child_process");
 const fs = require("node:fs");
@@ -110,6 +111,14 @@ const resolveAppUrl = () => {
   return envUrl || PROD_BACKEND_URL;
 };
 const APP_URL = resolveAppUrl();
+const APP_PROTOCOLS = new Set(["phelierium:", "pherielium:", "checkpoint:"]);
+const REGISTERED_PROTOCOLS = ["phelierium", "pherielium", "checkpoint", "nxm"];
+const ACCOUNT_AUTH_CALLBACK_TTL_MS = 10 * 60 * 1000;
+const AUTH_PROVIDER_START_TIMEOUT_MS = 35_000;
+const AUTH_PROVIDER_START_PATHS = Object.freeze({
+  steam: "/auth/steam/start",
+  discord: "/auth/discord/start",
+});
 const IS_SMOKE_TEST = process.argv.includes("--smoke-test");
 const AUTO_START_ARG = "--checkpoint-autostart";
 const IS_AUTO_START = process.argv.includes(AUTO_START_ARG);
@@ -169,10 +178,10 @@ let activePresenceSession = null;
 
 const sendDirectOfflineSync = () => {
   if (!activePresenceSession?.uid) return;
-  const { uid, token, apiUrl } = activePresenceSession;
-  const baseUrl = (apiUrl || "http://127.0.0.1:8787").replace(/\/$/, "");
-  const url = `${baseUrl}/api/presence?status=offline${token ? `&token=${encodeURIComponent(token)}` : ""}`;
-  const body = JSON.stringify({ status: "offline", token });
+  const { token, apiUrl } = activePresenceSession;
+  const baseUrl = (apiUrl || APP_URL).replace(/\/$/, "");
+  const url = `${baseUrl}/api/presence?status=offline`;
+  const body = JSON.stringify({ status: "offline" });
   try {
     void fetch(url, {
       method: "POST",
@@ -181,11 +190,64 @@ const sendDirectOfflineSync = () => {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body,
-    }).catch(() => { });
-  } catch { }
+    }).catch((error) => {
+      appendStartupLog("Presence offline sync failed.", error);
+    });
+  } catch (error) {
+    appendStartupLog("Presence offline sync threw before fetch.", error);
+  }
 };
 
 let mainWindow;
+let splashWindow = null;
+
+const createSplashWindow = () => {
+  if (IS_AUTO_START || IS_SMOKE_TEST) return;
+  if (splashWindow && !splashWindow.isDestroyed()) return;
+  try {
+    splashWindow = new BrowserWindow({
+      width: 440,
+      height: 480,
+      frame: false,
+      transparent: true,
+      center: true,
+      alwaysOnTop: true,
+      resizable: false,
+      hasShadow: false,
+      skipTaskbar: true,
+      show: false,
+      backgroundColor: "#00000000",
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        backgroundThrottling: false,
+        spellcheck: false,
+      },
+    });
+
+    splashWindow.webContents.setAudioMuted(false);
+
+    const splashPath = path.join(__dirname, "splash.html");
+
+    splashWindow.once("ready-to-show", () => {
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.show();
+        splashWindow.focus();
+        splashWindow.webContents.executeJavaScript("window.startSplashAppearance?.();").catch(() => { });
+      }
+    });
+
+    splashWindow.loadFile(splashPath).catch((err) => {
+      console.warn("[splash] Falha ao carregar splash:", err);
+    });
+
+    splashWindow.on("closed", () => {
+      splashWindow = null;
+    });
+  } catch (err) {
+    console.warn("[splash] Falha ao criar splashWindow:", err);
+  }
+};
 
 const windowBehaviorController = createWindowBehaviorController({
   hideWindow: () => {
@@ -338,7 +400,7 @@ if (process.platform === "win32") {
 }
 
 if (!IS_SMOKE_TEST) {
-  for (const protocol of ["phelierium", "pherielium", "checkpoint", "nxm"]) {
+  for (const protocol of REGISTERED_PROTOCOLS) {
     if (!app.isPackaged) {
       app.setAsDefaultProtocolClient(protocol, process.execPath, [
         path.resolve(app.getAppPath()),
@@ -371,28 +433,29 @@ const appendStartupLog = (message, error) => {
   console.error(content.trimEnd());
 };
 
+const sanitizeAuthStatus = (value) => {
+  const normalized = String(value || "").trim();
+  if (!normalized || normalized.length > 40) return null;
+  return /^[a-z0-9_-]+$/i.test(normalized) ? normalized : null;
+};
+
 const parseAccountAuthCallback = (rawUrl) => {
   try {
     const callbackUrl = new URL(String(rawUrl || ""));
-    if (
-      (callbackUrl.protocol !== "phelierium:" &&
-        callbackUrl.protocol !== "pherielium:" &&
-        callbackUrl.protocol !== "checkpoint:") ||
-      callbackUrl.hostname !== "auth"
-    ) {
+    if (!APP_PROTOCOLS.has(callbackUrl.protocol) || callbackUrl.hostname !== "auth") {
       return null;
     }
     if (callbackUrl.pathname.replace(/\/$/, "") !== "/callback") {
       return null;
     }
 
-    const steamStatus = callbackUrl.searchParams.get("steamStatus");
-    const discordStatus = callbackUrl.searchParams.get("discordStatus");
+    const steamStatus = sanitizeAuthStatus(callbackUrl.searchParams.get("steamStatus"));
+    const discordStatus = sanitizeAuthStatus(callbackUrl.searchParams.get("discordStatus"));
     if (!steamStatus && !discordStatus) return null;
 
     return {
-      ...(steamStatus ? { steamStatus: steamStatus.slice(0, 40) } : {}),
-      ...(discordStatus ? { discordStatus: discordStatus.slice(0, 40) } : {}),
+      ...(steamStatus ? { steamStatus } : {}),
+      ...(discordStatus ? { discordStatus } : {}),
     };
   } catch {
     return null;
@@ -404,18 +467,101 @@ const findAccountAuthCallback = (args) =>
     .map(parseAccountAuthCallback)
     .find(Boolean) || null;
 
+const getPendingAccountAuthCallback = () => {
+  if (!pendingAccountAuthCallback) return null;
+  if (Date.now() - pendingAccountAuthCallback.receivedAt > ACCOUNT_AUTH_CALLBACK_TTL_MS) {
+    pendingAccountAuthCallback = null;
+    return null;
+  }
+  return pendingAccountAuthCallback;
+};
+
+const publishPendingAccountAuthCallback = () => {
+  const pending = getPendingAccountAuthCallback();
+  if (!pending || !mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isLoading()) {
+    return false;
+  }
+  mainWindow.webContents.send("auth:account-callback", {
+    ...pending.payload,
+    callbackId: pending.id,
+    receivedAt: pending.receivedAt,
+  });
+  return true;
+};
+
 const deliverAccountAuthCallback = (payload) => {
   if (!payload) return;
-  pendingAccountAuthCallback = payload;
+  pendingAccountAuthCallback = {
+    id: crypto.randomUUID(),
+    payload,
+    receivedAt: Date.now(),
+  };
 
   if (!mainWindow || mainWindow.isDestroyed()) return;
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
   mainWindow.focus();
+  publishPendingAccountAuthCallback();
+};
 
-  if (!mainWindow.webContents.isLoading()) {
-    mainWindow.webContents.send("auth:account-callback", payload);
-    pendingAccountAuthCallback = null;
+const fetchJsonFromBackend = async (pathname, options = {}, timeoutMs = AUTH_PROVIDER_START_TIMEOUT_MS) => {
+  const requestId = crypto.randomUUID();
+  const url = new URL(pathname, APP_URL);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const startedAt = Date.now();
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        ...(options.headers || {}),
+      },
+    });
+    const rawBody = await response.text();
+    let payload = null;
+    if (rawBody) {
+      try {
+        payload = JSON.parse(rawBody);
+      } catch {
+        payload = null;
+      }
+    }
+
+    if (!response.ok) {
+      const error = new Error(
+        String(payload?.error || payload?.message || `Backend respondeu HTTP ${response.status}.`).slice(0, 300),
+      );
+      error.statusCode = response.status;
+      error.requestId = requestId;
+      throw error;
+    }
+
+    console.info(`[auth-network] ${requestId} ${options.method || "GET"} ${url.pathname} -> ${response.status} (${Date.now() - startedAt}ms)`);
+    return { payload, response, requestId };
+  } catch (error) {
+    const kind = error?.name === "AbortError" ? "timeout" : "network";
+    appendStartupLog(
+      `[auth-network] ${requestId} ${kind} ${options.method || "GET"} ${url.pathname} after ${Date.now() - startedAt}ms`,
+      error,
+    );
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+const validateProviderAuthUrl = (provider, rawUrl) => {
+  try {
+    const url = new URL(String(rawUrl || ""));
+    if (url.protocol !== "https:") return null;
+    if (provider === "steam" && url.hostname !== "steamcommunity.com") return null;
+    if (provider === "discord" && url.hostname !== "discord.com") return null;
+    return url.toString();
+  } catch {
+    return null;
   }
 };
 
@@ -961,9 +1107,7 @@ const isExternalProtocol = (rawUrl) => {
     return (
       protocol === "steam:" ||
       protocol === "com.epicgames.launcher:" ||
-      protocol === "phelierium:" ||
-      protocol === "pherielium:" ||
-      protocol === "checkpoint:"
+      APP_PROTOCOLS.has(protocol)
     );
   } catch {
     return false;
@@ -981,7 +1125,7 @@ const isSafeOpenExternalUrl = (rawUrl) => {
     return (
       url.protocol === "steam:" ||
       url.protocol === "com.epicgames.launcher:" ||
-      url.protocol === "checkpoint:" ||
+      APP_PROTOCOLS.has(url.protocol) ||
       url.protocol === "nxm:"
     );
   } catch {
@@ -1146,6 +1290,8 @@ const showFatalStartupError = (error) => {
 };
 
 const createWindow = async () => {
+  createSplashWindow();
+
   const hasLocalDist = Boolean(getLocalDistIndexPath());
   if (!process.env.ELECTRON_START_URL && !hasLocalDist) {
     await waitForServer();
@@ -1195,18 +1341,60 @@ const createWindow = async () => {
     },
   );
 
-  mainWindow.once("ready-to-show", () => {
-    if (!IS_AUTO_START) {
-      mainWindow.show();
+  let mainReady = false;
+  let minSplashDurationPassed = false;
+  let splashTransitioned = false;
+
+  const tryTransitionFromSplash = () => {
+    if (splashTransitioned) return;
+    if (!mainReady || !minSplashDurationPassed) return;
+    splashTransitioned = true;
+
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      try {
+        splashWindow.webContents.executeJavaScript(
+          "document.getElementById('splashCard')?.classList.add('fading-out');"
+        ).catch(() => { });
+      } catch { }
+
+      setTimeout(() => {
+        if (splashWindow && !splashWindow.isDestroyed()) {
+          splashWindow.destroy();
+          splashWindow = null;
+        }
+        if (!IS_AUTO_START && mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      }, 420);
+    } else {
+      if (!IS_AUTO_START && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
     }
-  });
-  // Fallback: if ready-to-show didn't fire (e.g., renderer crash), show anyway after 1.5s
+  };
+
+  const minSplashTimeMs = splashWindow ? 4500 : 0;
   setTimeout(() => {
-    if (!IS_AUTO_START && mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
-      console.warn("[main] ready-to-show nao disparou, forçando exibicao da janela");
-      mainWindow.show();
+    minSplashDurationPassed = true;
+    tryTransitionFromSplash();
+  }, minSplashTimeMs);
+
+  mainWindow.once("ready-to-show", () => {
+    mainReady = true;
+    tryTransitionFromSplash();
+  });
+
+  // Fallback: se ready-to-show demorar mais de 7.5s, força exibicao
+  setTimeout(() => {
+    if (!splashTransitioned) {
+      console.warn("[main] Fallback de transicao do splash disparado");
+      mainReady = true;
+      minSplashDurationPassed = true;
+      tryTransitionFromSplash();
     }
-  }, 1500);
+  }, 7500);
 
   mainWindow.webContents.on(
     "did-fail-load",
@@ -1227,10 +1415,7 @@ const createWindow = async () => {
     );
   });
   mainWindow.webContents.on("did-finish-load", () => {
-    if (pendingAccountAuthCallback) {
-      mainWindow.webContents.send("auth:account-callback", pendingAccountAuthCallback);
-      pendingAccountAuthCallback = null;
-    }
+    publishPendingAccountAuthCallback();
   });
 
   mainWindow.webContents.on("before-input-event", (event, input) => {
@@ -4371,18 +4556,84 @@ registerSecureIpcHandler("auth:start-google-browser", async () => {
   return { state };
 });
 
+registerSecureIpcHandler("auth:start-linked-account-browser", async (_event, request) => {
+  const provider = String(request?.provider || "").trim().toLowerCase();
+  const accessToken = String(request?.accessToken || "").trim();
+  const openBrowser = request?.openBrowser !== false;
+  const pathname = AUTH_PROVIDER_START_PATHS[provider];
+
+  if (!pathname) {
+    throw new Error("Provedor de autenticacao invalido.");
+  }
+  if (!accessToken || accessToken.length > 8192 || /[\r\n]/.test(accessToken)) {
+    throw new Error("Sessao do usuario ausente ou invalida.");
+  }
+
+  const { payload, requestId } = await fetchJsonFromBackend(pathname, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: "{}",
+  });
+
+  const providerUrl = validateProviderAuthUrl(provider, payload?.url);
+  if (!providerUrl) {
+    appendStartupLog(`[auth-network] ${requestId} backend returned invalid ${provider} auth URL.`);
+    throw new Error(`O backend retornou uma URL de autenticacao ${provider} invalida.`);
+  }
+
+  // `openBrowser: false` exists for backward compatibility with the current
+  // renderer services: main performs the authenticated backend request, returns
+  // the validated provider URL, and the renderer opens it through shell IPC.
+  // Newer callers can omit the flag and let main open the browser directly.
+  if (openBrowser) {
+    await shell.openExternal(providerUrl);
+  }
+
+  return {
+    ok: true,
+    provider,
+    requestId,
+    url: providerUrl,
+    opened: openBrowser,
+  };
+});
+
+registerSecureIpcHandler("auth:get-pending-account-callback", () => {
+  const pending = getPendingAccountAuthCallback();
+  if (!pending) return null;
+  return {
+    callbackId: pending.id,
+    receivedAt: pending.receivedAt,
+    ...pending.payload,
+  };
+});
+
+registerSecureIpcHandler("auth:ack-account-callback", (_event, callbackId) => {
+  const pending = getPendingAccountAuthCallback();
+  if (!pending) return false;
+  if (String(callbackId || "") !== pending.id) return false;
+  pendingAccountAuthCallback = null;
+  return true;
+});
+
 registerSecureIpcHandler("auth:poll-google-status", async (_event, state) => {
   if (!state || typeof state !== "string") {
     return { status: "error", error: "State invalido." };
   }
   try {
-    const statusUrl = new URL(`/auth/desktop/google/status?state=${encodeURIComponent(state)}`, APP_URL);
-    const response = await fetch(statusUrl.toString());
-    if (!response.ok) {
-      return { status: "pending" };
-    }
-    return await response.json();
+    const { payload } = await fetchJsonFromBackend(
+      `/auth/desktop/google/status?state=${encodeURIComponent(state)}`,
+      { method: "GET" },
+      12_000,
+    );
+    return payload || { status: "pending" };
   } catch (error) {
+    if (Number(error?.statusCode) >= 400 && Number(error?.statusCode) < 500) {
+      return { status: "error", error: error.message || "Falha ao consultar login Google." };
+    }
     return { status: "pending" };
   }
 });
@@ -4490,17 +4741,24 @@ registerSecureIpcHandler("overlay:set-achievement-volume", async (_event, reques
     settings: { ...overlayPanelState.settings, achievementVolume },
   };
   saveOverlaySettings();
+  if (overlayReady && overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.webContents.send("overlay:panel-state", overlayPanelState);
+  }
   return { volume: achievementVolume };
 });
 
 registerSecureIpcHandler("overlay:set-achievement-sound-theme", async (_event, requestedTheme) => {
+  const normalized = requestedTheme === "playstation" ? "ps2" : requestedTheme === "phelierium" ? "default" : requestedTheme;
   const supportedThemes = new Set(["default", "ps5", "ps4", "psp", "ps2", "gamecube", "xbox360", "cyberpunk"]);
-  achievementSoundTheme = supportedThemes.has(requestedTheme) ? requestedTheme : "default";
+  achievementSoundTheme = supportedThemes.has(normalized) ? normalized : "default";
   overlayPanelState = {
     ...overlayPanelState,
     settings: { ...overlayPanelState.settings, achievementSoundTheme },
   };
   saveOverlaySettings();
+  if (overlayReady && overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.webContents.send("overlay:panel-state", overlayPanelState);
+  }
   return { theme: achievementSoundTheme };
 });
 
@@ -4882,8 +5140,9 @@ app.whenReady().then(async () => {
         if (Number.isFinite(savedAchievementVolume)) {
           achievementVolume = Math.min(100, Math.max(0, Math.round(savedAchievementVolume)));
         }
-        if (["ps5", "ps4", "psp", "ps2", "gamecube", "xbox360", "cyberpunk"].includes(saved?.achievementSoundTheme)) {
-          achievementSoundTheme = saved.achievementSoundTheme;
+        if (["default", "phelierium", "ps5", "ps4", "psp", "ps2", "playstation", "gamecube", "xbox360", "cyberpunk"].includes(saved?.achievementSoundTheme)) {
+          const s = saved.achievementSoundTheme;
+          achievementSoundTheme = s === "playstation" ? "ps2" : s === "phelierium" ? "default" : s;
         }
         achievementNotificationsEnabled = saved?.achievementNotificationsEnabled !== false;
         customAchievementNotifications = saved?.customAchievementNotifications !== false;
@@ -5026,6 +5285,10 @@ app.on("will-quit", () => {
 
 app.on("before-quit", () => {
   isQuitting = true;
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    splashWindow.destroy();
+    splashWindow = null;
+  }
   sendDirectOfflineSync();
   try {
     if (mainWindow && !mainWindow.isDestroyed()) {

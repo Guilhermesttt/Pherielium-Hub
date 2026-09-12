@@ -3,6 +3,61 @@ const { contextBridge, ipcRenderer } = require("electron");
 // Allowed overlay action IDs to prevent arbitrary commands
 const ALLOWED_OVERLAY_ACTION_IDS = new Set(["open-friend", "accept-request", "open-chat", "custom"]);
 
+// Linked-account auth is intentionally restricted to providers supported by main.cjs.
+const ALLOWED_LINKED_ACCOUNT_PROVIDERS = new Set(["steam", "discord"]);
+const AUTH_STATUS_PATTERN = /^[a-z0-9_-]{1,40}$/i;
+const AUTH_CALLBACK_ID_PATTERN = /^[a-f0-9-]{16,64}$/i;
+
+function sanitizeLinkedAccountProvider(value) {
+  const provider = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (!ALLOWED_LINKED_ACCOUNT_PROVIDERS.has(provider)) {
+    throw new TypeError("Provedor de autenticacao invalido.");
+  }
+  return provider;
+}
+
+function sanitizeAccessToken(value) {
+  const token = typeof value === "string" ? value.trim() : "";
+  if (!token || token.length > 8192 || /[\r\n]/.test(token)) {
+    throw new TypeError("Sessao do usuario ausente ou invalida.");
+  }
+  return token;
+}
+
+function sanitizeCallbackId(value) {
+  const callbackId = typeof value === "string" ? value.trim() : "";
+  if (!AUTH_CALLBACK_ID_PATTERN.test(callbackId)) {
+    throw new TypeError("Callback de autenticacao invalido.");
+  }
+  return callbackId;
+}
+
+function sanitizeAccountAuthCallback(payload) {
+  if (!payload || typeof payload !== "object") return null;
+
+  const steamStatus = typeof payload.steamStatus === "string" && AUTH_STATUS_PATTERN.test(payload.steamStatus)
+    ? payload.steamStatus
+    : undefined;
+  const discordStatus = typeof payload.discordStatus === "string" && AUTH_STATUS_PATTERN.test(payload.discordStatus)
+    ? payload.discordStatus
+    : undefined;
+  const callbackId = typeof payload.callbackId === "string" && AUTH_CALLBACK_ID_PATTERN.test(payload.callbackId)
+    ? payload.callbackId
+    : undefined;
+  const receivedAt = Number.isFinite(Number(payload.receivedAt))
+    ? Number(payload.receivedAt)
+    : undefined;
+
+  if (!steamStatus && !discordStatus) return null;
+
+  return {
+    ...(steamStatus ? { steamStatus } : {}),
+    ...(discordStatus ? { discordStatus } : {}),
+    ...(callbackId ? { callbackId } : {}),
+    ...(receivedAt !== undefined ? { receivedAt } : {}),
+  };
+}
+
 function sanitizeString(value, max = 1024) {
   if (typeof value !== "string") return undefined;
   return value.slice(0, max);
@@ -62,7 +117,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   logoutEpic: () => ipcRenderer.invoke("epic:logout"),
   validateEpicSession: () => ipcRenderer.invoke("epic:validate-session"),
   onEpicProgress: (callback) => {
-    if (typeof callback !== "function") return () => {};
+    if (typeof callback !== "function") return () => { };
     const handler = (_event, payload) => callback(payload);
     ipcRenderer.on("epic:progress", handler);
     return () => ipcRenderer.removeListener("epic:progress", handler);
@@ -74,10 +129,78 @@ contextBridge.exposeInMainWorld("electronAPI", {
   detectRunningGames: (executablePaths) => ipcRenderer.invoke("launcher:detect-running-games", executablePaths),
   startGoogleBrowserAuth: () => ipcRenderer.invoke("auth:start-google-browser"),
   pollGoogleBrowserAuth: (state) => ipcRenderer.invoke("auth:poll-google-status", state),
+
+  // Steam/Discord OAuth starts in main.cjs so packaged Electron does not depend on
+  // renderer-origin CORS (file:// -> remote backend). The access token is only
+  // forwarded over IPC to the trusted main process and is never persisted here.
+  startLinkedAccountBrowser: (provider, accessToken, options = {}) =>
+    ipcRenderer.invoke("auth:start-linked-account-browser", {
+      provider: sanitizeLinkedAccountProvider(provider),
+      accessToken: sanitizeAccessToken(accessToken),
+      openBrowser: options?.openBrowser !== false,
+    }),
+
+  // Pull-based recovery for callbacks that arrived before React registered its
+  // event listener. main.cjs keeps the callback pending until explicit ACK.
+  getPendingAccountAuthCallback: async () =>
+    sanitizeAccountAuthCallback(
+      await ipcRenderer.invoke("auth:get-pending-account-callback"),
+    ),
+
+  ackAccountAuthCallback: (callbackId) =>
+    ipcRenderer.invoke(
+      "auth:ack-account-callback",
+      sanitizeCallbackId(callbackId),
+    ),
+
   onAccountAuthCallback: (callback) => {
-    const handler = (_event, payload) => callback(payload);
+    if (typeof callback !== "function") return () => { };
+
+    let disposed = false;
+    const deliveredCallbackIds = new Set();
+
+    const deliver = async (payload) => {
+      if (disposed) return;
+
+      const sanitized = sanitizeAccountAuthCallback(payload);
+      if (!sanitized) return;
+
+      const callbackId = sanitized.callbackId;
+      if (callbackId && deliveredCallbackIds.has(callbackId)) return;
+      if (callbackId) deliveredCallbackIds.add(callbackId);
+
+      try {
+        await callback(sanitized);
+        if (callbackId) {
+          await ipcRenderer.invoke("auth:ack-account-callback", callbackId);
+        }
+      } catch (error) {
+        // Keep callback pending in main when renderer processing fails so it can
+        // be retried after reload/re-subscription.
+        if (callbackId) deliveredCallbackIds.delete(callbackId);
+        console.error("[preload/auth] Failed to process account auth callback:", error);
+      }
+    };
+
+    const handler = (_event, payload) => {
+      void deliver(payload);
+    };
+
     ipcRenderer.on("auth:account-callback", handler);
-    return () => ipcRenderer.removeListener("auth:account-callback", handler);
+
+    // Close the startup race: if OAuth completed before React subscribed, main
+    // still owns the callback and we consume it now.
+    void ipcRenderer
+      .invoke("auth:get-pending-account-callback")
+      .then((payload) => deliver(payload))
+      .catch((error) => {
+        console.warn("[preload/auth] Could not read pending auth callback:", error);
+      });
+
+    return () => {
+      disposed = true;
+      ipcRenderer.removeListener("auth:account-callback", handler);
+    };
   },
   setOpenAtLogin: (open) => ipcRenderer.invoke("system:set-open-at-login", open),
   setWindowBehavior: (behavior) => ipcRenderer.invoke("system:set-window-behavior", behavior),

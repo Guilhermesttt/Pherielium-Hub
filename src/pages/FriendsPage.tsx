@@ -14,7 +14,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Gamepad2,
+  UserPlus,
+  RadioReceiver,
+  Loader2,
 } from "lucide-react";
+import {
+  MessageSquare as AnimateUIMessageSquare,
+  Radio as AnimateUIRadio,
+  UserPlus as AnimateUIUserPlus,
+  Users as AnimateUIUsers,
+} from "../components/animate-ui/icons";
 import { SystemPageShell } from "../components/ui/SystemPageShell";
 import ModalShell from "../components/ui/ModalShell";
 import { StandardEmptyState } from "../components/ui/StateViews";
@@ -22,7 +31,6 @@ import { usePreferences, type LauncherLanguage } from "../context/PreferencesCon
 import { searchCheckpointFriends } from "../services/checkpointFriends";
 import type { CheckpointFriendRequest, SocialFriend, UserProfile } from "../types/domain";
 import type { SoundEffectType } from "../hooks/useSoundEffects";
-import { FriendsSubTabs, type SocialSubTab } from "../components/social/FriendsSubTabs";
 import { VoiceRoomsTab } from "../components/voice/VoiceRoomsTab";
 import { useVoiceCallContext } from "../context/VoiceCallContext";
 import { useAuth } from "../auth/AuthProvider";
@@ -32,6 +40,8 @@ import { useGamepadButton } from "../context/GamepadContext";
 
 type TranslationFn = ReturnType<typeof usePreferences>["t"];
 type BrandIcon = React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+
+export type SocialSubTab = "AMIGOS" | "CHAT" | "SALAS" | "SOLICITAÇÕES";
 
 export interface FriendsPageProps {
   t: TranslationFn;
@@ -86,7 +96,7 @@ const FriendOnlineCard = React.memo<{
   const handleProfile = useCallback(() => onViewFriendProfile(friend), [friend, onViewFriendProfile]);
   const handleMouseEnter = useCallback(() => playSound?.("hover"), [playSound]);
 
-    return (
+  return (
     <div
       data-friend-id={friend.id}
       className="group relative rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.10] hover:border-white/20 p-3.5 transition-[transform,background-color,border-color] duration-160 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] backdrop-blur-md flex flex-col justify-between transform-gpu"
@@ -94,8 +104,12 @@ const FriendOnlineCard = React.memo<{
     >
       <div>
         <div className="flex items-center gap-3 mb-2.5">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/[0.05] border border-white/15">
+          <div
+            onClick={handleProfile}
+            className="relative cursor-pointer group/avatar"
+            title="Ver perfil"
+          >
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/[0.05] border border-white/15 group-hover/avatar:border-white/40 transition-colors">
               {friend.avatar ? (
                 <img src={friend.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
               ) : (
@@ -104,22 +118,29 @@ const FriendOnlineCard = React.memo<{
                 </div>
               )}
             </div>
+            {isLoadingProfile && (
+              <div className="absolute inset-0 rounded-xl bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+                <Loader2 className="w-4 h-4 text-white animate-spin" />
+              </div>
+            )}
             <span
-              className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-black/80 ${
-                friend.status === "playing"
-                  ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]"
-                  : "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]"
-              }`}
+              className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-black/80 z-20 ${friend.status === "playing"
+                ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]"
+                : "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]"
+                }`}
             />
           </div>
 
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-display font-semibold text-white truncate">
+          <div
+            onClick={handleProfile}
+            className="min-w-0 flex-1 cursor-pointer group/name"
+            title="Ver perfil"
+          >
+            <h3 className="text-sm font-display font-semibold text-white truncate group-hover/name:text-white/80 transition-colors">
               {friend.name}
             </h3>
-            <p className={`text-xs font-body font-medium truncate ${
-              friend.status === "playing" ? "text-emerald-400 flex items-center gap-1 font-semibold" : "text-white/70"
-            }`}>
+            <p className={`text-xs font-body font-medium truncate ${friend.status === "playing" ? "text-emerald-400 flex items-center gap-1 font-semibold" : "text-white/70"
+              }`}>
               {friend.status === "playing" ? (
                 <>
                   <Gamepad2 className="w-3 h-3 text-emerald-400 shrink-0 inline" />
@@ -158,11 +179,10 @@ const FriendOnlineCard = React.memo<{
             onMouseEnter={handleMouseEnter}
             onClick={handleCall}
             title="Ligar"
-            className={`h-9 w-9 rounded-lg border transition-all duration-160 cursor-pointer flex items-center justify-center ${
-              isCallActive
-                ? "bg-white text-black border-white shadow-md animate-pulse"
-                : "bg-white/[0.05] hover:bg-white/10 border border-white/[0.08] text-white/70 hover:text-white"
-            }`}
+            className={`h-9 w-9 rounded-lg border transition-all duration-160 cursor-pointer flex items-center justify-center ${isCallActive
+              ? "bg-white text-black border-white shadow-md animate-pulse"
+              : "bg-white/[0.05] hover:bg-white/10 border border-white/[0.08] text-white/70 hover:text-white"
+              }`}
           >
             <Phone className="w-3.5 h-3.5" />
           </button>
@@ -174,10 +194,23 @@ const FriendOnlineCard = React.memo<{
           onClick={handleProfile}
           disabled={isLoadingProfile}
           title="Ver Perfil"
-          className="py-1.5 px-3 rounded-xl bg-white/[0.05] hover:bg-white/10 border border-white/[0.08] text-white text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+          className={`py-1.5 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+            isLoadingProfile
+              ? "bg-white/20 border-white/30 text-white shadow-[0_0_12px_rgba(255,255,255,0.2)] cursor-wait"
+              : "bg-white/[0.05] hover:bg-white/10 border-white/[0.08] text-white cursor-pointer"
+          }`}
         >
-          <User className="w-3.5 h-3.5 text-white/70" />
-          <span>Perfil</span>
+          {isLoadingProfile ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+              <span>Abrindo...</span>
+            </>
+          ) : (
+            <>
+              <User className="w-3.5 h-3.5 text-white/70" />
+              <span>Perfil</span>
+            </>
+          )}
         </button>
       </div>
     </div>
@@ -200,27 +233,58 @@ const FriendOnlineCard = React.memo<{
 const FriendOfflineCard = React.memo<{
   friend: SocialFriend;
   onViewFriendProfile: (friend: SocialFriend) => void;
-}>(({ friend, onViewFriendProfile }) => {
-  const handleClick = useCallback(() => onViewFriendProfile(friend), [friend, onViewFriendProfile]);
+  isLoadingProfile?: boolean;
+  playSound?: (type: SoundEffectType) => void;
+}>(({ friend, onViewFriendProfile, isLoadingProfile = false, playSound }) => {
+  const handleClick = useCallback(() => {
+    if (isLoadingProfile) return;
+    playSound?.("select");
+    onViewFriendProfile(friend);
+  }, [friend, onViewFriendProfile, isLoadingProfile, playSound]);
 
   return (
     <div
       onClick={handleClick}
-      className="shrink-0 snap-start flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/15 cursor-pointer transition-[background-color,border-color] duration-[160ms] backdrop-blur-xl shadow-md"
+      onMouseEnter={() => playSound?.("hover")}
+      className={`shrink-0 snap-start relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 backdrop-blur-xl shadow-md ${
+        isLoadingProfile
+          ? "bg-white/[0.08] border-white/40 ring-1 ring-white/25 shadow-[0_0_24px_rgba(255,255,255,0.18)] cursor-wait scale-[0.99]"
+          : "bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.08] hover:border-white/15 cursor-pointer hover:scale-[1.02]"
+      }`}
       style={{ minWidth: 190 }}
     >
-      <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/[0.04] border border-white/10 grayscale-[0.6] opacity-75 hover:opacity-100 transition-opacity">
+      <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-white/[0.04] border border-white/10 shrink-0">
         {friend.avatar ? (
-          <img src={friend.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+          <img
+            src={friend.avatar}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className={`w-full h-full object-cover transition-all duration-300 ${
+              isLoadingProfile ? "grayscale-0 opacity-100 scale-105" : "grayscale-[0.6] opacity-75 hover:opacity-100"
+            }`}
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white/30">
             <User className="w-5 h-5" />
           </div>
         )}
+        {isLoadingProfile && (
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+            <Loader2 className="w-4 h-4 text-white animate-spin" />
+          </div>
+        )}
       </div>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold text-white/80 truncate">{friend.name}</p>
-        <p className="text-[10px] font-body text-white/30">Offline</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-white/90 truncate">{friend.name}</p>
+        {isLoadingProfile ? (
+          <p className="text-[10px] font-medium text-white/90 flex items-center gap-1 animate-pulse mt-0.5">
+            <Loader2 className="w-2.5 h-2.5 animate-spin text-white shrink-0" />
+            <span>Abrindo...</span>
+          </p>
+        ) : (
+          <p className="text-[10px] font-body text-white/30">Offline</p>
+        )}
       </div>
     </div>
   );
@@ -228,7 +292,9 @@ const FriendOfflineCard = React.memo<{
   prev.friend.id === next.friend.id &&
   prev.friend.name === next.friend.name &&
   prev.friend.avatar === next.friend.avatar &&
-  prev.onViewFriendProfile === next.onViewFriendProfile
+  prev.isLoadingProfile === next.isLoadingProfile &&
+  prev.onViewFriendProfile === next.onViewFriendProfile &&
+  prev.playSound === next.playSound
 ));
 
 const FriendChatCard = React.memo<{
@@ -276,20 +342,18 @@ const FriendChatCard = React.memo<{
           )}
           {/* Indicador de status */}
           <span
-            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-black/80 ${
-              isPlaying
-                ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse"
-                : isOnline
+            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-black/80 ${isPlaying
+              ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse"
+              : isOnline
                 ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]"
                 : "bg-white/20"
-            }`}
+              }`}
           />
         </div>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-white truncate">{friend.name}</p>
-          <p className={`text-xs truncate font-medium ${
-            isPlaying ? "text-emerald-400 font-semibold flex items-center gap-1" : isOnline ? "text-white/60" : "text-white/30"
-          }`}>
+          <p className={`text-xs truncate font-medium ${isPlaying ? "text-emerald-400 font-semibold flex items-center gap-1" : isOnline ? "text-white/60" : "text-white/30"
+            }`}>
             {isPlaying ? (
               <>
                 <Gamepad2 className="w-3 h-3 text-emerald-400 shrink-0 inline" />
@@ -434,7 +498,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
     setViewMode(mode);
     try {
       localStorage.setItem("pherielium_friends_view_mode", mode);
-    } catch {}
+    } catch { }
     playSound?.("select");
   };
 
@@ -535,16 +599,66 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
       }
     >
 
-      {/* Top Sub-Tabs Navigation */}
-      <FriendsSubTabs
-        activeTab={activeSubTab}
-        onTabChange={setActiveSubTab}
-        incomingRequestsCount={incomingRequests.length}
-        totalFriendsCount={friends.length}
-        onlineCount={onlineFriends.length}
-        unreadCount={totalUnreadCount}
-        playSound={playSound}
-      />
+      {/* Top Sub-Tabs Navigation - Unified Frosted Obsidian Glass Dock */}
+      <div className="w-full flex justify-center mb-7 z-10 relative">
+        <div
+          className="flex items-center justify-between p-1.5 rounded-2xl border border-white/[0.08] shadow-2xl backdrop-blur-2xl w-full max-w-4xl"
+          style={{
+            background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.06)",
+            backdropFilter: "blur(48px) saturate(160%)",
+            WebkitBackdropFilter: "blur(48px) saturate(160%)",
+          }}
+        >
+          <nav className="flex items-center gap-1.5">
+            {[
+              { id: "AMIGOS" as SocialSubTab, label: "Amigos", icon: AnimateUIUsers },
+              { id: "CHAT" as SocialSubTab, label: "Chats", icon: AnimateUIMessageSquare, badge: totalUnreadCount },
+              { id: "SALAS" as SocialSubTab, label: "Canais de Voz", icon: AnimateUIRadio },
+              { id: "SOLICITAÇÕES" as SocialSubTab, label: "Solicitações", icon: AnimateUIUserPlus, badge: incomingRequests.length },
+            ].map((tab) => {
+              const isActive = activeSubTab === tab.id;
+              const Icon = tab.icon;
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    if (!isActive) {
+                      setActiveSubTab(tab.id);
+                      playSound?.("select");
+                    }
+                  }}
+                  onMouseEnter={() => playSound?.("hover")}
+                  className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer outline-none ${isActive
+                    ? "bg-white/[0.12] text-white shadow-sm border border-white/10"
+                    : "text-white/50 hover:text-white hover:bg-white/[0.05]"
+                    }`}
+                >
+                  <Icon size={16} animateOnHover className={isActive ? "text-white" : "text-white/40"} />
+                  <span className="tracking-wide">{tab.label}</span>
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className={`ml-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${isActive ? "bg-white/20 text-white" : "bg-white/10 text-white"}`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Badge ONLINE */}
+          <div className="pr-1.5">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] shadow-inner">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              <span className="text-[11px] font-bold text-white/80 tracking-widest uppercase">
+                Online {onlineFriends.length}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Main 2-Column Social Layout */}
       {activeSubTab === "AMIGOS" && (
@@ -552,7 +666,15 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
           {/* Left Column: User Profile Identity & Recent Social Activity (4 Cols) */}
           <div className="lg:col-span-4 flex flex-col gap-5">
             {/* User Identity Card */}
-            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+            <div
+              className="rounded-2xl border border-white/[0.08] p-5 shadow-2xl"
+              style={{
+                background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
+                backdropFilter: "blur(48px) saturate(160%)",
+                WebkitBackdropFilter: "blur(48px) saturate(160%)",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.06)",
+              }}
+            >
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative">
                   <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white/[0.05] border border-white/15 shadow-md">
@@ -633,7 +755,15 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
             </div>
 
             {/* Recent Social Activity (3 Blocks Max, strictly within last 7h) */}
-            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+            <div
+              className="rounded-2xl border border-white/[0.08] p-5 shadow-2xl"
+              style={{
+                background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
+                backdropFilter: "blur(48px) saturate(160%)",
+                WebkitBackdropFilter: "blur(48px) saturate(160%)",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.06)",
+              }}
+            >
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[10.5px] font-body font-bold uppercase tracking-[0.2em] text-white/50 flex items-center gap-1.5">
                   <Activity className="w-3.5 h-3.5 text-white/60" /> ATIVIDADE RECENTE (ÚLTIMAS 7H)
@@ -650,9 +780,18 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                   {recentActivities.map((friend, idx) => (
                     <div
                       key={friend.id || idx}
-                      className="flex items-start gap-3 p-2.5 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-all"
+                      onClick={() => {
+                        if (friendProfileLoadingId === friend.id) return;
+                        playSound?.("select");
+                        onViewFriendProfile(friend);
+                      }}
+                      className={`flex items-start gap-3 p-2.5 rounded-2xl transition-all cursor-pointer ${
+                        friendProfileLoadingId === friend.id
+                          ? "bg-white/[0.08] border border-white/30 ring-1 ring-white/20"
+                          : "bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.12] hover:bg-white/[0.05]"
+                      }`}
                     >
-                      <div className="w-9 h-9 rounded-xl overflow-hidden bg-white/[0.05] border border-white/10 shrink-0">
+                      <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-white/[0.05] border border-white/10 shrink-0">
                         {friend.avatar ? (
                           <img src={friend.avatar} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -660,11 +799,23 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                             <User className="w-4 h-4" />
                           </div>
                         )}
+                        {friendProfileLoadingId === friend.id && (
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center">
+                            <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                          </div>
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
                           <p className="text-xs font-semibold text-white truncate">{friend.name}</p>
-                          <span className="text-[9.5px] font-body text-white/30 shrink-0">Há {idx * 7 + 2} min</span>
+                          {friendProfileLoadingId === friend.id ? (
+                            <span className="text-[9.5px] font-semibold text-white/80 flex items-center gap-1 animate-pulse">
+                              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                              Abrindo...
+                            </span>
+                          ) : (
+                            <span className="text-[9.5px] font-body text-white/30 shrink-0">Há {idx * 7 + 2} min</span>
+                          )}
                         </div>
                         <p className="text-[11px] font-body text-white/50 line-clamp-1 mt-0.5">
                           {friend.status === "playing"
@@ -721,9 +872,8 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                     aria-label="Visualização em Grade"
                     aria-pressed={viewMode === "grid"}
                     onClick={() => handleSetViewMode("grid")}
-                    className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
-                      viewMode === "grid" ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
-                    }`}
+                    className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${viewMode === "grid" ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
+                      }`}
                   >
                     <LayoutGrid className="w-4 h-4" />
                   </button>
@@ -732,9 +882,8 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                     aria-label="Visualização em Lista"
                     aria-pressed={viewMode === "list"}
                     onClick={() => handleSetViewMode("list")}
-                    className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
-                      viewMode === "list" ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
-                    }`}
+                    className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${viewMode === "list" ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
+                      }`}
                   >
                     <ListFilter className="w-4 h-4" />
                   </button>
@@ -821,7 +970,9 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                     <FriendOfflineCard
                       key={friend.id}
                       friend={friend}
+                      isLoadingProfile={friendProfileLoadingId === friend.id}
                       onViewFriendProfile={onViewFriendProfile}
+                      playSound={playSound}
                     />
                   ))}
                 </div>
@@ -833,7 +984,15 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
 
       {/* SubTab: CHATS */}
       {activeSubTab === "CHAT" && (
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+        <div
+          className="rounded-2xl border border-white/[0.08] p-6 shadow-2xl"
+          style={{
+            background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
+            backdropFilter: "blur(48px) saturate(160%)",
+            WebkitBackdropFilter: "blur(48px) saturate(160%)",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.06)",
+          }}
+        >
           <div className="mb-6 flex items-center justify-between border-b border-white/[0.06] pb-4">
             <div>
               <h2 className="text-lg font-display font-bold text-white">Conversas Recentes</h2>
@@ -883,7 +1042,15 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
 
       {/* SubTab: SOLICITAÇÕES */}
       {activeSubTab === "SOLICITAÇÕES" && (
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+        <div
+          className="rounded-2xl border border-white/[0.08] p-6 shadow-2xl"
+          style={{
+            background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
+            backdropFilter: "blur(48px) saturate(160%)",
+            WebkitBackdropFilter: "blur(48px) saturate(160%)",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.06)",
+          }}
+        >
           <div className="mb-6 flex items-center justify-between border-b border-white/[0.06] pb-4">
             <div>
               <h2 className="text-lg font-display font-bold text-white">Solicitações de Amizade</h2>

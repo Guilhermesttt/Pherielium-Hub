@@ -1041,9 +1041,14 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [hapticsEnabled]);
 
   useEffect(() => {
-    if (!user?.uid || hydratedPreferencesUid !== user.uid) return;
+    try { localStorage.setItem("checkpoint_achievement_volume_global", String(achievementVolume)); } catch {}
     void window.electronAPI?.setAchievementVolume?.(achievementVolume).catch(console.error);
-  }, [achievementVolume, hydratedPreferencesUid, user?.uid]);
+  }, [achievementVolume]);
+
+  useEffect(() => {
+    try { localStorage.setItem("checkpoint_sound_theme_global", soundTheme); } catch {}
+    void window.electronAPI?.setAchievementSoundTheme?.(soundTheme).catch(console.error);
+  }, [soundTheme]);
 
   useEffect(() => {
     if (!user?.uid || hydratedPreferencesUid !== user.uid) return;

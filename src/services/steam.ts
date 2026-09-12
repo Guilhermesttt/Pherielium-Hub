@@ -1,5 +1,12 @@
 import { supabase } from "./supabase";
-import { apiUrl, getAuthHeaders } from "./api";
+import {
+  AUTH_TIMEOUT_MS,
+  AuthRequiredError,
+  apiFetch,
+  apiUrl,
+  getAuthHeaders,
+  getUsableSession,
+} from "./api";
 import type { Game, SteamOwnedGame } from "../types/domain";
 import type { LauncherLanguage } from "../context/PreferencesContext";
 import {
@@ -42,33 +49,91 @@ export interface SteamCurrentGameResult {
 
 
 
-export const getSteamLinkUrl = async () => {
-  const headers = await getAuthHeaders();
-  if (!headers.Authorization) {
-    throw new Error("Sessão expirada. Entre novamente para sincronizar a Steam.");
+type ElectronLinkedAuthResult = {
+  ok?: boolean;
+  provider?: string;
+  requestId?: string;
+  url?: string;
+  opened?: boolean;
+};
+
+const getElectronApi = () =>
+  typeof window !== "undefined" ? (window.electronAPI as any) : null;
+
+/**
+ * Resolve a URL de OAuth da Steam.
+ *
+ * No Electron empacotado, a chamada autenticada ao backend acontece no main
+ * process via IPC, evitando CORS de `file://` -> Render. Mantemos o retorno da
+ * URL por compatibilidade com o fluxo atual de useAccountConnections, que abre
+ * a URL usando `openExternalUrl`.
+ *
+ * No browser comum, fazemos fallback para o backend via apiFetch().
+ */
+export const getSteamLinkUrl = async (): Promise<string> => {
+  const session = await getUsableSession();
+  const accessToken = session?.access_token;
+
+  if (!accessToken) {
+    throw new AuthRequiredError(
+      "Sessão expirada. Entre novamente para sincronizar a Steam.",
+    );
   }
-  const response = await fetch(apiUrl("/auth/steam/start"), {
+
+  const electronApi = getElectronApi();
+  if (typeof electronApi?.startLinkedAccountBrowser === "function") {
+    const result = (await electronApi.startLinkedAccountBrowser(
+      "steam",
+      accessToken,
+      { openBrowser: false },
+    )) as ElectronLinkedAuthResult | null;
+
+    if (!result?.ok || !result.url) {
+      throw new Error(
+        "O processo principal não retornou a URL de autenticação da Steam.",
+      );
+    }
+
+    return result.url;
+  }
+
+  // Browser/web fallback. apiFetch centraliza sessão, timeout e diagnóstico.
+  const response = await apiFetch("/auth/steam/start", {
     method: "POST",
-    headers,
+    authenticated: true,
+    timeoutMs: AUTH_TIMEOUT_MS,
   });
+
+  const payload = (await response
+    .json()
+    .catch(() => ({}))) as { url?: string; error?: string };
+
   if (!response.ok) {
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new Error(payload.error || "Nao foi possivel iniciar a conexao com a Steam.");
+    throw new Error(
+      payload.error || "Não foi possível iniciar a conexão com a Steam.",
+    );
   }
-  const payload = (await response.json()) as { url?: string };
+
   if (!payload.url) {
-    throw new Error("Backend nao retornou a URL de autenticacao da Steam.");
+    throw new Error("Backend não retornou a URL de autenticação da Steam.");
   }
+
   return payload.url;
 };
 
 export const disconnectSteamAccount = async () => {
-  const response = await fetch(apiUrl("/api/steam/disconnect"), {
+  const response = await apiFetch("/api/steam/disconnect", {
     method: "POST",
-    headers: await getAuthHeaders(),
+    authenticated: true,
+    timeoutMs: AUTH_TIMEOUT_MS,
   });
+
   if (!response.ok) {
-    throw new Error("Falha ao desconectar Steam.");
+    const payload = (await response
+      .json()
+      .catch(() => ({}))) as { error?: string };
+
+    throw new Error(payload.error || "Falha ao desconectar Steam.");
   }
 };
 
@@ -506,10 +571,10 @@ export const syncSteamLibraryToLocal = async (
     const existingDocId = appIdToDocId.get(appIdStr);
     const id = existingDocId || `${uid}_steam_${owned.appid}`;
 
-const buildSteamAssets = (appid: number) => ({
-  image: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appid}/library_hero.jpg`,
-  cardImage: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appid}/library_600x900_2x.jpg`,
-});
+    const buildSteamAssets = (appid: number) => ({
+      image: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appid}/library_hero.jpg`,
+      cardImage: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${appid}/library_600x900_2x.jpg`,
+    });
 
     const assets = buildSteamAssets(owned.appid);
     const details = detailsCache.get(appIdStr);

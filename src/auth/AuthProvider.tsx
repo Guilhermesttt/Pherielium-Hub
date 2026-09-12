@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { supabase } from "../services/supabase";
-import { apiUrl } from "../services/api";
+import { apiUrl, refreshSupabaseSessionOnce } from "../services/api";
 import { cleanupAllChannels } from "../services/voiceCall";
 import { markCheckpointOfflineSync } from "../services/checkpointFriends";
 import type { UserProfile } from "../types/domain";
@@ -67,17 +67,93 @@ const toProfile = (uid: string, data?: Record<string, any>): UserProfile => {
   };
 };
 
+
+const wait = (ms: number) => new Promise<void>((resolve) => {
+  globalThis.setTimeout(resolve, ms);
+});
+
+const isTransientSessionEstablishmentError = (error: unknown) => {
+  const candidate = error as {
+    name?: string;
+    message?: string;
+    status?: number;
+    code?: string;
+  } | null;
+
+  const name = String(candidate?.name || "").toLowerCase();
+  const message = String(candidate?.message || error || "").toLowerCase();
+  const status = Number(candidate?.status || 0);
+
+  return (
+    status === 0
+    || name.includes("retryable")
+    || name.includes("fetch")
+    || /failed to fetch|network|connection|econnreset|err_connection_reset|timeout|temporarily unavailable/.test(message)
+  );
+};
+
+const establishSessionFromBackendTokens = async (
+  accessToken: string,
+  refreshToken: string,
+) => {
+  if (!accessToken || !refreshToken) {
+    throw new Error("Backend nao retornou uma sessao Supabase completa.");
+  }
+
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (attempt > 0) {
+      await wait(attempt === 1 ? 500 : 1_200);
+    }
+
+    try {
+      const { data, error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+
+      if (!error && data?.session) {
+        return;
+      }
+
+      lastError = error || new Error("Supabase nao retornou uma sessao valida.");
+
+      if (!isTransientSessionEstablishmentError(lastError)) {
+        break;
+      }
+
+      console.warn(
+        `[Auth] Falha transitoria ao persistir sessao Google; nova tentativa ${attempt + 2}/3.`,
+      );
+    } catch (error) {
+      lastError = error;
+
+      if (!isTransientSessionEstablishmentError(error)) {
+        break;
+      }
+
+      console.warn(
+        `[Auth] Erro de rede ao persistir sessao Google; nova tentativa ${attempt + 2}/3.`,
+      );
+    }
+  }
+
+  const message = lastError instanceof Error
+    ? lastError.message
+    : "Falha desconhecida ao persistir a sessao.";
+
+  throw new Error(`Nao foi possivel concluir o login Google: ${message}`);
+};
+
 const loadSocialGraph = async (uid: string) => {
   const { data: relationships, error } = await supabase
     .from("friendships")
     .select("requester_id,addressee_id,status,created_at")
     .or(`requester_id.eq.${uid},addressee_id.eq.${uid}`);
   if (error || !relationships) {
-    return {
-      checkpointFriends: [],
-      checkpointFriendRequestsIncoming: [],
-      checkpointFriendRequestsOutgoing: [],
-    };
+    console.warn("[Auth] Falha ao carregar social graph:", error);
+    return null;
   }
 
   const relatedIds = [...new Set(relationships.map((relationship) =>
@@ -142,47 +218,145 @@ const loadSocialGraph = async (uid: string) => {
   };
 };
 
+const mergeTransientProfile = (
+  fallback: UserProfile,
+  previous: UserProfile | null,
+): UserProfile => ({
+  ...fallback,
+  steamId: fallback.steamId ?? previous?.steamId,
+  steamAvatar: fallback.steamAvatar ?? previous?.steamAvatar,
+  steamUsername: fallback.steamUsername ?? previous?.steamUsername,
+  discordId: fallback.discordId ?? previous?.discordId,
+  discordUsername: fallback.discordUsername ?? previous?.discordUsername,
+  discordAvatar: fallback.discordAvatar ?? previous?.discordAvatar,
+  retroAchievementsUlid:
+    fallback.retroAchievementsUlid ?? previous?.retroAchievementsUlid,
+  retroAchievementsUsername:
+    fallback.retroAchievementsUsername ?? previous?.retroAchievementsUsername,
+  checkpointFriends:
+    fallback.checkpointFriends ?? previous?.checkpointFriends,
+  checkpointFriendRequestsIncoming:
+    fallback.checkpointFriendRequestsIncoming ?? previous?.checkpointFriendRequestsIncoming,
+  checkpointFriendRequestsOutgoing:
+    fallback.checkpointFriendRequestsOutgoing ?? previous?.checkpointFriendRequestsOutgoing,
+});
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const userProfileRef = useRef<UserProfile | null>(null);
+
+  const commitUserProfile = useCallback((profile: UserProfile | null) => {
+    userProfileRef.current = profile;
+    setUserProfile(profile);
+  }, []);
+
+  // Mantem o ref coerente inclusive para atualizacoes feitas por outros handlers.
+  useEffect(() => {
+    userProfileRef.current = userProfile;
+  }, [userProfile]);
 
   const fetchProfile = useCallback(async (uid: string, fallbackUser?: AuthUser): Promise<UserProfile | null> => {
+    const buildCachedFallback = () => {
+      let cachedData: Record<string, any> | null = null;
+      try {
+        const rawCached = localStorage.getItem(`phelierium_profile_cache_${uid}`);
+        if (rawCached) cachedData = JSON.parse(rawCached);
+      } catch {
+        // Cache corrompido/indisponivel nao deve derrubar o auth.
+      }
+
+      return toProfile(uid, {
+        email: fallbackUser?.email ?? cachedData?.email,
+        displayName:
+          fallbackUser?.displayName ??
+          cachedData?.displayName ??
+          cachedData?.display_name ??
+          fallbackUser?.email?.split("@")[0] ??
+          "User",
+        photoURL:
+          fallbackUser?.photoURL ??
+          cachedData?.photoURL ??
+          cachedData?.photo_url,
+        steamId: cachedData?.steamId ?? cachedData?.steam_id,
+        steamAvatar: cachedData?.steamAvatar ?? cachedData?.steam_avatar,
+        steamUsername: cachedData?.steamUsername ?? cachedData?.steam_username,
+        discordId: cachedData?.discordId ?? cachedData?.discord_id,
+        discordUsername: cachedData?.discordUsername ?? cachedData?.discord_username,
+        discordAvatar: cachedData?.discordAvatar ?? cachedData?.discord_avatar,
+      });
+    };
+
+    const useLastKnownProfile = () => {
+      const effectiveProfile = mergeTransientProfile(
+        buildCachedFallback(),
+        userProfileRef.current,
+      );
+      commitUserProfile(effectiveProfile);
+      return effectiveProfile;
+    };
+
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("uid", uid)
         .maybeSingle();
 
+      // Se o PostgREST indicar JWT expirado/invalido, tenta UM refresh compartilhado
+      // e repete a leitura uma unica vez.
+      if (error && (error.code === "PGRST301" || /jwt|expired|token|unauthoriz/i.test(error.message || ""))) {
+        const refreshedSession = await refreshSupabaseSessionOnce();
+        if (refreshedSession) {
+          const retryRes = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("uid", uid)
+            .maybeSingle();
+          data = retryRes.data;
+          error = retryRes.error;
+        }
+      }
+
       if (error || !data) {
-        const fallback = toProfile(uid, {
-          email: fallbackUser?.email,
-          displayName: fallbackUser?.displayName || fallbackUser?.email?.split("@")[0] || "User",
-          photoURL: fallbackUser?.photoURL,
-        });
-        setUserProfile(fallback);
-        return fallback;
+        if (error) {
+          console.warn("[Auth] Perfil indisponivel; usando ultimo estado conhecido:", error.message);
+        }
+        return useLastKnownProfile();
+      }
+
+      try {
+        localStorage.setItem(`phelierium_profile_cache_${uid}`, JSON.stringify(data));
+      } catch {
+        // Falha de cache nao invalida um perfil carregado com sucesso.
       }
 
       const socialGraph = await loadSocialGraph(uid);
-      const prof = {
-        ...toProfile(uid, data),
-        ...socialGraph,
-      };
-      setUserProfile(prof);
+      const baseProfile = toProfile(uid, data);
+      const previous = userProfileRef.current;
+
+      const prof: UserProfile = socialGraph
+        ? {
+          ...baseProfile,
+          ...socialGraph,
+        }
+        : {
+          ...baseProfile,
+          checkpointFriends: previous?.checkpointFriends,
+          checkpointFriendRequestsIncoming: previous?.checkpointFriendRequestsIncoming,
+          checkpointFriendRequestsOutgoing: previous?.checkpointFriendRequestsOutgoing,
+        };
+
+      // Uma resposta valida do banco e autoritativa. Se steam_id/discord_id vier null,
+      // a desconexao e real e NAO deve ser sobrescrita pelo cache anterior.
+      commitUserProfile(prof);
       return prof;
     } catch (err) {
       console.error("[Auth] Falha ao carregar perfil do Supabase Postgres:", err);
-      const fallback = toProfile(uid, {
-        email: fallbackUser?.email,
-        displayName: fallbackUser?.displayName || fallbackUser?.email?.split("@")[0] || "User",
-        photoURL: fallbackUser?.photoURL,
-      });
-      setUserProfile(fallback);
-      return fallback;
+      return useLastKnownProfile();
     }
-  }, []);
+  }, [commitUserProfile]);
 
   const refreshProfile = useCallback(async (): Promise<UserProfile | null> => {
     if (!user?.uid) return null;
@@ -196,102 +370,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!state) throw new Error("Falha ao iniciar autenticação Google.");
 
       const deadline = Date.now() + 120_000;
+
       while (Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await wait(1_500);
+
+        let data: any = null;
+
         try {
-          let data: any = null;
           if (typeof (window.electronAPI as any).pollGoogleBrowserAuth === "function") {
             data = await (window.electronAPI as any).pollGoogleBrowserAuth(state);
           } else {
-            const statusRes = await fetch(apiUrl(`/auth/desktop/google/status?state=${encodeURIComponent(state)}`));
-            if (statusRes.ok) {
-              data = await statusRes.json();
+            const statusRes = await fetch(
+              apiUrl(`/auth/desktop/google/status?state=${encodeURIComponent(state)}`),
+            );
+
+            if (!statusRes.ok) {
+              throw new Error(`Falha ao consultar login Google (HTTP ${statusRes.status}).`);
             }
+
+            data = await statusRes.json();
           }
-
-          if (data?.status === "error") {
-            throw new Error(data.error || "Falha na autenticação do Google.");
+        } catch (pollError) {
+          // Oscilacoes de rede durante o polling podem ser tentadas novamente.
+          if (isTransientSessionEstablishmentError(pollError)) {
+            continue;
           }
-          if (data?.status === "complete") {
-            let sessionEstablished = false;
-
-            // Prioridade Máxima: Tokens já autenticados e trocados diretamente pelo Backend
-            if (data.accessToken && data.refreshToken) {
-              const { error: sessionErr } = await supabase.auth.setSession({
-                access_token: data.accessToken,
-                refresh_token: data.refreshToken,
-              });
-              if (!sessionErr) {
-                return;
-              }
-            }
-
-            // Estratégia 1: token_hash com type 'email' (padrão GoTrue Supabase v2 para generateLink)
-            if (data.hashedToken) {
-              const { data: res, error: hashError } = await supabase.auth.verifyOtp({
-                token_hash: data.hashedToken,
-                type: "email",
-              });
-              if (!hashError && res?.session) {
-                sessionEstablished = true;
-              }
-            }
-
-            // Estratégia 2: token_hash com type 'magiclink'
-            if (!sessionEstablished && data.hashedToken) {
-              const { data: res, error: hashError } = await supabase.auth.verifyOtp({
-                token_hash: data.hashedToken,
-                type: "magiclink",
-              });
-              if (!hashError && res?.session) {
-                sessionEstablished = true;
-              }
-            }
-
-            // Estratégia 3: email_otp com type 'email'
-            if (!sessionEstablished && data.email && data.emailOtp) {
-              const { data: res, error: emailOtpError } = await supabase.auth.verifyOtp({
-                email: data.email,
-                token: data.emailOtp,
-                type: "email",
-              });
-              if (!emailOtpError && res?.session) {
-                sessionEstablished = true;
-              }
-            }
-
-            // Estratégia 4: email_otp com type 'magiclink'
-            if (!sessionEstablished && data.email && data.emailOtp) {
-              const { data: res, error: magicOtpError } = await supabase.auth.verifyOtp({
-                email: data.email,
-                token: data.emailOtp,
-                type: "magiclink",
-              });
-              if (!magicOtpError && res?.session) {
-                sessionEstablished = true;
-              }
-            }
-
-            if (sessionEstablished) {
-              return;
-            }
-          }
-        } catch (pollErr: any) {
-          if (pollErr?.message && !pollErr.message.includes("Failed to fetch") && !pollErr.message.includes("NetworkError")) {
-            throw pollErr;
-          }
+          throw pollError;
         }
+
+        if (!data || data.status === "pending") {
+          continue;
+        }
+
+        if (data.status === "error") {
+          throw new Error(data.error || "Falha na autenticação do Google.");
+        }
+
+        if (data.status !== "complete") {
+          throw new Error(`Status inesperado no login Google: ${String(data.status || "desconhecido")}.`);
+        }
+
+        if (!data.accessToken || !data.refreshToken) {
+          throw new Error(
+            "O backend concluiu o login Google sem retornar uma sessão Supabase válida.",
+          );
+        }
+
+        /*
+         * O backend ja consumiu o token hash one-time e criou a sessao.
+         * O renderer NUNCA deve chamar verifyOtp novamente com esse mesmo token.
+         */
+        await establishSessionFromBackendTokens(
+          String(data.accessToken),
+          String(data.refreshToken),
+        );
+
+        return;
       }
+
       throw new Error("Tempo limite excedido aguardando login do Google. Tente novamente.");
-    } else {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: window.location.origin,
-        },
-      });
-      if (error) throw error;
     }
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+
+    if (error) throw error;
   }, []);
 
   const signUpWithEmail = useCallback(async (email: string, pass: string) => {
@@ -327,7 +474,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           localStorage.removeItem("checkpoint_epic_linked_uid");
           localStorage.removeItem(`checkpoint_epic_user_${user.uid}`);
-        } catch {}
+          localStorage.removeItem(`phelierium_profile_cache_${user.uid}`);
+        } catch { }
       }
     } catch (e) {
       console.warn("Erro ao limpar cache de logout:", e);
@@ -335,49 +483,140 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut().catch((e) => console.warn("[Auth] signOut error:", e));
     cleanupAllChannels();
     setUser(null);
-    setUserProfile(null);
-  }, [user, userProfile]);
+    commitUserProfile(null);
+  }, [user, userProfile, commitUserProfile]);
 
   useEffect(() => {
     let isMounted = true;
 
-    // Safety timeout: nunca prender a interface em carregamento indefinido se o auth demorar
-    const safetyTimeoutId = setTimeout(() => {
+    // Safety timeout: nunca prender a interface em carregamento indefinido se o auth demorar.
+    const safetyTimeoutId = window.setTimeout(() => {
       if (isMounted) setLoading(false);
-    }, 4000);
+    }, 6000);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!isMounted) return;
-      try {
-        if (session?.user) {
-          const authUser: AuthUser = {
-            uid: session.user.id,
-            email: session.user.email,
-            displayName: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split("@")[0] || "User",
-            photoURL: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null,
-          };
-          setUser(authUser);
-          await fetchProfile(session.user.id, authUser);
-        } else {
-          setUser(null);
-          setUserProfile(null);
-        }
-      } catch (err) {
-        console.warn("[Auth] Erro ao sincronizar estado de autenticação:", err);
-      } finally {
-        if (isMounted) {
-          clearTimeout(safetyTimeoutId);
-          setLoading(false);
-        }
+    const toAuthUser = (session: any): AuthUser => ({
+      uid: session.user.id,
+      email: session.user.email,
+      displayName:
+        session.user.user_metadata?.full_name ||
+        session.user.user_metadata?.name ||
+        session.user.email?.split("@")[0] ||
+        "User",
+      photoURL:
+        session.user.user_metadata?.avatar_url ||
+        session.user.user_metadata?.picture ||
+        null,
+    });
+
+    const hydrateFromSession = async (session: any) => {
+      if (!isMounted || !session?.user) return;
+      const authUser = toAuthUser(session);
+      setUser(authUser);
+      await fetchProfile(session.user.id, authUser);
+      if (isMounted) {
+        window.clearTimeout(safetyTimeoutId);
+        setLoading(false);
       }
+    };
+
+    // 1. Recuperacao proativa no mount. Se o refresh falhar por rede, mantemos a
+    // sessao persistida para conseguir hidratar o perfil/cache local offline.
+    const fetchInitialSession = async () => {
+      if (typeof supabase?.auth?.getSession !== "function") {
+        if (isMounted) setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.warn("[Auth] Falha ao recuperar sessao:", error.message);
+        }
+
+        let session = data?.session;
+        if (!isMounted) return;
+
+        if (!session?.user) {
+          setLoading(false);
+          return;
+        }
+
+        const expiresSoon =
+          Boolean(session.expires_at) &&
+          session.expires_at! * 1000 < Date.now() + 30_000;
+
+        if (expiresSoon) {
+          const refreshed = await refreshSupabaseSessionOnce();
+          if (refreshed) {
+            session = refreshed;
+          } else {
+            console.warn("[Auth] Refresh inicial indisponivel; mantendo sessao local conhecida.");
+          }
+        }
+
+        await hydrateFromSession(session);
+      } catch (error) {
+        console.warn("[Auth] Recuperacao inicial falhou:", error);
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    void fetchInitialSession();
+
+    // 2. O callback do Supabase deve permanecer SINCRONO. Fazer await de outra API
+    // Supabase dentro de onAuthStateChange pode bloquear o cliente. Chamadas que
+    // precisam acessar PostgREST sao adiadas para o proximo tick.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+
+      if (event === "INITIAL_SESSION") {
+        return;
+      }
+
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        commitUserProfile(null);
+        window.clearTimeout(safetyTimeoutId);
+        setLoading(false);
+        return;
+      }
+
+      if (!session?.user) {
+        return;
+      }
+
+      const authUser = toAuthUser(session);
+      setUser(authUser);
+
+      // Rotacao de access token nao significa alteracao do perfil Steam/Discord.
+      if (event === "TOKEN_REFRESHED") {
+        window.clearTimeout(safetyTimeoutId);
+        setLoading(false);
+        return;
+      }
+
+      window.setTimeout(() => {
+        if (!isMounted) return;
+
+        void fetchProfile(session.user.id, authUser)
+          .catch((error) => {
+            console.warn("[Auth] Falha ao atualizar perfil apos evento:", event, error);
+          })
+          .finally(() => {
+            if (isMounted) {
+              window.clearTimeout(safetyTimeoutId);
+              setLoading(false);
+            }
+          });
+      }, 0);
     });
 
     return () => {
       isMounted = false;
-      clearTimeout(safetyTimeoutId);
+      window.clearTimeout(safetyTimeoutId);
       subscription.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [fetchProfile, commitUserProfile]);
 
   useEffect(() => {
     if (!user?.uid || typeof (supabase as any)?.channel !== "function") return;
@@ -419,11 +658,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!user?.uid) return;
 
-    const interval = setInterval(() => {
-      if (document.hasFocus()) {
+    const interval = window.setInterval(() => {
+      const online = typeof navigator === "undefined" || navigator.onLine;
+      if (document.hasFocus() && online) {
         void refreshProfile();
       }
-    }, 12_000);
+    }, 60_000);
 
     const onFocus = () => {
       void refreshProfile();
@@ -431,7 +671,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener("focus", onFocus);
 
     return () => {
-      clearInterval(interval);
+      window.clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
   }, [user?.uid, refreshProfile]);
@@ -450,13 +690,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUserProfile((prev) => {
         if (!prev) return prev;
         if (detail.uid && prev.uid && detail.uid !== prev.uid) return prev;
-        return {
+        const next = {
           ...prev,
           displayName: detail.displayName || prev.displayName,
           photoURL: detail.photoURL !== undefined ? detail.photoURL : prev.photoURL,
           bio: detail.bio !== undefined ? detail.bio : prev.bio,
           favoriteGenres: detail.favoriteGenres !== undefined ? detail.favoriteGenres : prev.favoriteGenres,
         };
+        userProfileRef.current = next;
+        return next;
       });
       setUser((prev) => {
         if (!prev) return prev;

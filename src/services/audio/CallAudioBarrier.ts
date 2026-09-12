@@ -27,7 +27,7 @@ export function createCallAudioBarrier(
   const ctx = new AudioCtx({ sampleRate: 48000, latencyHint: "interactive" });
 
   if (ctx.state === "suspended") {
-    ctx.resume().catch(() => {});
+    ctx.resume().catch(() => { });
   }
 
   // 1. Entrada do áudio da tela capturada
@@ -100,7 +100,7 @@ export function createCallAudioBarrier(
         if (!currentActiveSet.has(st)) {
           try {
             sourceNode.disconnect();
-          } catch {}
+          } catch { }
           remoteSources.delete(st);
         }
       });
@@ -112,10 +112,10 @@ export function createCallAudioBarrier(
             const node = ctx.createMediaStreamSource(st);
             node.connect(callMonitorGain);
             remoteSources.set(st, node);
-          } catch {}
+          } catch { }
         }
       });
-    } catch {}
+    } catch { }
   };
 
   // Loop de monitoramento de energia e atenuação sidechain (a cada ~16ms)
@@ -168,7 +168,7 @@ export function createCallAudioBarrier(
     remoteSources.forEach((node) => {
       try {
         node.disconnect();
-      } catch {}
+      } catch { }
     });
     remoteSources.clear();
 
@@ -181,17 +181,17 @@ export function createCallAudioBarrier(
       voiceBandGain.disconnect();
       callMonitorGain.disconnect();
       callAnalyser.disconnect();
-    } catch {}
+    } catch { }
 
     try {
       destination.stream.getTracks().forEach((t) => t.stop());
-    } catch {}
+    } catch { }
 
     try {
       if (ctx.state !== "closed") {
         void ctx.close();
       }
-    } catch {}
+    } catch { }
   };
 
   const processedTrack = destination.stream.getAudioTracks()[0] || rawTrack;

@@ -41,76 +41,84 @@ const ContinueCard: React.FC<{
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      initial={{ opacity: 0, y: 16, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.35, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
-      className={`group relative shrink-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-white/[0.06] hover:shadow-[0_8px_40px_rgba(0,0,0,0.5)] ${
-        featured ? "w-[340px] h-[190px]" : "w-[220px] h-[140px]"
+      transition={{ duration: 0.35, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
+      className={`group relative shrink-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#090b10]/90 backdrop-blur-xl transition-all duration-300 hover:border-white/25 hover:bg-[#0f121a] hover:shadow-[0_12px_40px_rgba(0,0,0,0.7),0_0_24px_rgba(255,255,255,0.06)] hover:-translate-y-1 ${
+        featured ? "w-[340px] h-[196px]" : "w-[230px] h-[146px]"
       }`}
       onMouseEnter={() => playSound?.("hover")}
+      onClick={onPlay}
+      role="button"
+      tabIndex={0}
+      aria-label={`Continuar jogando ${game.title}`}
     >
-      {/* Background Image */}
+      {/* Background Artwork */}
       <div className="absolute inset-0 z-0">
         {(game.backgroundImage || game.image || game.cardImage) && (
           <img
             src={game.backgroundImage || game.cardImage || game.image}
             alt=""
-            className="h-full w-full object-cover opacity-30 transition-opacity duration-500 group-hover:opacity-50"
+            className="h-full w-full object-cover opacity-35 transition-all duration-500 group-hover:opacity-55 group-hover:scale-105"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#090b10] via-[#090b10]/60 to-transparent" />
       </div>
 
-      {/* Platform Badge */}
-      <div className="absolute top-3 left-3 z-10">
-        <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${badge.color}`}>
+      {/* Top Meta Badges - Concentric R_inner (8px) = R_outer (16px) - Padding (8px optical) */}
+      <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
+        <span className={`inline-flex items-center rounded-lg border px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm ${badge.color}`}>
           {badge.label}
         </span>
-      </div>
 
-      {/* Favorite Star */}
-      {game.isFavorite && (
-        <div className="absolute top-3 right-3 z-10">
-          <Star className="h-3.5 w-3.5 fill-white/80 text-white/80" />
-        </div>
-      )}
-
-      {/* Achievement Badge */}
-      {achievementPct > 0 && (
-        <div className="absolute top-3 right-3 z-10">
-          <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/40 px-1.5 py-0.5 text-[9px] font-bold text-white/70 backdrop-blur-sm">
-            <Trophy className="h-2.5 w-2.5" /> {achievementPct}%
-          </span>
-        </div>
-      )}
-
-      {/* Content */}
-      <div className="absolute inset-0 z-10 flex flex-col justify-end p-4">
-        <h3 className={`font-display font-bold text-white leading-tight line-clamp-2 ${featured ? "text-lg" : "text-sm"}`}>
-          {game.title}
-        </h3>
-        <div className="mt-1.5 flex items-center gap-2">
-          {hours > 0 && (
-            <span className="flex items-center gap-1 text-[10px] text-white/50">
-              <Clock className="h-2.5 w-2.5" /> {formatPlayedHours(hours)}h
+        <div className="flex items-center gap-1.5">
+          {game.isFavorite && (
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-black/60 border border-white/15 backdrop-blur-md shadow-sm">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+            </div>
+          )}
+          {achievementPct > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-black/60 px-2 py-0.5 text-[9.5px] font-bold text-white/80 backdrop-blur-md shadow-sm">
+              <Trophy className="h-2.5 w-2.5 text-amber-400" /> {achievementPct}%
             </span>
           )}
-          {game.category && (
-            <span className="text-[10px] text-white/35">{game.category}</span>
-          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="absolute inset-0 z-10 flex flex-col justify-end p-4 pointer-events-none">
+        <h3 className={`font-display font-bold text-white tracking-tight leading-snug line-clamp-1 drop-shadow-md ${featured ? "text-base md:text-lg" : "text-sm"}`}>
+          {game.title}
+        </h3>
+
+        <div className="mt-1 flex items-center justify-between text-xs text-white/50 font-body">
+          <div className="flex items-center gap-2">
+            {hours > 0 && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-white/40" /> {formatPlayedHours(hours)}h
+              </span>
+            )}
+            {game.category && (
+              <span className="text-white/35">• {game.category}</span>
+            )}
+          </div>
         </div>
 
-        {/* Play Button (appears on hover) */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:scale-100 scale-75">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onPlay();
-            }}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 hover:scale-110 hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
-          >
-            <Play className="h-5 w-5 fill-white" />
-          </button>
+        {/* Goal-Gradient Progress Bar (Laws of UX) */}
+        {totalAch > 0 && (
+          <div className="mt-2 w-full h-1 rounded-full bg-white/[0.08] overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+              style={{ width: `${achievementPct}%` }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Floating Play Action Icon on Hover */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-20 pointer-events-none">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-[0_0_24px_rgba(255,255,255,0.4)] transition-transform duration-200 group-hover:scale-105">
+          <Play className="h-4 w-4 fill-black ml-0.5" />
         </div>
       </div>
     </motion.div>
@@ -127,31 +135,28 @@ const DashboardContinuePlaying: React.FC<DashboardContinuePlayingProps> = ({
   }
 
   return (
-    <div className="px-10 pb-6">
-      {/* Continue Playing Section */}
-      {continuePlayingGames.length > 0 && (
-        <div>
-          <div className="mb-3 flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06]">
-              <Zap className="h-3.5 w-3.5 text-white/70" />
-            </div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-white/50">Continuar Jogando</h2>
-          </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
-            {continuePlayingGames.map((game, index) => (
-              <ContinueCard
-                key={game.id}
-                game={game}
-                index={index}
-                onPlay={() => onPlayGame(game)}
-                playSound={playSound}
-                featured={index === 0}
-              />
-            ))}
-          </div>
+    <section aria-label="Continuar Jogando" className="px-10 pb-5">
+      <div className="mb-3 flex items-center gap-2.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/[0.05]">
+          <Zap className="h-3.5 w-3.5 text-amber-400" />
         </div>
-      )}
-    </div>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-white/50 font-body">
+          Continuar Jogando
+        </h2>
+      </div>
+      <div className="flex gap-4 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+        {continuePlayingGames.map((game, index) => (
+          <ContinueCard
+            key={game.id}
+            game={game}
+            index={index}
+            onPlay={() => onPlayGame(game)}
+            playSound={playSound}
+            featured={index === 0}
+          />
+        ))}
+      </div>
+    </section>
   );
 };
 

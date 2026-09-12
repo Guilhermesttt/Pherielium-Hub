@@ -1,4 +1,4 @@
-export { SettingsPageV2, VolumeSettingsCard, SettingsChoice } from "../../pages/SettingsPage";
+export { SettingsPageV2, SettingsChoice } from "../../pages/SettingsPage";
 export type { LanguageOption, AppThemeOption, SettingsPageV2Props } from "../../pages/SettingsPage";
 
 export { FriendsPage, AddFriendModal } from "../../pages/FriendsPage";

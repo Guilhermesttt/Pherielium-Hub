@@ -4,20 +4,21 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const glassButtonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300 disabled:pointer-events-none disabled:opacity-50 shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-[12.5px] font-semibold transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 shrink-0 cursor-pointer select-none",
   {
     variants: {
       variant: {
-        default: "premium-glass text-white hover:bg-white/10 border border-white/10 shadow-2xl",
-        white: "premium-glass-white text-black hover:scale-[1.02] shadow-[0_0_20px_rgba(255,255,255,0.1)]",
-        ghost: "hover:bg-white/5 text-white/60 hover:text-white",
-        outline: "border border-white/20 bg-transparent hover:bg-white/10 text-white",
+        default: "bg-white/10 hover:bg-white/20 text-white border border-white/10 shadow-lg active:scale-[0.98]",
+        white: "bg-white hover:bg-white/90 text-black font-bold hover:scale-[1.02] shadow-[0_4px_20px_rgba(255,255,255,0.25)] active:scale-[0.98]",
+        destructive: "bg-red-500/90 hover:bg-red-500 text-white font-bold hover:scale-[1.02] shadow-[0_4px_20px_rgba(239,68,68,0.35)] active:scale-[0.98]",
+        ghost: "hover:bg-white/10 text-white/70 hover:text-white active:scale-[0.98]",
+        outline: "border border-white/15 bg-white/[0.05] hover:bg-white/10 hover:border-white/25 text-white active:scale-[0.98]",
       },
       size: {
-        default: "h-12 px-6",
-        sm: "h-9 px-4 text-[10px]",
-        lg: "h-14 px-8 text-sm",
-        icon: "size-12 rounded-full",
+        default: "h-10 px-5",
+        sm: "h-8 px-3.5 text-xs",
+        lg: "h-12 px-6 text-sm",
+        icon: "size-10 rounded-xl",
       },
     },
     defaultVariants: {

@@ -35,7 +35,7 @@ describe("fetchSteamAchievementSummary", () => {
     const appIds = Array.from({ length: 501 }, (_, index) => String(index + 1));
     const result = await fetchSteamAchievementSummary(appIds);
 
-    expect(requestedChunks.map((chunk) => chunk.length)).toEqual([250, 250, 1]);
+    expect(requestedChunks.map((chunk) => chunk.length)).toEqual([50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 1]);
     expect(result).toMatchObject({ requested: 501, resolved: 501, failedAppIds: [] });
     expect(result.stats["501"]).toEqual({ total: 10, unlocked: 4 });
   });
@@ -55,8 +55,8 @@ describe("fetchSteamAchievementSummary", () => {
     const appIds = Array.from({ length: 251 }, (_, index) => String(index + 1));
     const result = await fetchSteamAchievementSummary(appIds);
 
-    expect(result.resolved).toBe(250);
-    expect(result.failedAppIds).toEqual(["251"]);
+    expect(result.resolved).toBe(201);
+    expect(result.failedAppIds.length).toBe(50);
     expect(result.stats["1"]).toEqual({ total: 2, unlocked: 1 });
   });
 });

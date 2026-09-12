@@ -11,6 +11,7 @@ import phelieriumCloseDetailSound from "../sounds/Phelierium Default/ui_close_ga
 import phelieriumEditSound from "../sounds/Phelierium Default/ui_edit_game.wav";
 import phelieriumDeepSelectSound from "../sounds/Phelierium Default/ui_deep_selection.mp3";
 import phelieriumAchievementSound from "../sounds/Phelierium Default/Achievment_Unlock.mp3";
+import phelieriumAchievementGoldSound from "../sounds/Phelierium Default/Achievment_Unlock_Gold.mp3";
 import phelieriumAchievementPlatinumSound from "../sounds/Phelierium Default/Achievment_Unlock_Platinum.mp3";
 import phelieriumUiAchievementSound from "../sounds/Phelierium Default/ui_achievment.mp3";
 import phelieriumCallEnterSound from "../sounds/Phelierium Default/ui_call_enter.mp3";
@@ -135,6 +136,7 @@ export const soundThemes = {
     screenshot: phelieriumUiAchievementSound,
     showModal: phelieriumDeepSelectSound,
     overlayAchievement: phelieriumAchievementSound,
+    overlayAchievementGold: phelieriumAchievementGoldSound,
     overlayAchievementPlatinum: phelieriumAchievementPlatinumSound,
   },
   ps5: {
@@ -161,6 +163,7 @@ export const soundThemes = {
     screenshot: ps5PlusToastSound,
     showModal: ps5PlusShowModalSound,
     overlayAchievement: ps5AchievementUnlockSound,
+    overlayAchievementGold: ps5AchievementUnlockSound,
     overlayAchievementPlatinum: ps5AchievementPlatinumSound,
   },
   ps4: {
@@ -187,6 +190,7 @@ export const soundThemes = {
     screenshot: ps4ToastSound,
     showModal: ps4ShowModalSound,
     overlayAchievement: ps4AchievementSound,
+    overlayAchievementGold: ps4AchievementSound,
     overlayAchievementPlatinum: ps4AchievementSound,
   },
   psp: {
@@ -213,6 +217,7 @@ export const soundThemes = {
     screenshot: pspToastSound,
     showModal: pspShowModalSound,
     overlayAchievement: pspAchievementToastSound,
+    overlayAchievementGold: pspAchievementToastSound,
     overlayAchievementPlatinum: pspAchievementToastSound,
   },
   xbox360: {
@@ -239,6 +244,7 @@ export const soundThemes = {
     screenshot: xbToastSound,
     showModal: xbShowModalSound,
     overlayAchievement: xbAchievementSound,
+    overlayAchievementGold: xbAchievementSound,
     overlayAchievementPlatinum: xbAchievementPlatinumSound,
   },
   cyberpunk: {
@@ -265,6 +271,7 @@ export const soundThemes = {
     screenshot: cyberpunkToastSound,
     showModal: cyberpunkShowModalSound,
     overlayAchievement: cyberpunkAchievementToastSound,
+    overlayAchievementGold: cyberpunkAchievementToastSound,
     overlayAchievementPlatinum: cyberpunkAchievementToastSound,
   },
   ps2: {
@@ -291,6 +298,7 @@ export const soundThemes = {
     screenshot: ps2ToastSound,
     showModal: ps2ShowModalSound,
     overlayAchievement: ps2AchievementSound,
+    overlayAchievementGold: ps2AchievementSound,
     overlayAchievementPlatinum: ps2AchievementSound,
   },
   gamecube: {
@@ -316,8 +324,9 @@ export const soundThemes = {
     switchOff: gcClosePhotosSound,
     screenshot: gcShowModalSound,
     showModal: gcShowModalSound,
-    overlayAchievement: gcEditModalSound,
-    overlayAchievementPlatinum: gcEditModalSound,
+    overlayAchievement: gcLaunchGameSound,
+    overlayAchievementGold: gcLaunchGameSound,
+    overlayAchievementPlatinum: gcLaunchGameSound,
   },
 };
 
@@ -341,6 +350,7 @@ const alwaysAllowedSoundTypes = new Set<SoundEffectType>([
   "play",
   "boot",
   "overlayAchievement",
+  "overlayAchievementGold",
   "overlayAchievementPlatinum",
   "friendRequest",
   "chatReceived",

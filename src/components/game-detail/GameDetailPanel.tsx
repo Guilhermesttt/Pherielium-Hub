@@ -313,15 +313,15 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
               hints={
                 state.galleryModalOpen
                   ? [
-                      { button: "DPAD", label: "Navegar" },
-                      { button: "O", label: "Fechar" },
-                    ]
+                    { button: "DPAD", label: "Navegar" },
+                    { button: "O", label: "Fechar" },
+                  ]
                   : [
-                      { button: "X", label: "Jogar" },
-                      { button: "SQUARE", label: "Fotos" },
-                      { button: "O", label: "Voltar" },
-                      { button: "L1_R1", label: "Abas" },
-                    ]
+                    { button: "X", label: "Jogar" },
+                    { button: "SQUARE", label: "Fotos" },
+                    { button: "O", label: "Voltar" },
+                    { button: "L1_R1", label: "Abas" },
+                  ]
               }
             />
           </div>
@@ -351,8 +351,8 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
               loading="eager"
               decoding="async"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-transparent" />
           </div>
 
           {/* Container de Conteúdo */}
@@ -361,7 +361,7 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="flex-1 w-full bg-[#050505]/95 backdrop-blur-3xl border-t border-white/10 rounded-t-[40px] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] pb-24"
+              className="flex-1 w-full bg-black border-t border-[#292d30] pb-24"
             >
               <div className="max-w-5xl w-full mx-auto px-4 sm:px-8 md:px-12 py-10">
                 {/* Header (Capa + Título + Badges + Botão Jogar na direita) */}
@@ -471,45 +471,45 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
                     state.activeTab === copy.tabCaptures ||
                     state.activeTab === copy.tabMods ||
                     state.activeTab === copy.tabManage) && (
-                    <motion.div
-                      key={`panel-${state.activeTab}`}
-                      role="tabpanel"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.24 }}
-                      className="w-full"
-                    >
-                      <GameDetailSocialMods
-                        game={game}
-                        activeTab={state.activeTab}
-                        copy={copy}
-                        localScreenshots={asyncData.localScreenshots}
-                        gameMods={asyncData.gameMods}
-                        sanitizedAboutHtml={sanitizedAboutHtml}
-                        sanitizedSupportedLanguagesHtml={sanitizedSupportedLanguagesHtml}
-                        sanitizedMinRequirementsHtml={sanitizedMinRequirementsHtml}
-                        sanitizedRecRequirementsHtml={sanitizedRecRequirementsHtml}
-                        isAboutLoading={asyncData.steamDetails.loading || asyncData.epicDetails.loading}
-                        developer={asyncData.steamDetails.data?.developer || asyncData.epicDetails.data?.developer || game.developer}
-                        publisher={asyncData.steamDetails.data?.publisher || asyncData.epicDetails.data?.publisher || game.publisher}
-                        releaseDate={asyncData.steamDetails.data?.releaseDate || asyncData.epicDetails.data?.releaseDate || game.releaseDate}
-                        localizedCategory={localizedCategory}
-                        metacritic={asyncData.steamDetails.data?.metacritic || undefined}
-                        priceOverview={asyncData.steamDetails.data?.priceOverview || undefined}
-                        tags={asyncData.epicDetails.data?.tags || game.tags}
-                        launchProfile={asyncData.launchProfile}
-                        displayOptions={asyncData.displayOptions}
-                        onLaunchProfileChange={asyncData.setLaunchProfile}
-                        onSaveLaunchProfile={actions.handleSaveLaunchProfile}
-                        onOpenDeleteModal={openDeleteModal}
-                        onOpenFolder={actions.handleOpenFolder}
-                        onOpenMods={onOpenMods}
-                        onSelectCapture={openGallery}
-                        playSound={playSound}
-                      />
-                    </motion.div>
-                  )}
+                      <motion.div
+                        key={`panel-${state.activeTab}`}
+                        role="tabpanel"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.24 }}
+                        className="w-full"
+                      >
+                        <GameDetailSocialMods
+                          game={game}
+                          activeTab={state.activeTab}
+                          copy={copy}
+                          localScreenshots={asyncData.localScreenshots}
+                          gameMods={asyncData.gameMods}
+                          sanitizedAboutHtml={sanitizedAboutHtml}
+                          sanitizedSupportedLanguagesHtml={sanitizedSupportedLanguagesHtml}
+                          sanitizedMinRequirementsHtml={sanitizedMinRequirementsHtml}
+                          sanitizedRecRequirementsHtml={sanitizedRecRequirementsHtml}
+                          isAboutLoading={asyncData.steamDetails.loading || asyncData.epicDetails.loading}
+                          developer={asyncData.steamDetails.data?.developer || asyncData.epicDetails.data?.developer || game.developer}
+                          publisher={asyncData.steamDetails.data?.publisher || asyncData.epicDetails.data?.publisher || game.publisher}
+                          releaseDate={asyncData.steamDetails.data?.releaseDate || asyncData.epicDetails.data?.releaseDate || game.releaseDate}
+                          localizedCategory={localizedCategory}
+                          metacritic={asyncData.steamDetails.data?.metacritic || undefined}
+                          priceOverview={asyncData.steamDetails.data?.priceOverview || undefined}
+                          tags={asyncData.epicDetails.data?.tags || game.tags}
+                          launchProfile={asyncData.launchProfile}
+                          displayOptions={asyncData.displayOptions}
+                          onLaunchProfileChange={asyncData.setLaunchProfile}
+                          onSaveLaunchProfile={actions.handleSaveLaunchProfile}
+                          onOpenDeleteModal={openDeleteModal}
+                          onOpenFolder={actions.handleOpenFolder}
+                          onOpenMods={onOpenMods}
+                          onSelectCapture={openGallery}
+                          playSound={playSound}
+                        />
+                      </motion.div>
+                    )}
                 </AnimatePresence>
               </div>
             </motion.div>

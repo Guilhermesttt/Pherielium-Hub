@@ -10,6 +10,7 @@ import { VoiceCallWindow } from "../components/voice/VoiceCallWindow";
 import { ScreenPickerModal } from "../components/voice/ScreenPickerModal";
 import { getCheckpointFriendStatuses } from "../services/checkpointFriends";
 import { audioContextManager } from "../services/audio/AudioContextManager";
+import { PeerAudioNode } from "../services/audio/PeerAudioNode";
 import { CallConnectionBanner } from "../components/CallConnectionBanner";
 import type { SocialFriend } from "../types/domain";
 
@@ -21,7 +22,7 @@ const VoiceCallContext = createContext<VoiceCallContextType | null>(null);
 
 export const VoiceCallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, userProfile } = useAuth();
-  let notify: (msg: string, type: "success" | "error" | "info") => void = () => {};
+  let notify: (msg: string, type: "success" | "error" | "info") => void = () => { };
   try {
     const notificationContext = useNotification();
     if (notificationContext?.notify) {
@@ -80,105 +81,130 @@ export const VoiceCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [userProfile?.checkpointFriends]);
 
 
-  // Persistent audio playback for remote participants with Web Audio API Soft-Limiter
-  const remoteAudioRef = React.useRef<HTMLAudioElement | null>(null);
-  const peerAudioNodesMapRef = React.useRef<Map<string, any>>(new Map());
+  // P2P-only remote playback. LiveKit already owns its audio elements through
+  // RemoteAudioTrack.attach(), so routing the same remote MediaStream through
+  // PeerAudioNode at the same time would reproduce each participant twice.
+  const peerAudioNodesMapRef = React.useRef<
+    Map<string, { node: PeerAudioNode; stream: MediaStream }>
+  >(new Map());
   const audioContextManagerRef = React.useRef(audioContextManager);
+  const p2pAudioContextAcquiredRef = React.useRef(false);
 
-  // Sync audio output device changes (setSinkId)
+  const destroyPeerAudioNodes = React.useCallback(() => {
+    peerAudioNodesMapRef.current.forEach(({ node }) => node.destroy());
+    peerAudioNodesMapRef.current.clear();
+  }, []);
+
+  // Reconcile P2P playback topology only when streams/transport change. Volume and
+  // sink changes are handled by separate effects so they do not recreate audio nodes.
   React.useEffect(() => {
-    const targetOutput = voiceCall.selectedAudioOutput;
-    if (!targetOutput) return;
+    let cancelled = false;
 
-    if (remoteAudioRef.current && typeof (remoteAudioRef.current as any).setSinkId === "function") {
-      void (remoteAudioRef.current as any).setSinkId(targetOutput === "default" ? "" : targetOutput).catch(() => {});
-    }
-    audioContextManagerRef.current.setSinkId(targetOutput);
-    peerAudioNodesMapRef.current.forEach((node) => {
-      if (node && typeof node.setSinkId === "function") {
-        void node.setSinkId(targetOutput);
+    if (voiceCall.mediaTransport !== "p2p") {
+      destroyPeerAudioNodes();
+      if (p2pAudioContextAcquiredRef.current) {
+        audioContextManagerRef.current.release();
+        p2pAudioContextAcquiredRef.current = false;
       }
-    });
-  }, [voiceCall.selectedAudioOutput]);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-  React.useEffect(() => {
-    const isEchoTest = voiceCall.session?.friendUid === "echo-bot";
-    const isMutedLocally = voiceCall.isDeafened || isEchoTest;
-
-    // Collect all active remote audio streams (support both Map and singular fallback)
     const activeStreams = new Map<string, MediaStream>();
-    if (voiceCall.remoteStreams && voiceCall.remoteStreams instanceof Map && voiceCall.remoteStreams.size > 0) {
-      voiceCall.remoteStreams.forEach((st: MediaStream, peerId: string) => {
-        if (st && st.getAudioTracks().length > 0) {
-          activeStreams.set(peerId, st);
+    if (voiceCall.remoteStreams instanceof Map && voiceCall.remoteStreams.size > 0) {
+      voiceCall.remoteStreams.forEach((stream: MediaStream, peerId: string) => {
+        if (stream?.getAudioTracks().length > 0) {
+          activeStreams.set(peerId, stream);
         }
       });
-    } else if (voiceCall.remoteStream && voiceCall.remoteStream.getAudioTracks().length > 0) {
+    } else if (voiceCall.remoteStream?.getAudioTracks().length) {
       activeStreams.set(voiceCall.session?.friendUid || "main-remote", voiceCall.remoteStream);
     }
 
-    if (activeStreams.size > 0) {
-      try {
-        // Initialize shared AudioContext
-        const initAudioContext = async () => {
-          const ctx = await audioContextManagerRef.current.getContext();
-          if (ctx.state === "suspended") {
-            await ctx.resume();
-          }
-          return ctx;
-        };
-
-        initAudioContext().then((ctx) => {
-          // Clean up nodes for peers that are no longer active
-          peerAudioNodesMapRef.current.forEach((node, peerId) => {
-            if (!activeStreams.has(peerId)) {
-              node.destroy?.();
-              peerAudioNodesMapRef.current.delete(peerId);
-            }
-          });
-
-          // Initialize or update nodes for active streams
-          import("../services/audio/PeerAudioNode").then(({ PeerAudioNode }) => {
-            activeStreams.forEach((stream, peerId) => {
-              const peerVolume = isMutedLocally
-                ? 0
-                : (voiceCall.peerVolumes?.[peerId] ?? voiceCall.remoteVolume ?? 100);
-
-              const existing = peerAudioNodesMapRef.current.get(peerId);
-              if (!existing) {
-                const newNode = new PeerAudioNode(stream, peerVolume);
-                if (voiceCall.selectedAudioOutput) {
-                  void newNode.setSinkId(voiceCall.selectedAudioOutput);
-                }
-                peerAudioNodesMapRef.current.set(peerId, newNode);
-              } else {
-                existing.setVolume(peerVolume);
-              }
-            });
-          }).catch(() => {});
-        }).catch((err) => {
-          console.warn("[VoiceCallContext] Web Audio pipeline error:", err);
-        });
-      } catch (err) {
-        console.warn("[VoiceCallContext] Web Audio pipeline error:", err);
-      }
-    } else {
-      peerAudioNodesMapRef.current.forEach((node) => node.destroy?.());
-      peerAudioNodesMapRef.current.clear();
+    if (activeStreams.size === 0) {
+      destroyPeerAudioNodes();
+      return () => {
+        cancelled = true;
+      };
     }
 
+    const reconcile = async () => {
+      if (!p2pAudioContextAcquiredRef.current) {
+        const ctx = await audioContextManagerRef.current.getContext();
+        if (cancelled) {
+          audioContextManagerRef.current.release();
+          return;
+        }
+        if (ctx.state === "suspended") {
+          await ctx.resume().catch(() => { });
+        }
+        p2pAudioContextAcquiredRef.current = true;
+      }
+
+      peerAudioNodesMapRef.current.forEach(({ node }, peerId) => {
+        if (!activeStreams.has(peerId)) {
+          node.destroy();
+          peerAudioNodesMapRef.current.delete(peerId);
+        }
+      });
+
+      activeStreams.forEach((stream, peerId) => {
+        const existing = peerAudioNodesMapRef.current.get(peerId);
+        if (existing?.stream === stream) return;
+
+        existing?.node.destroy();
+        const peerVolume = voiceCall.isDeafened
+          ? 0
+          : (voiceCall.peerVolumes?.[peerId] ?? voiceCall.remoteVolume ?? 100);
+        const node = new PeerAudioNode(stream, peerVolume);
+        peerAudioNodesMapRef.current.set(peerId, { node, stream });
+      });
+    };
+
+    void reconcile().catch((err) => {
+      if (!cancelled) {
+        console.warn("[VoiceCallContext] P2P audio pipeline error:", err);
+      }
+    });
+
     return () => {
-      // teardown handled on stream change
+      cancelled = true;
     };
   }, [
+    destroyPeerAudioNodes,
+    voiceCall.mediaTransport,
     voiceCall.remoteStream,
     voiceCall.remoteStreams,
-    voiceCall.isDeafened,
     voiceCall.session?.friendUid,
-    voiceCall.remoteVolume,
-    voiceCall.peerVolumes,
-    voiceCall.selectedAudioOutput,
   ]);
+
+  // Volume/deafen updates are cheap and do not rebuild the Web Audio graph.
+  React.useEffect(() => {
+    peerAudioNodesMapRef.current.forEach(({ node }, peerId) => {
+      const peerVolume = voiceCall.isDeafened
+        ? 0
+        : (voiceCall.peerVolumes?.[peerId] ?? voiceCall.remoteVolume ?? 100);
+      node.setVolume(peerVolume);
+    });
+  }, [voiceCall.isDeafened, voiceCall.peerVolumes, voiceCall.remoteVolume]);
+
+  // Output-device changes are applied once at the shared AudioContext level.
+  React.useEffect(() => {
+    const targetOutput = voiceCall.selectedAudioOutput;
+    if (!targetOutput) return;
+    void audioContextManagerRef.current.setSinkId(targetOutput);
+  }, [voiceCall.selectedAudioOutput]);
+
+  React.useEffect(() => {
+    return () => {
+      destroyPeerAudioNodes();
+      if (p2pAudioContextAcquiredRef.current) {
+        audioContextManagerRef.current.release();
+        p2pAudioContextAcquiredRef.current = false;
+      }
+    };
+  }, [destroyPeerAudioNodes]);
 
   // Notify in-game overlay when an incoming call arrives (deduplicated)
   const lastNotifiedInviteKeyRef = React.useRef<string>("");
@@ -205,9 +231,6 @@ export const VoiceCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   return (
     <VoiceCallContext.Provider value={voiceCall}>
       {children}
-
-      {/* Global persistent audio element */}
-      <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: "none" }} />
 
       {/* Incoming Call Popup */}
       <IncomingCallModal
@@ -256,22 +279,22 @@ export const VoiceCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           voiceCall.channelConnectionStatus === "failed"
             ? "error"
             : voiceCall.channelConnectionStatus === "degraded"
-            ? "poor"
-            : voiceCall.isReconnecting ||
-              voiceCall.channelConnectionStatus === "reconnecting" ||
-              voiceCall.callState === "connecting" ||
-              voiceCall.callState === "ringing-out"
-            ? "connecting"
-            : voiceCall.callState === "active"
-            ? "connected"
-            : "idle"
+              ? "poor"
+              : voiceCall.isReconnecting ||
+                voiceCall.channelConnectionStatus === "reconnecting" ||
+                voiceCall.callState === "connecting" ||
+                voiceCall.callState === "ringing-out"
+                ? "connecting"
+                : voiceCall.callState === "active"
+                  ? "connected"
+                  : "idle"
         }
         onRetry={
           voiceCall.pendingReconnectSession
             ? () => void voiceCall.reconnectCall()
             : voiceCall.channelConnectionStatus === "failed" || voiceCall.channelConnectionStatus === "degraded"
-            ? () => void voiceCall.reconnectCall()
-            : undefined
+              ? () => void voiceCall.reconnectCall()
+              : undefined
         }
       />
 
@@ -447,6 +470,7 @@ const safeFallbackVoiceCallContext: Partial<VoiceCallContextType> = {
   incomingInvite: null,
   pendingReconnectSession: null,
   channelConnectionStatus: "idle" as const,
+  mediaTransport: "none" as const,
   localStream: null,
   remoteStream: null,
   localCameraStream: null,
@@ -456,36 +480,36 @@ const safeFallbackVoiceCallContext: Partial<VoiceCallContextType> = {
   roomConfig: null,
   activeCallsByFriend: new Map(),
   isCallActiveWithFriend: () => false,
-  startCall: async () => {},
-  startTestCall: async () => {},
-  answerCall: async () => {},
-  rejectCall: async () => {},
-  hangUp: async () => {},
-  endCallForEveryone: async () => {},
-  joinRoom: async () => {},
-  createAndJoinRoom: async () => {},
-  updateRoomPrivacy: async () => {},
-  kickParticipant: async () => {},
-  reconnectCall: async () => {},
-  dismissReconnect: () => {},
-  toggleMute: () => {},
-  toggleDeafen: () => {},
-  toggleCamera: async () => {},
-  startScreenShare: async () => {},
-  stopScreenShare: async () => {},
-  setRemoteVolume: () => {},
-  setPeerVolume: () => {},
-  setInputMode: () => {},
-  setPushToTalkKey: () => {},
-  setVoiceSensitivity: () => {},
-  setEchoCancellation: () => {},
-  setNoiseSuppression: () => {},
-  setAdvancedNoiseSuppression: async () => {},
-  changeAudioInputDevice: async () => {},
-  changeAudioOutputDevice: async () => {},
-  changeVideoInputDevice: async () => {},
-  setIsVoiceWindowOpen: () => {},
-  setIsScreenPickerOpen: () => {},
+  startCall: async () => { },
+  startTestCall: async () => { },
+  answerCall: async () => { },
+  rejectCall: async () => { },
+  hangUp: async () => { },
+  endCallForEveryone: async () => { },
+  joinRoom: async () => { },
+  createAndJoinRoom: async () => { },
+  updateRoomPrivacy: async () => { },
+  kickParticipant: async () => { },
+  reconnectCall: async () => { },
+  dismissReconnect: () => { },
+  toggleMute: () => { },
+  toggleDeafen: () => { },
+  toggleCamera: async () => { },
+  startScreenShare: async () => { },
+  stopScreenShare: async () => { },
+  setRemoteVolume: () => { },
+  setPeerVolume: () => { },
+  setInputMode: () => { },
+  setPushToTalkKey: () => { },
+  setVoiceSensitivity: () => { },
+  setEchoCancellation: () => { },
+  setNoiseSuppression: () => { },
+  setAdvancedNoiseSuppression: async () => { },
+  changeAudioInputDevice: async () => { },
+  changeAudioOutputDevice: async () => { },
+  changeVideoInputDevice: async () => { },
+  setIsVoiceWindowOpen: () => { },
+  setIsScreenPickerOpen: () => { },
 };
 
 export const useVoiceCallContext = (): VoiceCallContextType => {

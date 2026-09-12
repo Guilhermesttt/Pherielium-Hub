@@ -278,7 +278,7 @@ const ChatHeaderBar: React.FC<{
               title={isCallActiveWithFriend ? "Chamada ativa — Clique para voltar à chamada" : "Iniciar chamada de voz"}
               className={`flex h-8 w-8 items-center justify-center rounded-full border transition-colors cursor-pointer ${
                 isCallActiveWithFriend
-                  ? "bg-emerald-500 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.55)] animate-pulse hover:bg-emerald-600"
+                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
                   : "border-white/[0.08] bg-white/[0.04] text-white/60 hover:bg-white/[0.1] hover:text-white"
               }`}
             >
@@ -315,7 +315,7 @@ const ChatHeaderBar: React.FC<{
 const ChatIdentityHero: React.FC<{ friend: SocialFriend }> = ({ friend }) => (
   <section className="flex flex-col items-center pb-8 pt-2 text-center" aria-label="Identidade da amizade">
     <div className="relative">
-      <div className="h-24 w-24 overflow-hidden rounded-full border border-white/15 bg-white/[0.06] p-1 shadow-[0_18px_48px_rgba(0,0,0,.55)]">
+      <div className="h-24 w-24 overflow-hidden rounded-full border border-[#292d30] bg-black p-1">
         <ChatAvatar
           avatarUrl={friend.avatar}
           name={friend.name}
@@ -431,8 +431,8 @@ const ChatMessageRow: React.FC<{
             variant={isMe ? "default" : "outline"}
             className={
               isMe
-                ? "rounded-[18px] rounded-br-[4px] bg-white text-black shadow-md border-0"
-                : "rounded-[18px] rounded-tl-[4px] border border-white/[0.08] bg-[#141414] text-white shadow-sm"
+                ? "rounded-[8px] rounded-br-none bg-white text-black border border-transparent"
+                : "rounded-[8px] rounded-tl-none border border-[#292d30] bg-black text-white"
             }
           >
             <BubbleContent className="p-3 text-sm">
@@ -621,7 +621,7 @@ const ChatComposer: React.FC<{
               onClick={onRemovePendingImage}
               aria-label="Remover imagem anexada"
               title="Remover imagem"
-              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-white/15 bg-[#1a1a1a] text-white shadow-lg transition-colors hover:bg-red-600"
+              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-[#292d30] bg-[#0a0a0a] text-white transition-colors hover:bg-red-600"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -629,7 +629,7 @@ const ChatComposer: React.FC<{
           </div>
         ) : null}
 
-        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#121212] p-1.5 shadow-md">
+        <div className="flex items-center gap-2 rounded-md border border-[#292d30] bg-black p-1.5">
           <input
             ref={imageInputRef}
             type="file"
@@ -664,7 +664,7 @@ const ChatComposer: React.FC<{
             whileTap={{ scale: 0.94 }}
             disabled={isSendingImage || (!inputText.trim() && !pendingImage) || isSpamLocked}
             aria-label="Enviar mensagem"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-md transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-md bg-white text-black transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
           >
             <Send className="h-4 w-4" />
           </motion.button>
@@ -690,7 +690,7 @@ const ImageLightbox: React.FC<{
     gamepadPriority={220}
   >
     {image ? (
-      <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-[#08080a]/95 shadow-[0_32px_128px_rgba(0,0,0,0.9)]">
+      <div className="relative overflow-hidden rounded-[16px] border border-[#292d30] bg-black">
         <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
           <span className="text-xs font-semibold uppercase tracking-wider text-white/70">Imagem do chat</span>
           <button
@@ -702,7 +702,7 @@ const ImageLightbox: React.FC<{
           </button>
         </div>
         <div className="flex max-h-[75dvh] items-center justify-center p-6">
-          <img src={image.url} alt="Imagem expandida" className="max-h-[68dvh] max-w-full rounded-2xl object-contain shadow-2xl" />
+          <img src={image.url} alt="Imagem expandida" className="max-h-[68dvh] max-w-full rounded-md object-contain" />
         </div>
         {image.text ? (
           <div className="border-t border-white/5 bg-white/[0.02] px-6 py-4 text-xs text-white/80">{image.text}</div>
@@ -1061,7 +1061,7 @@ export const ChatModal: React.FC<ChatModalProps> = React.memo(
         containerClassName={
           controllerKeyboardOpen ? "items-start justify-center p-2 md:items-center md:justify-start md:p-3" : undefined
         }
-        className="overflow-hidden rounded-2xl border border-white/10 bg-[#050505] p-0 shadow-2xl"
+        className="overflow-hidden rounded-[16px] border border-[#292d30] bg-black p-0"
         ariaLabel={`Conversa com ${friend.name}`}
       >
         <div className="flex h-[calc(100dvh-2rem)] max-h-[760px] min-h-[560px] w-full flex-col bg-[#050505] md:h-[calc(100dvh-4rem)]">

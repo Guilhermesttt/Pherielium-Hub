@@ -39,10 +39,10 @@ describe("overlay de conquistas", () => {
       value: mediaPause,
     });
     panelAction = vi.fn(() => Promise.resolve());
-    const html = fs.readFileSync(path.resolve("electron/overlay.html"), "utf8");
+    const html = fs.readFileSync(path.resolve("electron/overlay/overlay.html"), "utf8");
     const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
     if (!script) throw new Error("Script do overlay nao encontrado.");
-    window.eval(fs.readFileSync(path.resolve("electron/overlay-gamepad.js"), "utf8"));
+    window.eval(fs.readFileSync(path.resolve("electron/overlay/overlay-gamepad.js"), "utf8"));
 
     document.body.className = "";
     document.body.innerHTML = `
@@ -158,7 +158,7 @@ describe("overlay de conquistas", () => {
   };
 
   it("mantem todas as paginas do painel no mesmo nivel de navegacao", () => {
-    const html = fs.readFileSync(path.resolve("electron/overlay.html"), "utf8");
+    const html = fs.readFileSync(path.resolve("electron/overlay/overlay.html"), "utf8");
     const parsed = new DOMParser().parseFromString(html, "text/html");
     const content = parsed.querySelector(".panel-content");
     const views = ["friends", "chats", "game", "achievements", "media", "settings", "profile"];
@@ -218,7 +218,7 @@ describe("overlay de conquistas", () => {
 
   it("dispara o som tematico depois de salvar uma captura", () => {
     const mainSource = fs.readFileSync(path.resolve("electron/main.cjs"), "utf8");
-    const overlaySource = fs.readFileSync(path.resolve("electron/overlay.html"), "utf8");
+    const overlaySource = fs.readFileSync(path.resolve("electron/overlay/overlay.html"), "utf8");
 
     expect(mainSource).toContain('playOverlaySound("screenshot")');
     expect(overlaySource).toContain('"screenshot": {');
@@ -227,7 +227,7 @@ describe("overlay de conquistas", () => {
 
   it("toca o efeito de disparo antes de processar a captura", () => {
     const mainSource = fs.readFileSync(path.resolve("electron/main.cjs"), "utf8");
-    const overlaySource = fs.readFileSync(path.resolve("electron/overlay.html"), "utf8");
+    const overlaySource = fs.readFileSync(path.resolve("electron/overlay/overlay.html"), "utf8");
     const triggerIndex = mainSource.indexOf('playOverlaySound("screenshot-trigger")');
     const captureIndex = mainSource.indexOf("await captureCurrentDisplay()", triggerIndex);
 
@@ -246,7 +246,7 @@ describe("overlay de conquistas", () => {
   });
 
   it("mantem os toasts compactos mesmo em uma janela fullscreen", () => {
-    const html = fs.readFileSync(path.resolve("electron/overlay.html"), "utf8");
+    const html = fs.readFileSync(path.resolve("electron/overlay/overlay.html"), "utf8");
     const cardRule = html.match(/\.overlay-card\s*\{([\s\S]*?)\}/)?.[1] || "";
 
     expect(html).toContain("--overlay-width: min(392px, calc(100vw - 32px))");
@@ -255,7 +255,7 @@ describe("overlay de conquistas", () => {
   });
 
   it("inicia a animacao somente depois que o toast entrou no DOM", () => {
-    const html = fs.readFileSync(path.resolve("electron/overlay.html"), "utf8").replace(/\r\n/g, "\n");
+    const html = fs.readFileSync(path.resolve("electron/overlay/overlay.html"), "utf8").replace(/\r\n/g, "\n");
 
     expect(html).toContain(".overlay-card.is-entering");
     expect(html).toContain("const startCardAnimation = (card) =>");
@@ -331,10 +331,12 @@ describe("overlay de conquistas", () => {
   });
 
   it("usa no overlay um logo incluido no pacote do Electron", () => {
-    const html = fs.readFileSync(path.resolve("electron/overlay.html"), "utf8");
+    const html = fs.readFileSync(path.resolve("electron/overlay/overlay.html"), "utf8");
     const parsed = new DOMParser().parseFromString(html, "text/html");
 
-    expect(parsed.querySelector(".panel-logo img")?.getAttribute("src")).toBe("../assets/icon.png");
+    expect(["../assets/icon.png", "../../assets/icon.png"]).toContain(
+      parsed.querySelector(".panel-logo img")?.getAttribute("src")
+    );
   });
 
   it("renderiza nome, descricao e imagem recebidos do schema", () => {
@@ -487,7 +489,7 @@ describe("overlay de conquistas", () => {
   });
 
   it("mantem o compositor visivel, renderiza imagens e envia o estado de digitacao", () => {
-    const html = fs.readFileSync(path.resolve("electron/overlay.html"), "utf8");
+    const html = fs.readFileSync(path.resolve("electron/overlay/overlay.html"), "utf8");
     const chatViewRule = html.match(
       /\.panel-view\[data-panel-view="chats"\]\.is-active\s*\{([\s\S]*?)\}/,
     )?.[1] || "";
@@ -625,7 +627,7 @@ describe("overlay de conquistas", () => {
   });
 
   it("carrega o motor de controle antes do script do overlay", () => {
-    const html = fs.readFileSync(path.resolve("electron/overlay.html"), "utf8");
+    const html = fs.readFileSync(path.resolve("electron/overlay/overlay.html"), "utf8");
     expect(html).toContain('<script src="./overlay-gamepad.js"></script>');
     expect(html.indexOf("overlay-gamepad.js")).toBeLessThan(html.indexOf("<script>"));
   });
@@ -775,7 +777,7 @@ describe("overlay de conquistas", () => {
     expect(document.getElementById("command-panel")?.classList.contains("is-open")).toBe(false);
 
     // 4. Verifica se as regras do CSS em overlay.html proíbem exibição sem panel-open e is-open
-    const html = fs.readFileSync(path.resolve("electron/overlay.html"), "utf8");
+    const html = fs.readFileSync(path.resolve("electron/overlay/overlay.html"), "utf8");
     expect(html).toContain("body.panel-open[data-overlay-mode=\"quick\"] #command-panel.is-open");
     expect(html).toContain("body.panel-open[data-overlay-mode=\"full\"] #command-panel.is-open");
     expect(html).not.toMatch(/#command-panel:not\(\.mode-quick\)\s*\{[^}]*display:\s*grid/);

@@ -230,7 +230,7 @@ export const HomeOnboardingQuests: React.FC<HomeOnboardingQuestsProps> = ({
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: isModal ? 0.96 : 1, y: isModal ? 0 : -12 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className={`rounded-3xl border border-white/[0.12] bg-[#0A0B0E]/95 backdrop-blur-3xl p-5 sm:p-6 shadow-[0_25px_60px_rgba(0,0,0,0.85)] relative overflow-hidden ${
+      className={`rounded-[16px] border border-[#292d30] bg-black p-5 sm:p-6 relative overflow-hidden ${
         isModal
           ? "w-full max-w-5xl max-h-[85vh] overflow-y-auto thin-scrollbar"
           : "mx-6 sm:mx-10 mb-8"
@@ -244,7 +244,7 @@ export const HomeOnboardingQuests: React.FC<HomeOnboardingQuestsProps> = ({
       {/* Top Header */}
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-amber-500/15 border border-amber-500/30 text-amber-400">
             <Compass className="h-5 w-5 animate-[spin_18s_linear_infinite]" />
           </div>
           <div>
@@ -305,7 +305,7 @@ export const HomeOnboardingQuests: React.FC<HomeOnboardingQuestsProps> = ({
           initial={{ width: 0 }}
           animate={{ width: `${progressPercent}%` }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="h-full rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+          className="h-full rounded-full bg-white"
         />
       </div>
 

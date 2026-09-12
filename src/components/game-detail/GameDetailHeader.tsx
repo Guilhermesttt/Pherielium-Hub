@@ -40,8 +40,7 @@ const NavTab: React.FC<{
     {label}
     {active && (
       <motion.div
-        layoutId="activeTabIndicator"
-        className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.6)]"
+        className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-white"
       />
     )}
   </button>
@@ -66,7 +65,7 @@ export const GameDetailHeader: React.FC<GameDetailHeaderProps> = React.memo(({
     <>
       {/* Header (Capa + Título + Badges + Botão Jogar) */}
       <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 sm:gap-8 mb-8">
-        <div className="w-28 sm:w-32 h-40 sm:h-44 rounded-2xl overflow-hidden shrink-0 border border-white/15 shadow-[0_8px_40px_rgba(0,0,0,0.7)] ring-1 ring-white/5 -mt-24 relative z-20 bg-black">
+        <div className="w-28 sm:w-32 h-40 sm:h-44 rounded-2xl overflow-hidden shrink-0 border border-[#292d30] -mt-24 relative z-20 bg-black">
           <img
             src={coverImage || undefined}
             alt={game.title}
