@@ -186,9 +186,7 @@ function AudioLines(props: AudioLinesProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  AudioLines,
+export { AudioLines,
   AudioLines as AudioLinesIcon,
   type AudioLinesProps,
   type AudioLinesProps as AudioLinesIconProps,

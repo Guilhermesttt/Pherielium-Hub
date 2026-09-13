@@ -89,9 +89,7 @@ function LogOut(props: LogOutProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  LogOut,
+export { LogOut,
   LogOut as LogOutIcon,
   type LogOutProps,
   type LogOutProps as LogOutIconProps,

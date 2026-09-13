@@ -82,9 +82,7 @@ function Gamepad2(props: Gamepad2Props) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  Gamepad2,
+export { Gamepad2,
   Gamepad2 as Gamepad2Icon,
   type Gamepad2Props,
   type Gamepad2Props as Gamepad2IconProps,

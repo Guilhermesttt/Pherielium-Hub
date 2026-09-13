@@ -105,9 +105,7 @@ function Radio(props: RadioProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  Radio,
+export { Radio,
   Radio as RadioIcon,
   type RadioProps,
   type RadioProps as RadioIconProps,

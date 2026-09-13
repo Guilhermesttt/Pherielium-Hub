@@ -117,9 +117,7 @@ function UserPlus(props: UserPlusProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  UserPlus,
+export { UserPlus,
   UserPlus as UserPlusIcon,
   type UserPlusProps,
   type UserPlusProps as UserPlusIconProps,

@@ -158,9 +158,7 @@ function LockKeyhole(props: LockKeyholeProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  LockKeyhole,
+export { LockKeyhole,
   LockKeyhole as LockKeyholeIcon,
   type LockKeyholeProps,
   type LockKeyholeProps as LockKeyholeIconProps,

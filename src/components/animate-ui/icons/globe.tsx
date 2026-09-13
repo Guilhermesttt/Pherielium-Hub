@@ -68,9 +68,7 @@ function Globe(props: GlobeProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  Globe,
+export { Globe,
   Globe as GlobeIcon,
   type GlobeProps,
   type GlobeProps as GlobeIconProps,

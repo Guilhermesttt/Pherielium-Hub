@@ -88,9 +88,7 @@ function Settings(props: SettingsProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  Settings,
+export { Settings,
   Settings as SettingsIcon,
   type SettingsProps,
   type SettingsProps as SettingsIconProps,

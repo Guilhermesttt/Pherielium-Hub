@@ -80,9 +80,7 @@ function User(props: UserProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  User,
+export { User,
   User as UserIcon,
   type UserProps,
   type UserProps as UserIconProps,

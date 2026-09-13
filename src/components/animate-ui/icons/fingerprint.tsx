@@ -177,9 +177,7 @@ function Fingerprint(props: FingerprintProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  Fingerprint,
+export { Fingerprint,
   Fingerprint as FingerprintIcon,
   type FingerprintProps,
   type FingerprintProps as FingerprintIconProps,

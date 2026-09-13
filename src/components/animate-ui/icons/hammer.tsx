@@ -75,9 +75,7 @@ function Hammer(props: HammerProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  Hammer,
+export { Hammer,
   Hammer as HammerIcon,
   type HammerProps,
   type HammerProps as HammerIconProps,

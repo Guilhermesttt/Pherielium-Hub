@@ -97,9 +97,7 @@ function Wifi(props: WifiProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  Wifi,
+export { Wifi,
   Wifi as WifiIcon,
   type WifiProps,
   type WifiProps as WifiIconProps,

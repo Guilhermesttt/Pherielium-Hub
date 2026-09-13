@@ -67,9 +67,7 @@ function Palette(props: PaletteProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  Palette,
+export { Palette,
   Palette as PaletteIcon,
   type PaletteProps,
   type PaletteProps as PaletteIconProps,

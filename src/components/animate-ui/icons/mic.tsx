@@ -69,9 +69,7 @@ function Mic(props: MicProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  Mic,
+export { Mic,
   Mic as MicIcon,
   type MicProps,
   type MicProps as MicIconProps,

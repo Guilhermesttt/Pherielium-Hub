@@ -69,9 +69,7 @@ function Laptop(props: LaptopProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  Laptop,
+export { Laptop,
   Laptop as LaptopIcon,
   type LaptopProps,
   type LaptopProps as LaptopIconProps,

@@ -62,9 +62,7 @@ function MessageSquare(props: MessageSquareProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  MessageSquare,
+export { MessageSquare,
   MessageSquare as MessageSquareIcon,
   type MessageSquareProps,
   type MessageSquareProps as MessageSquareIconProps,

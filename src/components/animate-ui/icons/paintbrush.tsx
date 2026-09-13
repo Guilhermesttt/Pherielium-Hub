@@ -77,9 +77,7 @@ function Paintbrush(props: PaintbrushProps) {
   return <IconWrapper icon={IconComponent} {...props} />;
 }
 
-export {
-  animations,
-  Paintbrush,
+export { Paintbrush,
   Paintbrush as PaintbrushIcon,
   type PaintbrushProps,
   type PaintbrushProps as PaintbrushIconProps,
