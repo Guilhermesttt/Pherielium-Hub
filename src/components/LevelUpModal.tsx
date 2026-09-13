@@ -512,7 +512,7 @@ export const LevelUpModal: React.FC = () => {
               y: reduceMotion ? 0 : 10,
             }}
             transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-[530px] overflow-hidden rounded-[28px] border border-white/[0.10] bg-[#07080A]/95 px-7 pb-7 pt-8 text-center shadow-[0_40px_120px_rgba(0,0,0,.95)] select-none"
+            className="glass-panel relative w-full max-w-[530px] overflow-hidden rounded-[28px] border border-white/[0.10] px-7 pb-7 pt-8 text-center shadow-[0_40px_120px_rgba(0,0,0,.95)] select-none"
           >
             {isTierPromotion && !reduceMotion && (
               <motion.div

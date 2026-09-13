@@ -221,8 +221,8 @@ const LogoMark = React.memo(function LogoMark({
             id={gradientId}
             gradientUnits="userSpaceOnUse"
             animate={{
-              x1: [0, 2034],
-              x2: [0, 1017],
+              x1: ["0", "2034"],
+              x2: ["0", "1017"],
             }}
             transition={{
               duration: 1.5,

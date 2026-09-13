@@ -307,11 +307,8 @@ const Section: React.FC<SectionProps> = ({
   compact = false,
 }) => (
   <section
-    className={`${compact ? "rounded-2xl p-4 md:p-5" : "rounded-2xl p-5 md:p-6"} border border-white/[0.08] transform-gpu ${className}`}
+    className={`${compact ? "rounded-2xl p-4 md:p-5" : "rounded-2xl p-5 md:p-6"} border border-white/[0.08] transform-gpu glass-panel ${className}`}
     style={{
-      background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
-      backdropFilter: "blur(48px) saturate(160%)",
-      WebkitBackdropFilter: "blur(48px) saturate(160%)",
       boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
     }}
   >
@@ -636,20 +633,18 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     <motion.div
       ref={scrollRef}
       data-system-page
-      initial={{ opacity: 0, y: 18, filter: "blur(6px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", bounce: 0, duration: 0.4 }}
       data-profile-density={compactProfile ? "compact" : "comfortable"}
-      className={`relative min-h-0 flex-1 overflow-y-auto thin-scrollbar ${compactProfile ? "px-5 pb-6 pt-4" : "px-8 pb-12 pt-6"}`}
+      className={`relative min-h-0 flex-1 overflow-y-auto thin-scrollbar ${compactProfile ? "px-6 pb-6 pt-4" : "px-10 pb-12 pt-8"}`}
+      style={{ contain: "layout paint", transform: "translate3d(0,0,0)", willChange: "transform" }}
     >
       <div className={`relative mx-auto max-w-6xl ${compactProfile ? "space-y-4" : "space-y-6"}`}>
         {/* HERO SECTION EDITORIAL MINIMALISTA */}
         <section
-          className={`relative rounded-3xl border border-white/[0.08] ${compactProfile ? "p-5 md:p-6" : "p-6 sm:p-8"}`}
+          className={`relative rounded-3xl border border-white/[0.08] glass-panel ${compactProfile ? "p-5 md:p-6" : "p-6 sm:p-8"}`}
           style={{
-            background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
-            backdropFilter: "blur(48px) saturate(160%)",
-            WebkitBackdropFilter: "blur(48px) saturate(160%)",
             boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
           }}
         >
@@ -981,7 +976,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         </section>
 
         {isPrivateProfile ? (
-          <section className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/40 backdrop-blur-3xl p-12 text-center shadow-[0_24px_90px_rgba(0,0,0,0.55)]">
+          <section className="glass-panel flex flex-col items-center justify-center rounded-2xl border border-white/10 p-12 text-center shadow-[0_24px_90px_rgba(0,0,0,0.55)]">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-white/60 shadow-inner">
               <Lock className="h-8 w-8 text-white/80" />
             </div>

@@ -637,7 +637,7 @@ export const GameDetailAchievements: React.FC<GameDetailAchievementsProps> = Rea
 
       {/* Erro com Retry */}
       {!isLoading && error && (
-        <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-center">
+        <div className="glass-panel flex min-h-[220px] flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 p-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
           <AlertCircle className="mb-3 h-8 w-8 text-white/30" />
           <p className="text-sm font-semibold text-white/70 mb-4">{error}</p>
           <button

@@ -71,8 +71,10 @@ export const apiUrl = (path: string) => {
 export const getApiBaseUrl = () => API_BASE_URL;
 
 export class RequestTimeoutError extends Error {
-  constructor(public readonly timeoutMs: number) {
+  public readonly timeoutMs: number;
+  constructor(timeoutMs: number) {
     super(`A requisicao excedeu ${timeoutMs}ms.`);
+    this.timeoutMs = timeoutMs;
     this.name = "RequestTimeoutError";
   }
 }
@@ -85,12 +87,12 @@ export class AuthRequiredError extends Error {
 }
 
 export class ApiError extends Error {
-  constructor(
-    message: string,
-    public readonly status?: number,
-    public readonly code?: string,
-  ) {
+  public readonly status?: number;
+  public readonly code?: string;
+  constructor(message: string, status?: number, code?: string) {
     super(message);
+    this.status = status;
+    this.code = code;
     this.name = "ApiError";
   }
 }

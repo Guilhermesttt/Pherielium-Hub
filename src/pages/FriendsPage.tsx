@@ -27,6 +27,7 @@ import {
 import { SystemPageShell } from "../components/ui/SystemPageShell";
 import ModalShell from "../components/ui/ModalShell";
 import { StandardEmptyState } from "../components/ui/StateViews";
+import { GhostSelect } from "../components/ui/GhostSelect";
 import { usePreferences, type LauncherLanguage } from "../context/PreferencesContext";
 import { searchCheckpointFriends } from "../services/checkpointFriends";
 import type { CheckpointFriendRequest, SocialFriend, UserProfile } from "../types/domain";
@@ -614,10 +615,10 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
         <div
           className="flex items-center justify-between p-1.5 rounded-2xl border border-white/[0.08] shadow-2xl backdrop-blur-2xl w-full max-w-4xl"
           style={{
-            background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.06)",
-            backdropFilter: "blur(48px) saturate(160%)",
-            WebkitBackdropFilter: "blur(48px) saturate(160%)",
+            background: "rgba(255, 255, 255, 0.02)",
+            backdropFilter: "blur(20px) saturate(180%)",
+            WebkitBackdropFilter: "blur(20px) saturate(180%)",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)",
           }}
         >
           <nav className="flex items-center gap-1.5">
@@ -677,14 +678,9 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
           <div className="lg:col-span-4 flex flex-col gap-5">
             {/* User Identity Card */}
             <div
-              className="rounded-2xl border border-white/[0.08] p-5 shadow-2xl"
-              style={{
-                background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
-                backdropFilter: "blur(48px) saturate(160%)",
-                WebkitBackdropFilter: "blur(48px) saturate(160%)",
-                boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.06)",
-              }}
+              className="rounded-2xl border border-white/[0.08] p-5 shadow-2xl glass-panel"
             >
+
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative">
                   <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white/[0.05] border border-white/15 shadow-md">
@@ -766,14 +762,9 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
 
             {/* Recent Social Activity (3 Blocks Max, strictly within last 7h) */}
             <div
-              className="rounded-2xl border border-white/[0.08] p-5 shadow-2xl"
-              style={{
-                background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
-                backdropFilter: "blur(48px) saturate(160%)",
-                WebkitBackdropFilter: "blur(48px) saturate(160%)",
-                boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.06)",
-              }}
+              className="rounded-2xl border border-white/[0.08] p-5 shadow-2xl glass-panel"
             >
+
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[10.5px] font-body font-bold uppercase tracking-[0.2em] text-white/50 flex items-center gap-1.5">
                   <Activity className="w-3.5 h-3.5 text-white/60" /> ATIVIDADE RECENTE (ÚLTIMAS 7H)
@@ -845,7 +836,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
           {/* Right Column: Friends Search, Filter & Grid (8 Cols) */}
           <div className="lg:col-span-8 flex flex-col gap-6">
             {/* Search & Control Bar */}
-            <div className="flex flex-wrap items-center gap-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] p-2.5 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+            <div className="relative z-[100] flex flex-wrap items-center gap-2.5 rounded-3xl border border-white/[0.08] p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] glass-panel">
               <div className="relative flex-1 min-w-[240px]">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
                 <input
@@ -860,20 +851,18 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="relative">
-                  <select
-                    id="friends-status-filter"
-                    aria-label="Filtrar por status dos amigos"
+                <div className="relative z-50">
+                  <GhostSelect
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className="h-10 px-4 pr-8 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs font-body font-semibold text-white/80 focus:outline-none focus:border-white/25 cursor-pointer appearance-none"
-                  >
-                    <option value="ALL" className="bg-[#0c0d12] text-white">Todos os status</option>
-                    <option value="ONLINE" className="bg-[#0c0d12] text-white">Apenas Online</option>
-                    <option value="PLAYING" className="bg-[#0c0d12] text-white">Em Jogo</option>
-                    <option value="OFFLINE" className="bg-[#0c0d12] text-white">Offline</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+                    onChange={(value) => setStatusFilter(value as any)}
+                    options={[
+                      { value: "ALL", label: "Todos os status" },
+                      { value: "ONLINE", label: "Apenas Online" },
+                      { value: "PLAYING", label: "Em Jogo" },
+                      { value: "OFFLINE", label: "Offline" },
+                    ]}
+                    className="w-44"
+                  />
                 </div>
 
                 <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
@@ -995,14 +984,9 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
       {/* SubTab: CHATS */}
       {activeSubTab === "CHAT" && (
         <div
-          className="rounded-2xl border border-white/[0.08] p-6 shadow-2xl"
-          style={{
-            background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
-            backdropFilter: "blur(48px) saturate(160%)",
-            WebkitBackdropFilter: "blur(48px) saturate(160%)",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.06)",
-          }}
+          className="rounded-2xl border border-white/[0.08] p-6 shadow-2xl glass-panel"
         >
+
           <div className="mb-6 flex items-center justify-between border-b border-white/[0.06] pb-4">
             <div>
               <h2 className="text-lg font-display font-bold text-white">Conversas Recentes</h2>
@@ -1053,14 +1037,9 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
       {/* SubTab: SOLICITAÇÕES */}
       {activeSubTab === "SOLICITAÇÕES" && (
         <div
-          className="rounded-2xl border border-white/[0.08] p-6 shadow-2xl"
-          style={{
-            background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
-            backdropFilter: "blur(48px) saturate(160%)",
-            WebkitBackdropFilter: "blur(48px) saturate(160%)",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.06)",
-          }}
+          className="rounded-2xl border border-white/[0.08] p-6 shadow-2xl glass-panel"
         >
+
           <div className="mb-6 flex items-center justify-between border-b border-white/[0.06] pb-4">
             <div>
               <h2 className="text-lg font-display font-bold text-white">Solicitações de Amizade</h2>

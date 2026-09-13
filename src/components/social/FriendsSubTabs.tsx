@@ -33,9 +33,11 @@ export const FriendsSubTabs: React.FC<FriendsSubTabsProps> = ({
     <div className="w-full flex justify-center mb-6 z-10 relative">
       {/* Container de fundo translúcido escuro (estilo "Pill" da imagem 1) */}
       <div
-        className="flex items-center justify-between px-2 py-1.5 rounded-full border border-white/[0.04] backdrop-blur-3xl shadow-[0_8px_30px_rgba(0,0,0,0.6)]"
+        className="flex items-center justify-between px-2 py-1.5 rounded-full border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_30px_rgba(0,0,0,0.6)]"
         style={{
-          background: "linear-gradient(180deg, rgba(20,20,22,0.85) 0%, rgba(14,14,16,0.95) 100%)",
+          background: "rgba(255, 255, 255, 0.02)",
+          backdropFilter: "blur(20px) saturate(180%)",
+          WebkitBackdropFilter: "blur(20px) saturate(180%)",
           minWidth: "720px", // Garante a largura ampla vista na referência
         }}
       >

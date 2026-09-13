@@ -281,6 +281,9 @@ const Home: React.FC = () => {
     useState(false);
   const [disconnectEpicModalOpen, setDisconnectEpicModalOpen] =
     useState(false);
+  const [steamDisconnecting, setSteamDisconnecting] = useState(false);
+  const [discordDisconnecting, setDiscordDisconnecting] = useState(false);
+  const [epicDisconnecting, setEpicDisconnecting] = useState(false);
   const [epicConnectModalOpen, setEpicConnectModalOpen] = useState(false);
   const [epicAuthConnected, setEpicAuthConnected] = useState(false);
   const [epicDisplayName, setEpicDisplayName] = useState("");
@@ -2128,14 +2131,19 @@ const Home: React.FC = () => {
       />
 
       <div
-        className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden hub-60fps transition-[margin-left] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-        style={{ marginLeft: isSidebarExpanded ? 328 : 104 }}
+        className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden transition-[margin-left] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+        style={{
+          marginLeft: isSidebarExpanded ? 328 : 104,
+          contain: "layout paint style",
+          willChange: "transform",
+          transform: "translate3d(0,0,0)",
+        }}
       >
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.42, delay: 0.06, ease: [0.32, 0.72, 0, 1] }}
-          className="shrink-0 flex items-center justify-between px-10 pt-7 relative transform-gpu will-change-transform"
+          className="shrink-0 flex items-center justify-between px-10 pt-8 relative transform-gpu will-change-transform"
         >
           <div className="flex items-center gap-6">
             <InteractiveBreadcrumb
@@ -2152,8 +2160,31 @@ const Home: React.FC = () => {
             {/* Clean Pill Search Bar - Only in Menu & Platform views */}
             {!["SETTINGS", "FRIENDS", "MODS", "RADAR", "PROFILE", "TROPHIES"].includes(activeCategory) && (
               <div className="relative flex items-center gap-2">
-                <div className="relative flex items-center">
-                  <Search className="w-3.5 h-3.5 text-white/40 absolute left-3 pointer-events-none" />
+                <motion.div
+                  initial={false}
+                  animate={{
+                    width: searchOpen || searchTerm ? 224 : 36,
+                    backgroundColor: searchOpen || searchTerm ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.02)",
+                    borderColor: searchOpen || searchTerm ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.08)",
+                  }}
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                  className="relative flex items-center h-9 rounded-full overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] border border-transparent backdrop-blur-md"
+                >
+                  <button
+                    onClick={() => {
+                      if (!searchOpen) {
+                        setSearchOpen(true);
+                        setTimeout(() => searchInputRef.current?.focus(), 50);
+                        playSound("select");
+                      }
+                    }}
+                    className={`absolute left-0 w-9 h-9 flex items-center justify-center transition-colors z-10 ${
+                      searchOpen || searchTerm ? "pointer-events-none" : "hover:bg-white/10 cursor-pointer"
+                    }`}
+                    aria-label="Abrir pesquisa"
+                  >
+                    <Search className={`w-3.5 h-3.5 transition-colors ${searchOpen || searchTerm ? "text-white/40" : "text-white/80"}`} />
+                  </button>
                   <input
                     ref={searchInputRef}
                     id="home-library-search"
@@ -2161,8 +2192,14 @@ const Home: React.FC = () => {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    onFocus={() => setSearchOpen(true)}
+                    onBlur={() => {
+                      if (!searchTerm) setSearchOpen(false);
+                    }}
                     placeholder={t("searchPlaceholder") || "Pesquisar jogo... (S)"}
-                    className="h-9 w-44 md:w-56 rounded-full bg-white/[0.04] hover:bg-white/[0.07] focus:bg-white/[0.09] border border-white/[0.08] focus:border-white/20 pl-9 pr-8 text-xs text-white placeholder:text-white/30 outline-none transition-all duration-200 transform-gpu will-change-transform focus:scale-[1.015] hover:scale-[1.01] focus:shadow-[0_0_16px_rgba(255,255,255,0.06)]"
+                    className={`absolute left-0 top-0 h-full w-full pl-9 pr-8 text-xs text-white placeholder:text-white/30 bg-transparent outline-none transition-opacity duration-300 ${
+                      searchOpen || searchTerm ? "opacity-100" : "opacity-0 pointer-events-none"
+                    }`}
                   />
                   {searchTerm && (
                     <button
@@ -2174,12 +2211,12 @@ const Home: React.FC = () => {
                         searchInputRef.current?.focus();
                         playSound("back");
                       }}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-white/10 rounded-full transition-all"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-all z-10"
                     >
                       <X className="w-3 h-3 text-white/40 hover:text-white" />
                     </button>
                   )}
-                </div>
+                </motion.div>
                 {/* Filter Button */}
                 <button
                   onClick={() => {
@@ -2199,7 +2236,15 @@ const Home: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 p-1 rounded-2xl bg-[#0b0d14]/80 border border-white/[0.08] backdrop-blur-xl shadow-lg shadow-black/30">
+            <div
+              className="flex items-center gap-1 p-1 rounded-2xl border border-white/[0.08]"
+              style={{
+                background: "rgba(28, 28, 30, 0.75)",
+                backdropFilter: "blur(40px) saturate(180%)",
+                WebkitBackdropFilter: "blur(40px) saturate(180%)",
+                boxShadow: "0 16px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12)",
+              }}
+            >
               <button
                 type="button"
                 aria-label={t("new") || "Adicionar novo jogo"}
@@ -2334,8 +2379,16 @@ const Home: React.FC = () => {
             />
           </div>
         </motion.div>
-
-        <div className="flex-1 flex flex-col justify-end min-h-0 hub-60fps will-change-transform">
+        <div className="flex-1 flex flex-col justify-end min-h-0 hub-60fps will-change-transform" style={{ contain: "layout paint" }}>
+          <AnimatePresence mode="wait" custom={activeCategory}>
+            <motion.div
+              key={activeCategory}
+              initial={{ opacity: 0, x: activeCategory === "ALL" ? -40 : 40, scale: activeCategory === "ALL" ? 0.98 : 1 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: activeCategory === "ALL" ? 40 : -40, scale: activeCategory === "ALL" ? 1 : 0.98 }}
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+              className="flex-1 flex flex-col justify-end min-h-0 w-full"
+            >
           {activeCategory === "SETTINGS" ? (
             <SettingsPageV2
               language={launcherLanguage}
@@ -2380,6 +2433,9 @@ const Home: React.FC = () => {
               epicConnected={epicAuthConnected}
               epicDisplayName={epicDisplayName}
               epicConnecting={epicSyncing}
+              steamDisconnecting={steamDisconnecting}
+              discordDisconnecting={discordDisconnecting}
+              epicDisconnecting={epicDisconnecting}
               onConnectSteam={connectSteam}
               onConnectDiscord={connectDiscord}
               onConnectEpic={() => setEpicConnectModalOpen(true)}
@@ -2713,6 +2769,8 @@ const Home: React.FC = () => {
               </div>
             </>
           )}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {shouldShowLibraryFooter(activeCategory) && <div
@@ -2908,6 +2966,7 @@ const Home: React.FC = () => {
             : ""
         }
         confirmLabel="Remover"
+        variant="delete"
         onClose={() => setPendingDeleteGame(null)}
         onConfirm={async () => {
           if (!pendingDeleteGame || !user?.uid) {
@@ -2929,6 +2988,7 @@ const Home: React.FC = () => {
 
       <ConfirmationModal
         isOpen={signOutModalOpen}
+        variant="logout"
         title={t("signOutTitle")}
         description={t("signOutDescription")}
         confirmLabel={t("signOutConfirm")}
@@ -2955,40 +3015,49 @@ const Home: React.FC = () => {
 
       <ConfirmationModal
         isOpen={disconnectSteamModalOpen}
+        variant="disconnect"
         title={t("disconnectSteamTitle")}
         description={t("disconnectSteamDescription")}
         confirmLabel={t("confirm")}
         onClose={() => setDisconnectSteamModalOpen(false)}
         onConfirm={async () => {
           setDisconnectSteamModalOpen(false);
+          setSteamDisconnecting(true);
           await handleDisconnectSteam();
+          setSteamDisconnecting(false);
         }}
         playSound={playSound}
       />
 
       <ConfirmationModal
         isOpen={disconnectDiscordModalOpen}
+        variant="disconnect"
         title={t("disconnectDiscordTitle")}
         description={t("disconnectDiscordDescription")}
         confirmLabel={t("confirm")}
         onClose={() => setDisconnectDiscordModalOpen(false)}
         onConfirm={async () => {
           setDisconnectDiscordModalOpen(false);
+          setDiscordDisconnecting(true);
           await handleDisconnectDiscord();
+          setDiscordDisconnecting(false);
         }}
         playSound={playSound}
       />
 
       <ConfirmationModal
         isOpen={disconnectEpicModalOpen}
+        variant="disconnect"
         title={t("disconnectEpicTitle")}
         description={t("disconnectEpicDescription")}
         confirmLabel={t("confirm")}
         onClose={() => setDisconnectEpicModalOpen(false)}
         onConfirm={async () => {
           setDisconnectEpicModalOpen(false);
+          setEpicDisconnecting(true);
           await handleDisconnectEpic();
           await checkEpicStatus();
+          setEpicDisconnecting(false);
         }}
         playSound={playSound}
       />

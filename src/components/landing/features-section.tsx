@@ -169,11 +169,15 @@ export function FeaturesSection() {
 
         <div className="grid lg:grid-cols-12 gap-4 lg:gap-6">
           <div
-            className={`lg:col-span-12 relative bg-black border border-foreground/10 min-h-[500px] overflow-hidden group transition-all duration-700 flex ${
+            className={`lg:col-span-12 relative bg-white/[0.02] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] rounded-3xl min-h-[500px] overflow-hidden group transition-all duration-700 flex ${
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
             }`}
+            style={{
+              backdropFilter: "blur(20px) saturate(180%)",
+              WebkitBackdropFilter: "blur(20px) saturate(180%)",
+            }}
           >
-            <div className="relative flex-1 p-8 lg:p-12 bg-black">
+            <div className="relative flex-1 p-8 lg:p-12">
               <ParticleVisualization />
               <div className="relative z-10">
                 <span className="font-mono text-sm text-muted-foreground">{features[0].number}</span>
@@ -190,7 +194,7 @@ export function FeaturesSection() {
               </div>
             </div>
 
-            <div className="hidden lg:flex relative w-[42%] shrink-0 overflow-hidden items-center justify-center bg-black/50">
+            <div className="hidden lg:flex relative w-[42%] shrink-0 overflow-hidden items-center justify-center">
               <div className="text-center p-12">
                 <div className="w-48 h-48 mx-auto rounded-3xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center mb-8">
                   <Gamepad2 className="w-24 h-24 text-white/20" />
@@ -201,7 +205,7 @@ export function FeaturesSection() {
                   ))}
                 </div>
               </div>
-              <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#070707] via-transparent to-transparent opacity-80" />
             </div>
           </div>
 
@@ -210,10 +214,14 @@ export function FeaturesSection() {
             return (
               <div
                 key={feature.number}
-                className={`lg:col-span-4 relative bg-black border border-foreground/10 p-8 lg:p-10 overflow-hidden group transition-all duration-700 hover:border-foreground/30 ${
+                className={`lg:col-span-4 relative bg-white/[0.02] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] rounded-3xl p-8 lg:p-10 overflow-hidden group transition-all duration-700 hover:bg-white/[0.05] ${
                   isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
                 }`}
-                style={{ transitionDelay: `${(i + 1) * 100}ms` }}
+                style={{
+                  transitionDelay: `${(i + 1) * 100}ms`,
+                  backdropFilter: "blur(20px) saturate(180%)",
+                  WebkitBackdropFilter: "blur(20px) saturate(180%)",
+                }}
               >
                 <span className="font-mono text-sm text-muted-foreground">{feature.number}</span>
                 <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mt-4 mb-6 group-hover:scale-110 transition-transform">

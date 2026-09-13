@@ -110,7 +110,13 @@ export function ProfileDropdown({
       </DropdownMenuTrigger>
       
       <DropdownMenuContent
-        className="w-72 rounded-[20px] border border-white/10 bg-[#09090b]/95 p-2 shadow-2xl backdrop-blur-xl"
+        className="w-72 rounded-[20px] border border-white/[0.08] p-2"
+        style={{
+          background: "rgba(28, 28, 30, 0.75)",
+          backdropFilter: "blur(40px) saturate(180%)",
+          WebkitBackdropFilter: "blur(40px) saturate(180%)",
+          boxShadow: "0 16px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12)",
+        }}
         align="end"
         sideOffset={12}
       >

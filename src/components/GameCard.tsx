@@ -185,19 +185,29 @@ const GameCard: React.FC<GameCardProps> = ({
         height: CARD_FRAME_HEIGHT,
       }}
     >
-      <div
+      <motion.div
+        layout
+        whileHover={{ scale: isActive ? 1.05 : 0.98, y: isActive ? -8 : -2 }}
+        whileTap={{ scale: 0.95 }}
+        animate={{
+          scale: isActive ? 1.05 : 0.95,
+          y: isActive ? -8 : 0,
+          boxShadow: isActive
+            ? "0 25px 60px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.25)"
+            : "0 10px 28px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12)",
+          borderColor: isActive ? "var(--color-ui-detail)" : "rgba(255,255,255,0.08)"
+        }}
+        transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
         style={{
           width: CARD_WIDTH,
           height: CARD_HEIGHT,
+          borderRadius: 24, /* Squircle outer approximation */
         }}
-        className={`relative isolate rounded-2xl bg-[#090A0D] border transform-gpu will-change-transform flex flex-col justify-between transition-all duration-200 ease-out ${
-          isActive
-            ? "scale-[1.05] -translate-y-2 border-white/80 ring-2 ring-white/70 shadow-[0_0_40px_rgba(255,255,255,0.45),0_25px_60px_rgba(0,0,0,0.95)] z-20"
-            : "scale-95 border-white/[0.08] hover:border-white/25 hover:scale-[0.98] shadow-[0_10px_28px_rgba(0,0,0,0.7)] hover:shadow-[0_15px_36px_rgba(0,0,0,0.85)] z-10"
-        }`}
+        className={`relative isolate bg-[var(--color-surface)] border transform-gpu will-change-transform flex flex-col justify-between ${isActive ? "ring-2 ring-[var(--color-ui-detail)] z-20" : "z-10"
+          }`}
       >
         {/* Clip container isolado - borda arredondada fica aqui, fora do layer de transform 3D */}
-        <div className="absolute inset-0 overflow-hidden rounded-2xl isolate">
+        <div className="absolute inset-0 overflow-hidden isolate" style={{ borderRadius: 23 }}>
           {/* Full-Bleed Cover Image Artwork */}
           {hasAllFailed ? (
             <div
@@ -209,12 +219,14 @@ const GameCard: React.FC<GameCardProps> = ({
               </span>
             </div>
           ) : (
-            <img
+            <motion.img
               src={currentImageSrc}
               alt={title}
-              className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out ${
-                isActive ? "scale-[1.06]" : "group-hover:scale-[1.06]"
-              }`}
+              initial={false}
+              animate={{ scale: isActive ? 1.06 : 1 }}
+              whileHover={{ scale: 1.06 }}
+              transition={{ type: "spring", bounce: 0.1, duration: 0.5 }}
+              className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
               decoding="async"
               draggable={false}
@@ -233,7 +245,7 @@ const GameCard: React.FC<GameCardProps> = ({
         <div className="absolute left-2.5 right-2.5 top-2.5 z-20 flex items-center justify-between pointer-events-none">
           {platformBadge && (
             <div
-              className="flex items-center gap-1.5 rounded-lg px-2 py-1 shadow-sm backdrop-blur-md"
+              className="flex items-center gap-1.5 rounded-xl px-2 py-1 shadow-sm backdrop-blur-md"
               style={{
                 background: platformBadge.background,
                 border: `1px solid ${platformBadge.border}`,
@@ -247,28 +259,36 @@ const GameCard: React.FC<GameCardProps> = ({
           )}
 
           {isFavorite && (
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-black/60 border border-white/20 backdrop-blur-md shadow-sm">
+            <div className="flex h-6 w-6 items-center justify-center rounded-xl bg-black/60 border border-white/20 backdrop-blur-md shadow-sm">
               <Star className="h-3 w-3 fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" />
             </div>
           )}
         </div>
 
         {/* Central Interactive Play/Action Indicator */}
-        <div
-          className={`absolute inset-0 z-20 flex items-center justify-center pointer-events-none transition-all duration-300 ${
-            isActive
-              ? "opacity-100 scale-100"
-              : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-95"
-          }`}
+        <motion.div
+          initial={false}
+          animate={{
+            opacity: isActive ? 1 : 0,
+            scale: isActive ? 1 : 0.9
+          }}
+          whileHover={{ opacity: 1, scale: 0.95 }}
+          transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
+          className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
         >
-          <div
-            className={`flex h-11 w-11 items-center justify-center rounded-full bg-white/15 border border-white/40 backdrop-blur-xl shadow-[0_0_24px_rgba(255,255,255,0.3)] transition-transform duration-200 ${
-              isActive ? "scale-110 shadow-[0_0_30px_rgba(255,255,255,0.5)]" : "group-hover:scale-110"
-            }`}
+          <motion.div
+            animate={{
+              scale: isActive ? 1.1 : 1,
+              boxShadow: isActive ? "0 0 30px rgba(255,255,255,0.5)" : "0 0 24px rgba(255,255,255,0.3)"
+            }}
+            whileHover={{ scale: 1.1 }}
+            transition={{ type: "spring", bounce: 0.3, duration: 0.3 }}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 border border-white/40 backdrop-blur-xl"
           >
             <Play className="h-4 w-4 fill-white text-white ml-0.5" />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
+
 
         {/* Bottom Title and Source Metadata (Consistent Typography Scale) */}
         <div className="relative z-20 mt-auto p-3.5 flex flex-col justify-end pointer-events-none">
@@ -279,7 +299,7 @@ const GameCard: React.FC<GameCardProps> = ({
             {platformBadge?.label || "Jogo"} • Pherielium
           </p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

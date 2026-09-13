@@ -169,8 +169,8 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
   };
 
   const iconSizeClass = isExpanded
-    ? (nested ? "h-4 w-4" : "h-[22px] w-[22px]")
-    : (nested ? "h-[20px] w-[20px]" : "h-6 w-6");
+    ? (nested ? "h-4 w-4" : "h-6 w-6")
+    : (nested ? "h-5 w-5" : "h-6 w-6");
 
   const buttonContent = (
     <motion.button
@@ -179,28 +179,31 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
       aria-label={hasNotifications ? `${label}, ${notificationCount} notificações` : label}
       aria-current={active ? "page" : undefined}
       data-sidebar-item={id}
-      whileTap={{ scale: 0.97 }}
-      className={`relative group flex cursor-pointer items-center transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+      whileTap={{ scale: 0.95 }}
+      layout
+      transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
+      className={`relative group flex cursor-pointer items-center 
         focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50
         ${isExpanded
-          // Mac Native Layout: Cantos arredondados (rounded-xl) em vez de pílula (rounded-full)
-          ? `w-full ${nested ? "h-9 px-3 gap-3" : "h-[42px] px-3.5 gap-3.5"} rounded-xl text-left`
-          : (nested ? "h-10 w-10 justify-center rounded-[14px]" : "h-12 w-12 justify-center rounded-[18px]")}
+          ? `w-full ${nested ? "h-10 px-3 gap-3" : "h-12 px-4 gap-4"} rounded-2xl text-left`
+          : (nested ? "h-10 w-10 justify-center rounded-xl" : "h-12 w-12 justify-center rounded-2xl")}
         ${!active ? "hover:bg-white/[0.06]" : ""}`}
       style={{
-        // Fundo com tint do accent color ao ativar
         background: active ? "rgb(var(--launcher-accent) / 0.14)" : "transparent",
         boxShadow: active
-          ? "0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgb(var(--launcher-accent) / 0.20)"
+          ? "0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15)"
           : "none",
+        transform: "translate3d(0,0,0)",
+        willChange: "transform",
       }}
     >
       <motion.div
-        className={`shrink-0 transform transition-transform duration-500 ease-out 
+        layout
+        className={`shrink-0 
           ${rotateOnHover && !AnimatedIcon ? "group-hover:rotate-45" : ""}`}
       >
         {AnimatedIcon ? (
-          <AnimatedIcon ref={animatedIconRef} size={isExpanded ? (nested ? 16 : 22) : 24} duration={1} className={`${iconSizeClass}`} style={iconStyle} />
+          <AnimatedIcon ref={animatedIconRef} size={isExpanded ? (nested ? 16 : 24) : (nested ? 20 : 24)} duration={1} className={`${iconSizeClass}`} style={iconStyle} />
         ) : (
           <Icon className={`${iconSizeClass}`} style={iconStyle} />
         )}
@@ -208,14 +211,15 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
 
       {isExpanded && (
         <div className="flex flex-1 items-center justify-between min-w-0">
-          <span
-            className={`truncate font-body tracking-[0.015em] transition-all duration-300 
-              ${nested ? "text-[12.5px]" : "text-[13.5px]"} 
+          <motion.span
+            layout
+            className={`truncate font-body tracking-[0.015em]
+              ${nested ? "text-xs" : "text-sm"} 
               ${active ? "font-semibold" : "text-white/50 group-hover:text-white/80"}`}
             style={active ? { color: "rgb(var(--launcher-accent))", textShadow: "0 0 8px rgb(var(--launcher-accent) / 0.5)" } : undefined}
           >
             {label}
-          </span>
+          </motion.span>
           {hasNotifications && (
             <div className="relative flex items-center justify-center">
               <span
@@ -309,21 +313,20 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <motion.aside
-      initial={{ x: -20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ x: -20, opacity: 0, width: 88 }}
+      animate={{ x: 0, opacity: 1, width: isExpanded ? 280 : 88 }}
+      transition={{ type: "spring", bounce: 0, duration: 0.4 }}
       // Generous Negative Space: Sidebar mais larga (280px)
-      className="fixed left-4 top-4 bottom-4 z-50 flex flex-col pointer-events-none transition-[width] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu"
-      style={{ width: isExpanded ? 280 : 88 }}
+      className="fixed left-4 top-4 bottom-4 z-50 flex flex-col pointer-events-none transform-gpu"
     >
       <div
-        className="pointer-events-auto flex-1 flex flex-col py-6 px-4 min-h-0 rounded-[28px] border border-white/[0.08]"
+        className="pointer-events-auto flex-1 flex flex-col py-6 px-4 min-h-0 rounded-[32px] border border-white/[0.08]"
         style={{
-          // Frosted Glassmorphism - Deep Charcoal / Obsidian
-          background: "linear-gradient(145deg, rgba(20,20,22,0.55) 0%, rgba(10,10,12,0.7) 100%)",
-          backdropFilter: "blur(48px) saturate(160%)",
-          WebkitBackdropFilter: "blur(48px) saturate(160%)",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
+          background: "rgba(255, 255, 255, 0.02)",
+          backdropFilter: "blur(20px) saturate(180%)",
+          WebkitBackdropFilter: "blur(20px) saturate(180%)",
+          boxShadow: "0 32px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12)",
+          contain: "layout paint",
         }}
       >
         <div
@@ -337,7 +340,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
           {isExpanded && (
             <div className="flex flex-1 items-center min-w-0">
-              <span className="font-display font-medium text-[15px] text-white tracking-[0.2em] uppercase drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">
+              <span className="font-display font-medium text-sm text-white tracking-[0.2em] uppercase drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">
                 Pherielium
               </span>
             </div>
@@ -393,8 +396,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                               }
                             }}
                             whileTap={{ scale: 0.95 }}
+                            transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
                             aria-label={`${groupLabels[group.key]} (${isOpen ? "Aberta" : "Fechada"})`}
-                            className={`relative group flex h-12 w-12 items-center justify-center rounded-[18px] transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50 ${
+                            className={`relative group flex h-12 w-12 items-center justify-center rounded-[18px] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50 ${
                               isGroupActive && !isOpen
                                 ? "bg-[rgb(var(--launcher-accent)/0.14)] text-[rgb(var(--launcher-accent))] shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_0_1px_0_rgb(var(--launcher-accent)/0.20)]"
                                 : isOpen
@@ -403,9 +407,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                             }`}
                           >
                             {isOpen ? (
-                              <FolderOpen className="h-6 w-6 transition-transform text-[rgb(var(--launcher-accent))]" style={{ filter: "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" }} />
+                              <FolderOpen className="h-6 w-6 text-[rgb(var(--launcher-accent))]" style={{ filter: "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" }} />
                             ) : (
-                              <Folder className="h-6 w-6 transition-transform" style={isGroupActive ? { color: "rgb(var(--launcher-accent))", filter: "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" } : undefined} />
+                              <Folder className="h-6 w-6" style={isGroupActive ? { color: "rgb(var(--launcher-accent))", filter: "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" } : undefined} />
                             )}
                             {isGroupActive && !isOpen && (
                               <span

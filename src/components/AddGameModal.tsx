@@ -18,6 +18,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSteam } from "@fortawesome/free-brands-svg-icons";
 import ModalShell from "./ui/ModalShell";
 import { AddGameWizardSteps } from "./game/AddGameWizardSteps";
+import { GhostSelect } from "./ui/GhostSelect";
 import { LoadingState } from "./ui/loading-state";
 import { useAuth } from "../auth/AuthProvider";
 import { usePreferences } from "../context/PreferencesContext";
@@ -864,11 +865,11 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
       const details =
         productSlug
           ? await fetchEpicAppDetailsResult(
-              catalogId,
-              namespace,
-              productSlug,
-              language,
-            ).catch(() => null)
+            catalogId,
+            namespace,
+            productSlug,
+            language,
+          ).catch(() => null)
           : null;
       const d = details?.ok ? details.data : null;
       if (requestId !== detailsRequestRef.current) return;
@@ -1184,7 +1185,12 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
     >
       <div
         aria-busy={isSaving || loading}
-        className="relative flex h-[calc(100dvh-2rem)] max-h-[860px] w-full flex-col overflow-hidden rounded-[22px] border border-white/10 bg-[#090909] shadow-2xl md:h-[calc(100dvh-4rem)] text-white"
+        className="relative flex h-[calc(100dvh-2rem)] max-h-[860px] w-full flex-col overflow-hidden rounded-xl border border-white/[0.08] shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] md:h-[calc(100dvh-4rem)] text-white transform-gpu"
+        style={{
+          background: "rgba(255, 255, 255, 0.02)",
+          backdropFilter: "blur(20px) saturate(180%)",
+          WebkitBackdropFilter: "blur(20px) saturate(180%)",
+        }}
       >
         <header className="relative flex shrink-0 items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-4 md:px-7 md:py-5">
           <div className="flex min-w-0 items-center gap-4">
@@ -1257,10 +1263,10 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
                       aria-checked={selected}
                       onClick={() => selectLauncherType(option.id)}
                       className={"flex items-center gap-2.5 rounded-xl border px-3 py-3 text-left transition-all " + (selected
-                        ? "border-white bg-white text-black"
+                        ? "border-white bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                         : "border-white/10 bg-transparent text-white hover:border-white/25 hover:bg-white/[0.04]")}
                     >
-                      <span className={"grid h-7 w-7 shrink-0 place-items-center rounded-lg " + (selected ? "text-black/70" : "text-white/55")}>
+                      <span className={"grid h-7 w-7 shrink-0 place-items-center rounded-xl " + (selected ? "text-black/70" : "text-white/55")}>
                         {option.icon(selected)}
                       </span>
                       <strong className="truncate text-[12px] font-bold">{option.label}</strong>
@@ -1276,18 +1282,17 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/38">{copy.automaticFill}</p>
                 <div className="flex items-center gap-2">
                   {loading && <RefreshCw size={14} className="animate-spin text-white/45" />}
-                  <div className="flex items-center gap-1 rounded-lg bg-white/[0.04] p-0.5 border border-white/[0.06] text-xs">
+                  <div className="flex items-center gap-1 rounded-xg bg-white/[0.04] p-0.5 border border-white/[0.06] text-xs">
                     <button
                       type="button"
                       onClick={() => {
                         setSearchSource("steam");
                         resetSearch();
                       }}
-                      className={`px-3 py-1 rounded-md transition-all font-bold flex items-center gap-1.5 text-[10px] uppercase tracking-wider ${
-                        searchSource === "steam"
-                          ? "bg-white/10 text-white shadow-sm"
-                          : "text-white/40 hover:text-white/70"
-                      }`}
+                      className={`px-3 py-1 rounded-xl transition-all font-bold flex items-center gap-1.5 text-[10px] uppercase tracking-wider ${searchSource === "steam"
+                        ? "bg-white/10 text-white shadow-sm"
+                        : "text-white/40 hover:text-white/70"
+                        }`}
                     >
                       <SteamBrandIcon className="w-3.5 h-3.5" style={{ color: searchSource === "steam" ? "#fff" : "currentColor" }} /> Steam
                     </button>
@@ -1297,11 +1302,10 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
                         setSearchSource("epic");
                         resetSearch();
                       }}
-                      className={`px-3 py-1 rounded-md transition-all font-bold flex items-center gap-1.5 text-[10px] uppercase tracking-wider ${
-                        searchSource === "epic"
-                          ? "bg-white/10 text-white shadow-sm"
-                          : "text-white/40 hover:text-white/70"
-                      }`}
+                      className={`px-3 py-1 rounded-xl transition-all font-bold flex items-center gap-1.5 text-[10px] uppercase tracking-wider ${searchSource === "epic"
+                        ? "bg-white/10 text-white shadow-sm"
+                        : "text-white/40 hover:text-white/70"
+                        }`}
                     >
                       <EpicBrandIcon className="w-3.5 h-3.5" style={{ color: searchSource === "epic" ? "#fff" : "currentColor" }} /> Epic
                     </button>
@@ -1360,7 +1364,7 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
                       : "border-white/10 bg-transparent text-white/48 hover:border-white/25 hover:bg-white/[0.04]"
                       }`}
                   >
-                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg border ${formData.hasGame ? "border-black/10 bg-black/[0.06]" : "border-white/10"}`}>
+                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-xl border ${formData.hasGame ? "border-black/10 bg-black/[0.06]" : "border-white/10"}`}>
                       <Check size={14} strokeWidth={3} />
                     </span>
                     <strong className="text-[12px] font-bold">{formData.hasGame ? copy.ownGameConfirmed : copy.ownGameConfirm}</strong>
@@ -1408,18 +1412,18 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
                     {copy.category}
                   </label>
                   <div className="relative">
-                    <select
-                      id="game-category"
+                    <GhostSelect
                       value={formData.category}
-                      onChange={(event) => {
+                      onChange={(value) => {
                         playSound("navigate");
-                        setFormData({ ...formData, category: event.target.value });
+                        setFormData({ ...formData, category: value });
                       }}
-                      className="w-full appearance-none rounded-xl border border-white/10 bg-[#0d0d11] px-4 py-3 pr-10 text-[13px] text-white/78 outline-none transition-all focus:border-white/24"
-                    >
-                      {CATEGORIES.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
-                    </select>
-                    <ChevronDown size={15} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/30" />
+                      options={CATEGORIES.map((category) => ({
+                        value: category.id,
+                        label: category.label
+                      }))}
+                      className="w-full"
+                    />
                   </div>
                 </div>
 
@@ -1561,13 +1565,13 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
 
           <aside
             aria-label={copy.previewPanel}
-            className="relative flex min-h-[520px] flex-col overflow-hidden bg-[#060608] p-5 lg:min-h-0 lg:p-6"
+            className="relative flex min-h-[520px] flex-col overflow-hidden bg-white/[0.01] border-l border-white/[0.08] shadow-[inset_1px_0_0_rgba(255,255,255,0.02)] p-5 lg:min-h-0 lg:p-6"
           >
             <div className="relative flex items-center justify-between gap-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/32">
                 {copy.previewPanel}
               </p>
-              <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-[10px] font-bold text-white/48">
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 px-2.5 py-1.5 text-[10px] font-bold text-white/48">
                 <Globe size={11} /> {platformLabel}
               </span>
             </div>
@@ -1616,7 +1620,7 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
           </aside>
         </div>
 
-        <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-white/[0.08] bg-[#090909] px-5 py-4 md:px-7">
+        <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-white/[0.08] bg-white/[0.02] px-5 py-4 md:px-7">
           <button
             type="button"
             onClick={() => handleClose()}

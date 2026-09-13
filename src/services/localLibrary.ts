@@ -2,8 +2,20 @@ import { supabase } from "./supabase";
 import type { Game, UserProfile } from "../types/domain";
 import { cachedQuery, invalidate } from "../lib/queryCache";
 
+const CLOUD_PAGE_SIZE = 100;
+const CLOUD_GAME_LIMIT = 500;
+const PUBLIC_LIBRARY_SYNC_VERSION = 2;
+
 const sorted = (games: Game[]) =>
   [...games].sort((a, b) => a.title.localeCompare(b.title));
+
+const chunked = <T,>(items: T[], size = CLOUD_PAGE_SIZE): T[][] => {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+};
 
 const toCloudGameRow = (uid: string, game: Game) => {
   const calculatedMinutes = Math.max(
@@ -12,7 +24,9 @@ const toCloudGameRow = (uid: string, game: Game) => {
     Number(game.locallyTrackedMinutes) || 0,
     Math.round((Number(game.hoursPlayed) || 0) * 60),
   );
-  const hoursPlayed = calculatedMinutes > 0 ? Number((calculatedMinutes / 60).toFixed(1)) : (Number(game.hoursPlayed) || 0);
+  const hoursPlayed = calculatedMinutes > 0
+    ? Number((calculatedMinutes / 60).toFixed(1))
+    : (Number(game.hoursPlayed) || 0);
 
   return {
     id: game.id,
@@ -44,6 +58,48 @@ const fromCloudGameRow = (row: Record<string, any>): Game => ({
   isFavorite: Boolean(row.data?.isFavorite ?? row.is_favorite),
 });
 
+const syncLocalGamesToCloud = async (uid: string) => {
+  if (!window.electronAPI?.listLocalGames) return;
+
+  const localGames = await window.electronAPI.listLocalGames(uid);
+  const normalizedGames = Array.isArray(localGames)
+    ? localGames.slice(0, CLOUD_GAME_LIMIT)
+    : [];
+  const rows = normalizedGames.map((game) => toCloudGameRow(uid, game));
+
+  for (const chunk of chunked(rows)) {
+    const { error: upsertError } = await supabase
+      .from("user_games")
+      .upsert(chunk, { onConflict: "user_id,id" });
+
+    if (upsertError) throw upsertError;
+  }
+
+  // Remove da cópia pública jogos que já não existem na biblioteca local.
+  // Isso evita perfis exibindo jogos antigos após exclusões/desconexões.
+  const { data: existingRows, error: existingError } = await supabase
+    .from("user_games")
+    .select("id")
+    .eq("user_id", uid);
+
+  if (existingError) throw existingError;
+
+  const desiredIds = new Set(rows.map((row) => String(row.id)));
+  const staleIds = (existingRows || [])
+    .map((row) => String(row.id))
+    .filter((id) => !desiredIds.has(id));
+
+  for (const staleChunk of chunked(staleIds)) {
+    const { error: deleteError } = await supabase
+      .from("user_games")
+      .delete()
+      .eq("user_id", uid)
+      .in("id", staleChunk);
+
+    if (deleteError) throw deleteError;
+  }
+};
+
 export const listLibraryGames = async (uid: string): Promise<Game[]> => {
   if (window.electronAPI?.listLocalGames) {
     return sorted(await window.electronAPI.listLocalGames(uid));
@@ -53,7 +109,6 @@ export const listLibraryGames = async (uid: string): Promise<Game[]> => {
     cacheKey,
     async () => {
       // Paginate to avoid huge single egress burst (100 rows per page)
-      const pageSize = 100;
       let allRows: Record<string, any>[] = [];
       let from = 0;
       while (true) {
@@ -62,18 +117,18 @@ export const listLibraryGames = async (uid: string): Promise<Game[]> => {
           .select("id,title,launcher_type,hours_played,steam_app_id,epic_catalog_id,is_favorite,data,updated_at")
           .eq("user_id", uid)
           .order("title", { ascending: true })
-          .range(from, from + pageSize - 1);
+          .range(from, from + CLOUD_PAGE_SIZE - 1);
         if (error || !data) break;
         allRows.push(...(data as Record<string, any>[]));
-        if (data.length < pageSize) break;
-        from += pageSize;
+        if (data.length < CLOUD_PAGE_SIZE) break;
+        from += CLOUD_PAGE_SIZE;
         // Safety: cap at 500 games (5 pages) to avoid runaway egress
-        if (from >= 500) break;
+        if (from >= CLOUD_GAME_LIMIT) break;
       }
       if (allRows.length === 0) return [] as Game[];
       return sorted(allRows.map((row) => fromCloudGameRow(row)));
     },
-    { ttl: 30_000, stale: 60_000 }
+    { ttl: 30_000, stale: 60_000 },
   );
 };
 
@@ -123,7 +178,12 @@ export const deleteLibraryGame = async (uid: string, gameId: string) => {
   if (window.electronAPI?.deleteLocalGame) {
     return window.electronAPI.deleteLocalGame(uid, gameId);
   }
-  await supabase.from("user_games").delete().eq("id", gameId).eq("user_id", uid);
+  const { error } = await supabase
+    .from("user_games")
+    .delete()
+    .eq("id", gameId)
+    .eq("user_id", uid);
+  if (error) throw error;
   invalidate(`games:list:${uid}`);
   return true;
 };
@@ -135,12 +195,13 @@ export const deleteLibraryGamesByLauncher = async (
   if (window.electronAPI?.deleteLocalGamesByLauncher) {
     return window.electronAPI.deleteLocalGamesByLauncher(uid, launcherType);
   }
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("user_games")
     .delete()
     .eq("user_id", uid)
     .eq("launcher_type", launcherType)
     .select("id");
+  if (error) throw error;
   invalidate(`games:list:${uid}`);
   return data?.length || 0;
 };
@@ -177,10 +238,11 @@ export const importFirestoreLibraryIntoLocal = async (uid: string) => {
   ) {
     return { imported: 0, alreadyImported: true };
   }
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("user_games")
     .select("*")
     .eq("user_id", uid);
+  if (error) throw error;
   const games = (data || []).map((row) =>
     fromCloudGameRow(row as Record<string, any>),
   );
@@ -192,79 +254,65 @@ export const syncPublicLibrarySummary = async (
   profile?: UserProfile | null,
 ) => {
   if (!window.electronAPI?.getLocalLibrarySummary) return false;
+
   const summary = await window.electronAPI.getLocalLibrarySummary(uid);
   const photoURL = profile?.photoURL
     || profile?.discordAvatar
     || profile?.steamAvatar
     || "";
+  const profileVisibility = profile?.profileVisibility === "private" ? "private" : "public";
+
+  // v2 força uma ressincronização única para quem ficou preso no fluxo antigo,
+  // que marcava o resumo como sincronizado antes de user_games terminar.
   const profileFingerprint = JSON.stringify([
+    PUBLIC_LIBRARY_SYNC_VERSION,
     profile?.displayName || "Jogador",
     photoURL,
     profile?.bio || "",
     profile?.website || "",
     profile?.favoriteGenres || [],
-    profile?.steamId || "",
-    profile?.steamUsername || "",
-    profile?.steamAvatar || "",
-    profile?.discordId || "",
-    profile?.discordUsername || "",
-    profile?.discordAvatar || "",
+    profileVisibility,
   ]);
-  const fingerprintKey = `checkpoint_public_profile_fingerprint_${uid}`;
+  const fingerprintKey = `checkpoint_public_profile_fingerprint_v${PUBLIC_LIBRARY_SYNC_VERSION}_${uid}`;
+
   if (
     !summary.dirty
     && localStorage.getItem(fingerprintKey) === profileFingerprint
   ) return false;
 
-  const { error } = await supabase.from("public_profiles").upsert({
-    uid,
-    display_name: profile?.displayName || "Jogador",
-    photo_url: photoURL,
-    bio: profile?.bio || "",
-    website: profile?.website || "",
-    favorite_genres: profile?.favoriteGenres || [],
-    stats: summary.stats,
-    platforms: {
-      ...summary.platforms,
-      steamConnected: Boolean(profile?.steamId),
-      discordConnected: Boolean(profile?.discordId),
-      steamId: profile?.steamId || "",
-      steamUsername: profile?.steamUsername || "",
-      steamAvatar: profile?.steamAvatar || "",
-      discordId: profile?.discordId || "",
-      discordUsername: profile?.discordUsername || "",
-      discordAvatar: profile?.discordAvatar || "",
-    },
-    achievements: summary.achievements,
-    top_games: summary.topGames,
-    favorite_games: summary.favoriteGames,
-    revision: summary.revision,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "uid" });
-  if (error) throw error;
+  // 1) Primeiro garante que a biblioteca pública real esteja coerente.
+  // Se isso falhar, NÃO marcamos o resumo local como sincronizado.
+  await syncLocalGamesToCloud(uid);
 
+  // 2) Depois publica apenas as colunas que realmente existem em public_profiles.
+  // Steam/Discord continuam vindo de profiles; não duplicamos isso em "platforms".
+  const { error: publicProfileError } = await supabase
+    .from("public_profiles")
+    .upsert({
+      uid,
+      display_name: profile?.displayName || "Jogador",
+      photo_url: photoURL,
+      bio: profile?.bio || "",
+      website: profile?.website || "",
+      favorite_genres: profile?.favoriteGenres || [],
+      stats: summary.stats,
+      achievements: summary.achievements,
+      top_games: summary.topGames,
+      favorite_games: summary.favoriteGames,
+      profile_visibility: profileVisibility,
+      revision: summary.revision,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "uid" });
+
+  if (publicProfileError) throw publicProfileError;
+
+  // 3) Só agora podemos considerar a revisão realmente sincronizada.
   await window.electronAPI.markLocalLibrarySummarySynced(
     uid,
     summary.revision,
   );
   localStorage.setItem(fingerprintKey, profileFingerprint);
-
-  // Sincroniza a lista de jogos locais para a tabela user_games no Supabase
-  // permitindo que amigos vejam todos os jogos, mais jogados, horas e conquistas
-  if (window.electronAPI.listLocalGames) {
-    try {
-      const localGames = await window.electronAPI.listLocalGames(uid);
-      if (Array.isArray(localGames) && localGames.length > 0) {
-        const rows = localGames.slice(0, 300).map((g) => toCloudGameRow(uid, g));
-        for (let i = 0; i < rows.length; i += 100) {
-          const chunk = rows.slice(i, i + 100);
-          await supabase.from("user_games").upsert(chunk, { onConflict: "user_id,id" });
-        }
-      }
-    } catch (e) {
-      console.warn("[localLibrary] Falha ao sincronizar jogos para user_games:", e);
-    }
-  }
+  invalidate(`games:list:${uid}`);
 
   return true;
 };

@@ -95,7 +95,7 @@ export const ScreenPickerModal: React.FC<ScreenPickerModalProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 10 }}
           transition={{ type: "spring", stiffness: 380, damping: 28 }}
-          className="relative flex flex-col w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1f202b]/95 via-[#13141b]/98 to-[#0b0c10] shadow-[0_30px_90px_rgba(0,0,0,0.9)] backdrop-blur-2xl"
+          className="glass-panel relative flex flex-col w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-3xl border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.9)]"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/8 px-6 py-4.5 bg-black/20">

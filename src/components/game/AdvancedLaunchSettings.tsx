@@ -29,7 +29,7 @@ export const AdvancedLaunchSettings: React.FC<AdvancedLaunchSettingsProps> = ({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden transition-all">
+    <div className="rounded-3xl border border-white/[0.08] bg-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden transition-all">
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
@@ -56,7 +56,7 @@ export const AdvancedLaunchSettings: React.FC<AdvancedLaunchSettingsProps> = ({
       </button>
 
       {isOpen && (
-        <div className="space-y-4 border-t border-white/10 p-4 pt-4 bg-black/30">
+        <div className="space-y-4 border-t border-white/[0.08] p-4 pt-4 bg-white/[0.01]">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-white/50">
@@ -68,7 +68,7 @@ export const AdvancedLaunchSettings: React.FC<AdvancedLaunchSettingsProps> = ({
                 max={4}
                 value={monitorIndex}
                 onChange={(e) => onMonitorChange?.(parseInt(e.target.value, 10) || 0)}
-                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-bold text-white outline-none focus:border-white/20"
+                className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-xs font-bold text-white outline-none focus:border-white/20"
                 placeholder="0 (Monitor Principal)"
               />
             </div>
@@ -80,7 +80,7 @@ export const AdvancedLaunchSettings: React.FC<AdvancedLaunchSettingsProps> = ({
               <select
                 value={processPriority}
                 onChange={(e) => onPriorityChange?.(e.target.value)}
-                className="h-10 w-full rounded-xl border border-white/10 bg-[#121214] px-3 text-xs font-bold text-white outline-none focus:border-white/20"
+                className="h-10 w-full rounded-2xl border border-white/10 bg-white/[0.04] px-3 text-xs font-bold text-white outline-none focus:border-white/20"
               >
                 <option value="Normal">Normal</option>
                 <option value="AboveNormal">Acima do Normal</option>
@@ -98,7 +98,7 @@ export const AdvancedLaunchSettings: React.FC<AdvancedLaunchSettingsProps> = ({
               type="text"
               value={commandLineArgs}
               onChange={(e) => onArgsChange?.(e.target.value)}
-              className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-mono text-white outline-none focus:border-white/20 placeholder:text-white/20"
+              className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-xs font-mono text-white outline-none focus:border-white/20 placeholder:text-white/20"
               placeholder="-fullscreen -novid -dx11"
             />
           </div>
@@ -111,7 +111,7 @@ export const AdvancedLaunchSettings: React.FC<AdvancedLaunchSettingsProps> = ({
               type="text"
               value={workingDirectory}
               onChange={(e) => onWorkDirChange?.(e.target.value)}
-              className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-mono text-white outline-none focus:border-white/20 placeholder:text-white/20"
+              className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-xs font-mono text-white outline-none focus:border-white/20 placeholder:text-white/20"
               placeholder="C:\Caminho\Para\PastaDoJogo"
             />
           </div>

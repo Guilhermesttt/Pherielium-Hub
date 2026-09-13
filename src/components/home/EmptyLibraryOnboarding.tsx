@@ -91,7 +91,7 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md rounded-2xl p-8 text-center bg-[#0b0d14]/85 border border-white/[0.08] backdrop-blur-xl shadow-2xl shadow-black/50"
+        className="glass-panel w-full max-w-md rounded-2xl p-8 text-center border border-white/[0.08] shadow-2xl shadow-black/50"
       >
         <div
           className="w-12 h-12 mx-auto mb-4 rounded-xl bg-white/[0.05] border border-white/[0.1] flex items-center justify-center shadow-inner"

@@ -848,13 +848,14 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
       data-system-page="trophies"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="relative min-h-0 flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full px-6 sm:px-10 pb-16 pt-6 text-white font-sans"
+      transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+      className="relative min-h-0 flex-1 overflow-y-auto thin-scrollbar px-10 pb-16 pt-8 text-white font-sans"
+      style={{ contain: "layout paint", transform: "translate3d(0,0,0)", willChange: "transform" }}
     >
       <div className="mx-auto max-w-5xl space-y-7">
         {/* Banner PlayStation PSN Level */}
-        <section className="relative rounded-3xl border border-white/10 bg-black/40 backdrop-blur-3xl p-6 sm:p-8 shadow-[0_20px_80px_rgba(0,0,0,0.6)] overflow-hidden">
+        <section className="relative rounded-3xl border border-white/[0.08] p-6 sm:p-8 shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] overflow-hidden transform-gpu glass-panel">
+
           <div
             className="absolute -top-32 -left-32 w-80 h-80 rounded-full blur-[100px] opacity-25 pointer-events-none transition-all duration-700"
             style={{ background: tierInfo.gradientFrom }}
@@ -921,7 +922,8 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
             </div>
 
             {/* Progression Ladder (Escalada de Troféus por Patente) */}
-            <div className="flex flex-col gap-2.5 rounded-2xl border border-white/10 bg-neutral-900/60 p-3.5 sm:p-4 backdrop-blur-xl shrink-0">
+            <div className="flex flex-col gap-2.5 rounded-3xl border border-white/[0.08] p-3.5 sm:p-4 shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] glass-panel">
+
               <div className="flex items-center justify-between px-1 text-[10px] font-extrabold uppercase tracking-widest text-neutral-400">
                 <span>Escalada de Troféus</span>
                 <span className="text-neutral-500 font-medium">Total: {totalStats.unlocked} troféus</span>
@@ -971,7 +973,8 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
 
         {/* Controles de Filtros e Busca */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-1">
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-neutral-900/60 border border-white/10 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex items-center gap-1.5 p-1 rounded-3xl border border-white/[0.08] overflow-x-auto shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] glass-panel">
+
             {filterTabs.map((f) => (
               <motion.button
                 key={f.id}
@@ -1008,7 +1011,7 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
               </button>
 
               {isSortOpen && (
-                <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-white/10 bg-neutral-900/95 backdrop-blur-xl shadow-xl overflow-hidden z-20">
+                <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-white/10 glass-panel shadow-xl overflow-hidden z-20">
                   {sortOptions.map((opt) => (
                     <button
                       key={opt.value}
@@ -1047,7 +1050,7 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
               </button>
 
               {isPlataformFilterOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-white/10 bg-neutral-900/95 backdrop-blur-xl shadow-xl overflow-hidden z-20">
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-white/10 glass-panel shadow-xl overflow-hidden z-20">
                   {platformOptions.map((opt) => (
                     <button
                       key={opt.value}

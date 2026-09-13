@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   ChevronDown,
@@ -19,6 +20,7 @@ import { useGamepadButton } from "../context/GamepadContext";
 import ModGameDetailPanel, {
   type InstalledModEntry,
 } from "../components/mods/ModGameDetailPanel";
+import { GhostSelect } from "../components/ui/GhostSelect";
 
 interface ModsPageProps {
   uid: string;
@@ -418,10 +420,14 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
   );
 
   return (
-    <div
+    <motion.div
       ref={scrollRef}
       data-system-page
-      className="flex flex-col min-h-0 flex-1 overflow-y-auto px-8 pb-16 pt-4 font-sans select-none thin-scrollbar hub-scroll"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+      className="flex flex-col min-h-0 flex-1 overflow-y-auto thin-scrollbar hub-scroll"
+      style={{ padding: "32px 40px 64px", contain: "layout paint", transform: "translate3d(0,0,0)", willChange: "transform" }}
     >
       <div className="mx-auto w-full max-w-7xl space-y-6">
         {/* Top Header Breadcrumb */}
@@ -501,68 +507,41 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
               </div>
 
               {/* Status and Sort Controls */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="relative">
-                  <select
-                    id="mods-category-select"
-                    aria-label="Filtrar por categoria de mods"
-                    data-gamepad-id="mods-category"
-                    data-gamepad-nav-down="mods-status"
+              <div className="flex items-center gap-2 flex-wrap z-50">
+                <div className="relative z-[52]">
+                  <GhostSelect
                     value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="h-10 px-4 pr-8 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs font-body font-semibold text-white/80 focus:outline-none focus:border-white/25 cursor-pointer appearance-none"
-                  >
-                    <option value="ALL" className="bg-[#0c0d12] text-white">
-                      Todas as Categorias
-                    </option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+                    onChange={(val) => setCategoryFilter(val)}
+                    options={[{ value: "ALL", label: "Todas as Categorias" }]}
+                    className="w-44"
+                  />
                 </div>
 
-                <div className="relative">
-                  <select
-                    id="mods-status-select"
-                    aria-label="Filtrar por status de mods instalados"
-                    data-gamepad-id="mods-status"
-                    data-gamepad-nav-up="mods-category"
-                    data-gamepad-nav-down="mods-sort"
+                <div className="relative z-[51]">
+                  <GhostSelect
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="h-10 px-4 pr-8 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs font-body font-semibold text-white/80 focus:outline-none focus:border-white/25 cursor-pointer appearance-none"
-                  >
-                    <option value="ALL" className="bg-[#0c0d12] text-white">
-                      Status
-                    </option>
-                    <option value="WITH_MODS" className="bg-[#0c0d12] text-white">
-                      Com Mods
-                    </option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+                    onChange={(val) => setStatusFilter(val)}
+                    options={[
+                      { value: "ALL", label: "Status" },
+                      { value: "WITH_MODS", label: "Com Mods" },
+                    ]}
+                    className="w-36"
+                  />
                 </div>
 
-                <div className="relative">
-                  <select
-                    id="mods-sort-select"
-                    aria-label="Ordenar jogos com mods"
-                    data-gamepad-id="mods-sort"
-                    data-gamepad-nav-up="mods-status"
-                    data-gamepad-nav-down="mods-card-0"
+                <div className="relative z-[50]">
+                  <GhostSelect
                     value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as any)}
-                    className="h-10 px-4 pr-8 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs font-body font-semibold text-white/80 focus:outline-none focus:border-white/25 cursor-pointer appearance-none"
-                  >
-                    <option value="AZ" className="bg-[#0c0d12] text-white">
-                      Ordenar: A - Z
-                    </option>
-                    <option value="ZA" className="bg-[#0c0d12] text-white">
-                      Ordenar: Z - A
-                    </option>
-                    <option value="MODS" className="bg-[#0c0d12] text-white">
-                      Mais Mods
-                    </option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+                    onChange={(val) => setSortOrder(val as any)}
+                    options={[
+                      { value: "AZ", label: "Ordenar: A - Z" },
+                      { value: "ZA", label: "Ordenar: Z - A" },
+                      { value: "MODS", label: "Mais Mods" },
+                    ]}
+                    className="w-44"
+                  />
                 </div>
+              </div>
 
                 <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
                   <button
@@ -581,8 +560,6 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
                   </button>
                 </div>
               </div>
-            </div>
-
             {/* Games Grid Memoizado */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               {filteredGames.map(({ game, gameModsCount, activeModsCount, artwork }, index) => (
@@ -647,7 +624,7 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
           onDownloadRecorded={handleDownloadRecorded}
         />
       )}
-    </div>
+    </motion.div>
   );
 };
 

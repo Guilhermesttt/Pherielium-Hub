@@ -819,7 +819,7 @@ const ModGameDetailPanel: React.FC<ModGameDetailPanelProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] w-screen h-screen overflow-hidden bg-[#050507]"
+          className="fixed inset-0 z-[9999] w-screen h-screen overflow-hidden bg-black/60 backdrop-blur-[32px]"
         >
           <motion.div
             key={heroImage}
@@ -831,8 +831,8 @@ const ModGameDetailPanel: React.FC<ModGameDetailPanelProps> = ({
             {heroImage && (
               <img src={heroImage} alt="" className="h-full w-full object-cover opacity-35" />
             )}
-            <div className="absolute inset-0 bg-linear-to-r from-[#050507] via-[#050507]/94 to-[#050507]/70" />
-            <div className="absolute inset-0 bg-linear-to-t from-[#050507] via-transparent to-[#050507]/70" />
+            <div className="absolute inset-0 bg-linear-to-r from-black via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent" />
           </motion.div>
 
           <div className="relative z-10 flex h-full min-w-0 flex-col p-4 sm:p-5 lg:p-7">
@@ -885,7 +885,13 @@ const ModGameDetailPanel: React.FC<ModGameDetailPanelProps> = ({
               </div>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-hidden rounded-[22px] border border-white/10 bg-black/55 shadow-[0_30px_100px_rgba(0,0,0,0.55)] backdrop-blur-3xl flex flex-col">
+            <div className="min-h-0 flex-1 overflow-hidden rounded-3xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_30px_100px_rgba(0,0,0,0.55)] flex flex-col transform-gpu"
+              style={{
+                background: "rgba(255, 255, 255, 0.02)",
+                backdropFilter: "blur(20px) saturate(180%)",
+                WebkitBackdropFilter: "blur(20px) saturate(180%)",
+                contain: "layout paint"
+              }}>
               <AnimatePresence mode="wait">
                 {activeTab === "discover" && (
                   <motion.div

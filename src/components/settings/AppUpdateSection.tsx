@@ -60,13 +60,18 @@ export const AppUpdateSection: React.FC = React.memo(() => {
 
   return (
     <>
-      <section className="mt-6 rounded-2xl bg-black/40 p-6 md:p-7 backdrop-blur-3xl shadow-[0_20px_70px_rgba(0,0,0,0.45)]">
+      <section className="mt-6 rounded-3xl border border-white/[0.08] p-6 md:p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+        style={{
+          background: "rgba(255, 255, 255, 0.02)",
+          backdropFilter: "blur(20px) saturate(180%)",
+          WebkitBackdropFilter: "blur(20px) saturate(180%)",
+        }}>
         <SettingsHeader
           icon={<Download className="h-5 w-5 text-white/70" />}
           title={updateCopy[0]}
           description={`${updateCopy[1]}: v${currentVersion}`}
         />
-        <div className="flex flex-col gap-4 rounded-2xl border border-white/[0.05] bg-white/[0.03] p-5">
+        <div className="flex flex-col gap-4 rounded-3xl border border-white/[0.05] bg-white/[0.02] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               {updateStatus === "idle" && (

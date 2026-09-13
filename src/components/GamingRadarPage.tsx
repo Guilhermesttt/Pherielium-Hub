@@ -122,14 +122,15 @@ const GamingRadarPage: React.FC = () => {
     <motion.div
       ref={scrollRef}
       data-system-page
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="relative flex-1 overflow-y-auto px-8 pb-14 pt-4 thin-scrollbar font-sans"
+      transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+      className="relative flex-1 overflow-y-auto px-10 pb-16 pt-8 thin-scrollbar font-sans"
+      style={{ contain: "layout paint", transform: "translate3d(0,0,0)", willChange: "transform" }}
     >
       <div className="relative mx-auto max-w-6xl space-y-6">
         {/* Editorial Atmospheric Header */}
-        <header className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#08090C]/90 p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+        <header className="relative overflow-hidden rounded-3xl border border-white/[0.08] p-6 md:p-8 shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] glass-panel">
           <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-center">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-wider text-white/70 mb-3">
@@ -159,15 +160,15 @@ const GamingRadarPage: React.FC = () => {
 
           {/* Metric Bar in Clean Minimalist Style */}
           <div className="relative mt-6 grid grid-cols-2 gap-3.5 sm:grid-cols-3 border-t border-white/[0.06] pt-6">
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3.5 text-left">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider block">Notícias Carregadas</span>
               <span className="text-xl font-display font-semibold text-white">{items.length}</span>
             </div>
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3.5 text-left">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider block">Fontes Ativas</span>
               <span className="text-xl font-display font-semibold text-white">{activeSourcesCount || "Auto"}</span>
             </div>
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3.5 text-left">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider block">Status do Feed</span>
               <span className="text-xl font-display font-semibold text-white">{stale ? "Cache" : "Live"}</span>
             </div>
@@ -228,7 +229,7 @@ const GamingRadarPage: React.FC = () => {
         )}
 
         {/* Communities Section */}
-        <section className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#08090C]/90 p-6 md:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+        <section className="glass-panel relative overflow-hidden rounded-2xl border border-white/[0.08] p-6 md:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
           <div className="mb-4 flex items-center gap-2">
             <Users className="h-4 w-4 text-white/60" />
             <h2 className="text-xs font-semibold uppercase tracking-wider text-white/70">

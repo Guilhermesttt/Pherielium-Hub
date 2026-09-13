@@ -27,7 +27,7 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.92, y: 15 }}
           transition={{ type: "spring", stiffness: 350, damping: 26 }}
-          className="relative w-full max-w-[440px] overflow-hidden rounded-[22px] border border-white/[0.08] bg-white/[0.04] shadow-[0_30px_120px_rgba(0,0,0,0.9)] backdrop-blur-3xl flex flex-col"
+          className="glass-panel relative w-full max-w-[440px] overflow-hidden rounded-[22px] border border-white/[0.08] shadow-[0_30px_120px_rgba(0,0,0,0.9)] flex flex-col"
         >
           {/* Top Atmospheric Glow */}
           <div className="pointer-events-none absolute left-1/2 top-[-100px] h-64 w-64 -translate-x-1/2 rounded-full bg-white/[0.06] blur-[90px]" />

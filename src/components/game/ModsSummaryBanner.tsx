@@ -13,7 +13,7 @@ export const ModsSummaryBanner: React.FC<ModsSummaryBannerProps> = ({
   onOpenFullModManager,
 }) => {
   return (
-    <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4.5 backdrop-blur-xl shadow-lg">
+    <div className="mb-6 rounded-3xl border border-white/[0.08] p-4.5 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_30px_rgba(0,0,0,0.5)]" style={{ background: "rgba(255, 255, 255, 0.02)" }}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white/80 shadow-sm">

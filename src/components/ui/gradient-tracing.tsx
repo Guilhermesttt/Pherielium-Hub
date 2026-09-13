@@ -61,8 +61,8 @@ export const GradientTracing: React.FC<GradientTracingProps> = ({
         <defs>
           <motion.linearGradient
             animate={{
-              x1: [0, viewBoxWidth * 2],
-              x2: [0, viewBoxWidth],
+              x1: ["0", String(viewBoxWidth * 2)],
+              x2: ["0", String(viewBoxWidth)],
             }}
             transition={{
               duration: animationDuration,

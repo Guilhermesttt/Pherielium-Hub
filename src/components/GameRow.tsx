@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
 import useEmblaCarousel from "embla-carousel-react";
 import ContextMenu from "./ContextMenu";
 import GameCard from "./GameCard";
@@ -49,7 +50,12 @@ const GameCardSlot = React.memo(
     if (!isWithinWindow) {
       return (
         <div
-          className="shrink-0 w-[178px] h-[264px] rounded-[24px] pointer-events-none"
+          className="shrink-0 w-[178px] h-[264px] rounded-[24px] pointer-events-none border border-white/[0.08]"
+          style={{
+            background: "rgba(28, 28, 30, 0.4)",
+            backdropFilter: "blur(20px) saturate(180%)",
+            WebkitBackdropFilter: "blur(20px) saturate(180%)",
+          }}
           aria-hidden="true"
         />
       );
@@ -179,19 +185,18 @@ const GameRow: React.FC<GameRowProps> = ({
         {visibleDots.map((i) => {
           const isActive = i === canonicalIndex;
           return (
-            <button
+            <motion.button
               type="button"
               key={i}
               aria-label={`Ir para jogo ${i + 1}`}
-              className="h-[3px] rounded-full cursor-pointer transition-[transform,opacity] duration-160 ease-out origin-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
-              style={{
-                width: 28,
-                transform: isActive ? "scaleX(1)" : "scaleX(0.22)",
+              className="h-[3px] rounded-full cursor-pointer origin-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
+              animate={{
+                scaleX: isActive ? 1 : 0.22,
                 opacity: isActive ? 1 : 0.35,
-                background: isActive
-                  ? "rgba(255,255,255,0.95)"
-                  : "rgba(255,255,255,0.7)",
+                backgroundColor: isActive ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.7)",
               }}
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+              style={{ width: 28 }}
               onClick={() => {
                 onSelect(i);
               }}

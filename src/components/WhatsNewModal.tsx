@@ -44,7 +44,7 @@ const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ release, onClose }) => {
       ariaLabel={`Novidades da versão ${release.version}`}
       gamepadPriority={260}
     >
-      <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[#0d0e13]/98 shadow-[0_24px_80px_rgba(0,0,0,0.85)]">
+      <div className="glass-panel relative overflow-hidden rounded-[24px] border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.85)]">
         {/* Botão Fechar (X) padrão da aplicação */}
         <button
           type="button"

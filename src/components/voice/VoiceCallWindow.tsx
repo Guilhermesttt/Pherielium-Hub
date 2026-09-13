@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import type { SocialFriend, UserProfile, VoiceCallSession, CallState } from "../../types/domain";
 import type { CallRoomConfig } from "../../types/voice-governance";
+import { GhostSelect } from "../ui/GhostSelect";
 import { Button } from "@/components/ui/Shandc/button";
 import { Badge } from "@/components/ui/Shandc/badge";
 import { ParticipantContextMenu } from "./ParticipantContextMenu";
@@ -1825,7 +1826,7 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 380, damping: 28 }}
-                  className="relative flex flex-col w-full max-w-2xl max-h-[88vh] overflow-hidden rounded-[26px] border border-white/[0.12] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1c1d28]/98 via-[#111218]/99 to-[#08090c] shadow-[0_35px_110px_rgba(0,0,0,0.95)] backdrop-blur-2xl z-10"
+                  className="glass-panel relative flex flex-col w-full max-w-2xl max-h-[88vh] overflow-hidden rounded-[26px] border border-white/[0.12] shadow-[0_35px_110px_rgba(0,0,0,0.95)] z-10"
                 >
                   {/* Modal Header */}
                   <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/8 bg-black/35 backdrop-blur-md">
@@ -1867,22 +1868,22 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                           <Mic className="h-3.5 w-3.5 text-white/70" />
                           <span>Dispositivo de Microfone</span>
                         </label>
-                        <select
+                        <GhostSelect
                           value={selectedAudioInput}
-                          onChange={(e) => onChangeAudioInputDevice?.(e.target.value)}
-                          className="w-full h-10 rounded-xl border border-white/[0.1] bg-[#15161e] px-3.5 text-[11px] font-semibold text-white/90 outline-none transition focus:border-white/25 focus:ring-2 focus:ring-white/[0.06] cursor-pointer hover:bg-[#191a23]"
-                        >
-                          <option value="default" className="bg-[#181922] text-white">
-                            {defaultInputLabel && defaultInputLabel !== "default"
-                              ? `Padrão do Sistema (${defaultInputLabel.replace(/^Padrão - /i, "")})`
-                              : "Padrão do Sistema (Detectado)"}
-                          </option>
-                          {audioInputDevices.map((dev) => (
-                            <option key={dev.deviceId} value={dev.deviceId} className="bg-[#181922] text-white">
-                              {dev.label || `Microfone (${dev.deviceId.slice(0, 8)}...)`}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(val) => onChangeAudioInputDevice?.(val)}
+                          options={[
+                            {
+                              value: "default",
+                              label: defaultInputLabel && defaultInputLabel !== "default"
+                                ? `Padrão do Sistema (${defaultInputLabel.replace(/^Padrão - /i, "")})`
+                                : "Padrão do Sistema (Detectado)"
+                            },
+                            ...audioInputDevices.map((dev) => ({
+                              value: dev.deviceId,
+                              label: dev.label || `Microfone (${dev.deviceId.slice(0, 8)}...)`
+                            }))
+                          ]}
+                        />
                       </div>
 
                       {/* Teste de Microfone em Tempo Real com RMS */}
@@ -1944,22 +1945,22 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                           <Headphones className="h-3.5 w-3.5 text-white/70" />
                           <span>Dispositivo de Saída (Alto-Falante)</span>
                         </label>
-                        <select
+                        <GhostSelect
                           value={selectedAudioOutput}
-                          onChange={(e) => onChangeAudioOutputDevice?.(e.target.value)}
-                          className="w-full h-10 rounded-xl border border-white/[0.1] bg-[#15161e] px-3.5 text-[11px] font-semibold text-white/90 outline-none transition focus:border-white/25 focus:ring-2 focus:ring-white/[0.06] cursor-pointer hover:bg-[#191a23]"
-                        >
-                          <option value="default" className="bg-[#181922] text-white">
-                            {defaultOutputLabel && defaultOutputLabel !== "default"
-                              ? `Padrão do Sistema (${defaultOutputLabel.replace(/^Padrão - /i, "")})`
-                              : "Padrão do Sistema (Detectado)"}
-                          </option>
-                          {audioOutputDevices.map((dev) => (
-                            <option key={dev.deviceId} value={dev.deviceId} className="bg-[#181922] text-white">
-                              {dev.label || `Alto-Falante (${dev.deviceId.slice(0, 8)}...)`}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(val) => onChangeAudioOutputDevice?.(val)}
+                          options={[
+                            {
+                              value: "default",
+                              label: defaultOutputLabel && defaultOutputLabel !== "default"
+                                ? `Padrão do Sistema (${defaultOutputLabel.replace(/^Padrão - /i, "")})`
+                                : "Padrão do Sistema (Detectado)"
+                            },
+                            ...audioOutputDevices.map((dev) => ({
+                              value: dev.deviceId,
+                              label: dev.label || `Alto-Falante (${dev.deviceId.slice(0, 8)}...)`
+                            }))
+                          ]}
+                        />
                       </div>
 
                       {/* Câmera */}
@@ -1969,22 +1970,22 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                             <Camera className="h-3.5 w-3.5 text-white/70" />
                             <span>Câmera de Vídeo</span>
                           </label>
-                          <select
+                          <GhostSelect
                             value={selectedVideoInput}
-                            onChange={(e) => onChangeVideoInputDevice?.(e.target.value)}
-                            className="w-full h-10 rounded-xl border border-white/[0.1] bg-[#15161e] px-3.5 text-[11px] font-semibold text-white/90 outline-none transition focus:border-white/25 focus:ring-2 focus:ring-white/[0.06] cursor-pointer hover:bg-[#191a23]"
-                          >
-                            <option value="default" className="bg-[#181922] text-white">
-                              {defaultVideoLabel && defaultVideoLabel !== "default"
-                                ? `Padrão do Sistema (${defaultVideoLabel.replace(/^Padrão - /i, "")})`
-                                : "Padrão do Sistema (Detectado)"}
-                            </option>
-                            {videoInputDevices.map((dev) => (
-                              <option key={dev.deviceId} value={dev.deviceId} className="bg-[#181922] text-white">
-                                {dev.label || `Câmera (${dev.deviceId.slice(0, 8)}...)`}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={(val) => onChangeVideoInputDevice?.(val)}
+                            options={[
+                              {
+                                value: "default",
+                                label: defaultVideoLabel && defaultVideoLabel !== "default"
+                                  ? `Padrão do Sistema (${defaultVideoLabel.replace(/^Padrão - /i, "")})`
+                                  : "Padrão do Sistema (Detectado)"
+                              },
+                              ...videoInputDevices.map((dev) => ({
+                                value: dev.deviceId,
+                                label: dev.label || `Câmera (${dev.deviceId.slice(0, 8)}...)`
+                              }))
+                            ]}
+                          />
                         </div>
                       )}
                     </div>

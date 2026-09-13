@@ -233,7 +233,7 @@ export const DETAIL_PANEL_COPY: Record<string, GameDetailCopy> = {
     removeGame: "Remover jogo",
     cannotUndo: "Esta ação não pode ser desfeita",
     confirmRemove: (title: string) =>
-      `Tem certeza que deseja remover "${title}" da sua biblioteca? Digite o nome do jogo para confirmar.`,
+      `Tem certeza que deseja remover "${title}" da sua biblioteca?`,
     cancel: "Cancelar",
     removing: "Removendo...",
     close: "Fechar",

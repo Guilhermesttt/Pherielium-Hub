@@ -200,7 +200,7 @@ const translations = {
     noAlerts: "Nenhum alerta criado.",
     enabled: "Ativado",
     disabled: "Desativado",
-    test: "Testar",
+
     charging: "Carregando",
     lowBattery: "Baixa",
     details: "Detalhes",
@@ -356,7 +356,7 @@ const translations = {
     noAlerts: "No alerts created.",
     enabled: "Enabled",
     disabled: "Disabled",
-    test: "Test",
+
     charging: "Charging",
     lowBattery: "Low",
     details: "Details",
@@ -512,7 +512,7 @@ const translations = {
     noAlerts: "Ninguna alerta creada.",
     enabled: "Activado",
     disabled: "Desactivado",
-    test: "Probar",
+
     charging: "Cargando",
     lowBattery: "Baja",
     details: "Detalles",
@@ -646,7 +646,7 @@ const additionalTranslations: Record<
     noAlerts: "Aucune alerte créée.",
     enabled: "Activé",
     disabled: "Désactivé",
-    test: "Tester",
+
     charging: "En charge",
     lowBattery: "Faible",
     details: "Détails",
@@ -770,7 +770,7 @@ const additionalTranslations: Record<
     noAlerts: "Keine Alarme erstellt.",
     enabled: "Aktiviert",
     disabled: "Deaktiviert",
-    test: "Testen",
+
     charging: "Wird geladen",
     lowBattery: "Schwach",
     details: "Details",
@@ -894,7 +894,7 @@ const additionalTranslations: Record<
     noAlerts: "Nessun avviso creato.",
     enabled: "Attivato",
     disabled: "Disattivato",
-    test: "Prova",
+
     charging: "In carica",
     lowBattery: "Bassa",
     details: "Dettagli",

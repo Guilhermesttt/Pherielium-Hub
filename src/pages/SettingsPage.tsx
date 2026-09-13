@@ -871,6 +871,9 @@ export interface SettingsPageV2Props {
   epicConnected?: boolean;
   epicDisplayName?: string;
   epicConnecting?: boolean;
+  steamDisconnecting?: boolean;
+  discordDisconnecting?: boolean;
+  epicDisconnecting?: boolean;
   onConnectSteam: () => void;
   onConnectDiscord: () => void;
   onConnectEpic?: () => void;
@@ -918,6 +921,9 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
   epicConnected,
   epicDisplayName,
   epicConnecting,
+  steamDisconnecting,
+  discordDisconnecting,
+  epicDisconnecting,
   onConnectSteam,
   onConnectDiscord,
   onConnectEpic,
@@ -1240,13 +1246,13 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
     const currentIndex = SETTINGS_TAB_ORDER.indexOf(activeTab);
     const prevIndex = (currentIndex - 1 + SETTINGS_TAB_ORDER.length) % SETTINGS_TAB_ORDER.length;
     selectTab(SETTINGS_TAB_ORDER[prevIndex]);
-  }, [activeTab, selectTab, SETTINGS_TAB_ORDER]);
+  });
 
   useGamepadButton("R1", () => {
     const currentIndex = SETTINGS_TAB_ORDER.indexOf(activeTab);
     const nextIndex = (currentIndex + 1) % SETTINGS_TAB_ORDER.length;
     selectTab(SETTINGS_TAB_ORDER[nextIndex]);
-  }, [activeTab, selectTab, SETTINGS_TAB_ORDER]);
+  });
 
   useGamepadButton(
     "O",
@@ -1364,15 +1370,9 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
       {/* Wrapper Principal - Split Layout estilo macOS[cite: 1] */}
       <div className="flex w-full max-w-[960px] h-[75vh] min-h-[600px] max-h-[820px] gap-2">
 
-        {/* SIDEBAR ESQUERDA - Frosted Glass Obsidian idêntico à Sidebar */}
+        {/* SIDEBAR ESQUERDA - Ghost Style */}
         <aside
-          className="w-[240px] border border-white/[0.08] rounded-2xl flex flex-col py-6 px-4 shrink-0 shadow-2xl transform-gpu"
-          style={{
-            background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
-            backdropFilter: "blur(48px) saturate(160%)",
-            WebkitBackdropFilter: "blur(48px) saturate(160%)",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
-          }}
+          className="w-[240px] border border-white/[0.08] rounded-3xl flex flex-col py-6 px-4 shrink-0 shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] transform-gpu glass-panel"
         >
           <div
             className="flex items-center justify-between px-3 mb-5 group cursor-default"
@@ -1444,16 +1444,11 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
           </div>
         </aside>
 
-        {/* PAINEL DIREITO - Card destacado com Frosted Glass Obsidian idêntico à Sidebar */}
+        {/* PAINEL DIREITO - Ghost Style */}
         <main
           ref={mainScrollRef}
-          className="flex-1 rounded-2xl border border-white/[0.08] overflow-y-auto no-scrollbar relative shadow-2xl transform-gpu"
-          style={{
-            background: "linear-gradient(145deg, rgba(20,20,24,0.6) 0%, rgba(10,10,14,0.75) 100%)",
-            backdropFilter: "blur(48px) saturate(160%)",
-            WebkitBackdropFilter: "blur(48px) saturate(160%)",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
-          }}
+          className="flex-1 rounded-3xl border border-white/[0.08] overflow-y-auto no-scrollbar relative shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] transform-gpu glass-panel"
+          style={{ contain: "layout paint" }}
         >
           {onClose && (
             <button
@@ -1666,15 +1661,19 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
                   <SettingsRow icon={<SteamIcon className="h-5 w-5" />} title="Steam">
                     <div className="flex items-center gap-3">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${steamConnected
-                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                        : "bg-white/[0.04] text-white/40 border-white/10"
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${steamDisconnecting
+                        ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
+                        : steamConnected
+                          ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                          : "bg-white/[0.04] text-white/40 border-white/10"
                         }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${steamConnected ? "bg-emerald-400" : "bg-white/30"}`} />
-                        {steamConnected ? t("connected") : t("notConnected")}
+                        <span className={`h-1.5 w-1.5 rounded-full ${steamDisconnecting ? "bg-yellow-400 animate-pulse" : steamConnected ? "bg-emerald-400" : "bg-white/30"}`} />
+                        {steamDisconnecting ? "Desconectando..." : steamConnected ? t("connected") : t("notConnected")}
                       </span>
                       {steamConnected ? (
-                        <button onClick={onDisconnectSteam} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-colors active:scale-95 cursor-pointer">{t("unlink")}</button>
+                        <button onClick={onDisconnectSteam} disabled={steamDisconnecting} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
+                          {steamDisconnecting ? "Desconectando..." : t("unlink")}
+                        </button>
                       ) : (
                         <button onClick={onConnectSteam} disabled={steamConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
                           {steamConnecting ? t("connecting") : t("connectSteam")}
@@ -1685,15 +1684,19 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
                   <SettingsRow icon={<DiscordIcon className="h-5 w-5" />} title="Discord">
                     <div className="flex items-center gap-3">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${discordConnected
-                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                        : "bg-white/[0.04] text-white/40 border-white/10"
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${discordDisconnecting
+                        ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
+                        : discordConnected
+                          ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                          : "bg-white/[0.04] text-white/40 border-white/10"
                         }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${discordConnected ? "bg-emerald-400" : "bg-white/30"}`} />
-                        {discordConnected ? (discordUsername || t("connected")) : t("notConnected")}
+                        <span className={`h-1.5 w-1.5 rounded-full ${discordDisconnecting ? "bg-yellow-400 animate-pulse" : discordConnected ? "bg-emerald-400" : "bg-white/30"}`} />
+                        {discordDisconnecting ? "Desconectando..." : discordConnected ? (discordUsername || t("connected")) : t("notConnected")}
                       </span>
                       {discordConnected ? (
-                        <button onClick={onDisconnectDiscord} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-colors active:scale-95 cursor-pointer">{t("unlink")}</button>
+                        <button onClick={onDisconnectDiscord} disabled={discordDisconnecting} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
+                          {discordDisconnecting ? "Desconectando..." : t("unlink")}
+                        </button>
                       ) : (
                         <button onClick={onConnectDiscord} disabled={discordConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
                           {discordConnecting ? t("connecting") : t("connectDiscord")}
@@ -1704,15 +1707,19 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
                   <SettingsRow icon={<EpicIcon className="h-5 w-5" />} title="Epic Games" hasBorder={false}>
                     <div className="flex items-center gap-3">
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${epicConnected
-                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                        : "bg-white/[0.04] text-white/40 border-white/10"
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${epicDisconnecting
+                        ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
+                        : epicConnected
+                          ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                          : "bg-white/[0.04] text-white/40 border-white/10"
                         }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${epicConnected ? "bg-emerald-400" : "bg-white/30"}`} />
-                        {epicConnected ? (epicDisplayName || t("connected")) : t("notConnected")}
+                        <span className={`h-1.5 w-1.5 rounded-full ${epicDisconnecting ? "bg-yellow-400 animate-pulse" : epicConnected ? "bg-emerald-400" : "bg-white/30"}`} />
+                        {epicDisconnecting ? "Desconectando..." : epicConnected ? (epicDisplayName || t("connected")) : t("notConnected")}
                       </span>
                       {epicConnected ? (
-                        <button onClick={onDisconnectEpic} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-colors active:scale-95 cursor-pointer">{t("unlink")}</button>
+                        <button onClick={onDisconnectEpic} disabled={epicDisconnecting} className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[11.5px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
+                          {epicDisconnecting ? "Desconectando..." : t("unlink")}
+                        </button>
                       ) : (
                         <button onClick={onConnectEpic} disabled={epicConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
                           {epicConnecting ? t("connecting") : t("connectEpic")}

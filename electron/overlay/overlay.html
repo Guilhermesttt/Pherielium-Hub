@@ -812,14 +812,12 @@
       pointer-events: auto;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 26px;
-      background:
-        radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.08) 0%, rgba(10, 10, 14, 0.88) 45%, rgba(4, 4, 6, 0.96) 100%);
-      -webkit-backdrop-filter: blur(32px) saturate(190%);
-      backdrop-filter: blur(32px) saturate(190%);
+      background: rgba(7, 7, 7, 0.65);
+      -webkit-backdrop-filter: blur(40px) saturate(180%);
+      backdrop-filter: blur(40px) saturate(180%);
       box-shadow:
-        0 36px 100px rgba(0, 0, 0, 0.88),
-        0 0 50px rgba(255, 255, 255, 0.03),
-        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+        0 24px 60px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
       overflow: hidden;
       color: white;
       transition:
@@ -848,9 +846,9 @@
       min-width: 82px;
       max-width: 82px;
       height: 100%;
-      background: rgba(5, 5, 8, 0.75);
-      -webkit-backdrop-filter: blur(24px);
-      backdrop-filter: blur(24px);
+      background: rgba(255, 255, 255, 0.02);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
       border-right: 1px solid var(--panel-border);
       display: flex;
       flex-direction: column;
@@ -949,7 +947,11 @@
 
     .panel-tab.is-active {
       color: #fff;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 100%);
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .panel-tab.is-active .nav-icon {
@@ -1102,9 +1104,9 @@
       justify-content: space-between;
       gap: 16px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-      background: rgba(8, 8, 12, 0.35);
-      -webkit-backdrop-filter: blur(16px);
-      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.02);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
     }
 
     .topbar-branding {
@@ -1316,8 +1318,11 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: var(--panel-surface);
-      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.1);
       padding: 4px 12px 4px 4px;
       border-radius: 30px;
       cursor: pointer;
@@ -1327,8 +1332,8 @@
     }
 
     .top-profile:hover {
-      background: var(--panel-surface-hover);
-      border-color: var(--panel-border-strong);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.25);
       transform: translateY(-1px);
     }
 
@@ -1367,8 +1372,11 @@
       height: 36px;
       display: grid;
       place-items: center;
-      background: var(--panel-surface);
-      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.1);
       border-radius: 10px;
       color: var(--text-muted);
       cursor: pointer;
@@ -1377,8 +1385,8 @@
 
     .top-mode-toggle:hover {
       color: white;
-      background: var(--panel-surface-hover);
-      border-color: var(--panel-border-strong);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.25);
       transform: translateY(-1px);
     }
 
@@ -1393,8 +1401,11 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.1);
       border-radius: 10px;
       color: var(--text-muted);
       cursor: pointer;
@@ -1447,7 +1458,9 @@
       flex-direction: column !important;
       border-radius: 24px !important;
       border: 1px solid rgba(255, 255, 255, 0.16) !important;
-      background: radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.08) 0%, rgba(10, 10, 14, 0.94) 45%, rgba(4, 4, 6, 0.98) 100%) !important;
+      background: rgba(7, 7, 7, 0.65) !important;
+      -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+      backdrop-filter: blur(40px) saturate(180%) !important;
       box-shadow: 0 32px 90px rgba(0, 0, 0, 0.94), 0 0 40px rgba(255, 255, 255, 0.04) !important;
       overflow: hidden !important;
       pointer-events: auto !important;
@@ -2421,8 +2434,11 @@
       gap: 10px;
       padding: 10px 12px;
       margin-bottom: 6px;
-      background: var(--panel-surface);
-      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.1);
       border-radius: 12px;
       color: white;
       text-align: left;
@@ -2433,8 +2449,8 @@
     }
 
     .quick-access button:hover {
-      background: var(--panel-surface-hover);
-      border-color: var(--panel-border-strong);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.25);
       transform: translateX(3px) translateZ(0);
     }
 
@@ -4245,8 +4261,12 @@
         <kbd>L1</kbd><kbd>R1</kbd>
       </div>
       <!-- Elementos de compatibilidade legado -->
-      <button class="sr-only" id="sidebar-mode-toggle" aria-hidden="true" tabindex="-1"><span id="sidebar-mode-icon"><svg><use href="#icon-maximize"/></svg></span><span id="sidebar-mode-text"></span></button>
-      <div class="sr-only" aria-hidden="true"><img id="sidebar-profile-avatar" alt="" /><span id="sidebar-profile-name"></span></div>
+      <button class="sr-only" id="sidebar-mode-toggle" aria-hidden="true" tabindex="-1"><span
+          id="sidebar-mode-icon"><svg>
+            <use href="#icon-maximize" />
+          </svg></span><span id="sidebar-mode-text"></span></button>
+      <div class="sr-only" aria-hidden="true"><img id="sidebar-profile-avatar" alt="" /><span
+          id="sidebar-profile-name"></span></div>
     </aside>
 
     <div class="panel-workspace" data-active-view="friends">
@@ -4408,7 +4428,8 @@
                   <h1>Olá, <span class="profile-greeting-name">Jogador</span> <svg class="ui-icon welcome-mark">
                       <use href="#icon-sparkles" />
                     </svg></h1>
-                  <p><span id="panel-friend-count">0 amigos</span> &bull; <span id="panel-online-count">0 online</span></p>
+                  <p><span id="panel-friend-count">0 amigos</span> &bull; <span id="panel-online-count">0 online</span>
+                  </p>
                 </div>
                 <div class="hub-hero-actions">
                   <button type="button" class="btn-hero-action" id="btn-hero-capture" title="Capturar tela">
@@ -4667,19 +4688,27 @@
               </div>
               <div class="achievement-tier-chips">
                 <div class="tier-chip tier-chip-platinum">
-                  <svg class="ui-icon"><use href="#icon-trophy" /></svg>
+                  <svg class="ui-icon">
+                    <use href="#icon-trophy" />
+                  </svg>
                   <span id="tier-count-plat">Platina</span>
                 </div>
                 <div class="tier-chip tier-chip-gold">
-                  <svg class="ui-icon"><use href="#icon-trophy" /></svg>
+                  <svg class="ui-icon">
+                    <use href="#icon-trophy" />
+                  </svg>
                   <span id="tier-count-gold">Ouro</span>
                 </div>
                 <div class="tier-chip tier-chip-silver">
-                  <svg class="ui-icon"><use href="#icon-trophy" /></svg>
+                  <svg class="ui-icon">
+                    <use href="#icon-trophy" />
+                  </svg>
                   <span id="tier-count-silver">Prata</span>
                 </div>
                 <div class="tier-chip tier-chip-bronze">
-                  <svg class="ui-icon"><use href="#icon-trophy" /></svg>
+                  <svg class="ui-icon">
+                    <use href="#icon-trophy" />
+                  </svg>
                   <span id="tier-count-bronze">Bronze</span>
                 </div>
               </div>
@@ -4838,7 +4867,9 @@
               </svg>
             </button>
             <button class="context-expand-btn" id="context-expand-btn" type="button" title="Expandir overlay">
-              <div class="quick-icon"><svg class="ui-icon"><use href="#icon-maximize" /></svg></div>
+              <div class="quick-icon"><svg class="ui-icon">
+                  <use href="#icon-maximize" />
+                </svg></div>
               <span><b>Expandir Central</b><small>Ver amigos, chat e todas as opções</small></span>
               <svg class="ui-icon" style="width:14px;height:14px;color:var(--text-muted)">
                 <use href="#icon-chevron" />

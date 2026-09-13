@@ -23,6 +23,7 @@ import { GameDetailActions } from "./GameDetailActions";
 import { GameDetailStats } from "./GameDetailStats";
 import { GameDetailAchievements } from "./GameDetailAchievements";
 import { GameDetailSocialMods } from "./GameDetailSocialMods";
+import { FramerCarouselThumbnails } from "../ui/framer-thumbnails";
 
 export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
   game,
@@ -282,11 +283,11 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
   );
 
   const galleryItems = React.useMemo(() => {
-    const items: Array<{ type: "image"; url: string }> = [];
+    const items: Array<{ id: string; type: "image"; url: string }> = [];
     if (asyncData.localScreenshots.length > 0) {
-      asyncData.localScreenshots.forEach((url) => items.push({ type: "image", url }));
+      asyncData.localScreenshots.forEach((url, i) => items.push({ id: `local-${i}`, type: "image", url }));
     } else if (game?.screenshots?.length) {
-      game.screenshots.forEach((url) => items.push({ type: "image", url }));
+      game.screenshots.forEach((url, i) => items.push({ id: `remote-${i}`, type: "image", url }));
     }
     return items;
   }, [asyncData.localScreenshots, game?.screenshots]);
@@ -301,7 +302,7 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.3 } }}
-          className="fixed inset-0 z-100 bg-[#050505] overflow-y-auto detail-panel-scrollbar"
+          className="fixed inset-0 z-100 bg-black/60 backdrop-blur-[32px] overflow-y-auto detail-panel-scrollbar"
           ref={scrollRef}
           role="dialog"
           aria-modal="true"
@@ -351,7 +352,7 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
               loading="eager"
               decoding="async"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-transparent" />
           </div>
 
@@ -361,7 +362,12 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="flex-1 w-full bg-black border-t border-[#292d30] pb-24"
+              className="flex-1 w-full pb-24 rounded-t-[40px] border-t border-white/[0.08] shadow-[0_-10px_60px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] transform-gpu"
+              style={{
+                background: "rgba(255, 255, 255, 0.02)",
+                backdropFilter: "blur(20px) saturate(180%)",
+                WebkitBackdropFilter: "blur(20px) saturate(180%)",
+              }}
             >
               <div className="max-w-5xl w-full mx-auto px-4 sm:px-8 md:px-12 py-10">
                 {/* Header (Capa + Título + Badges + Botão Jogar na direita) */}
@@ -531,52 +537,15 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
             reducedEffects
           >
             {galleryItems.length > 0 && (
-              <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-black border border-white/10 shadow-2xl">
-                <img
-                  src={galleryItems[state.currentGalleryIndex]?.url}
-                  alt={`Captura ${state.currentGalleryIndex + 1}`}
-                  className="w-full h-full object-contain"
-                />
-
-                {galleryItems.length > 1 && (
-                  <>
-                    <button
-                      onClick={() => {
-                        setGalleryIndex(
-                          state.currentGalleryIndex > 0
-                            ? state.currentGalleryIndex - 1
-                            : galleryItems.length - 1
-                        );
-                        playSound("navigate");
-                      }}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 border border-white/10 text-white hover:bg-black/90 transition-colors"
-                      aria-label={copy.previous}
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setGalleryIndex(
-                          state.currentGalleryIndex < galleryItems.length - 1
-                            ? state.currentGalleryIndex + 1
-                            : 0
-                        );
-                        playSound("navigate");
-                      }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 border border-white/10 text-white hover:bg-black/90 transition-colors"
-                      aria-label={copy.next}
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </>
-                )}
+              <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl">
+                <FramerCarouselThumbnails items={galleryItems} initialIndex={state.currentGalleryIndex} />
 
                 <button
                   onClick={() => {
                     closeGallery();
                     playSound("modalClose");
                   }}
-                  className="absolute top-4 right-4 p-3 rounded-full bg-black/60 border border-white/10 text-white hover:bg-black/90 transition-colors"
+                  className="absolute top-4 right-4 p-3 rounded-full bg-black/60 border border-white/20 text-white hover:bg-black/90 transition-colors z-50 backdrop-blur-md shadow-lg"
                   aria-label={copy.close}
                 >
                   <X className="w-5 h-5" />
@@ -600,64 +569,82 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
             zIndexClassName="z-[160]"
             reducedEffects
           >
-            <div className="w-full bg-[#0a0a0c] backdrop-blur-3xl rounded-[22px] overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
-              <div className="flex items-center justify-between px-8 py-6 border-b border-white/10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                    <Trash2 className="w-5 h-5 text-white/60" />
+            <div className="w-full max-w-[340px] mx-auto bg-[#1C1C1E]/75 backdrop-blur-[40px] rounded-[32px] overflow-hidden border border-white/[0.08] shadow-[0_32px_64px_rgba(0,0,0,0.6)] p-8 flex flex-col items-center">
+
+              {/* Animated Trash Icon Area */}
+              <div className="relative w-32 h-32 flex items-center justify-center mb-2">
+                {/* Floating Papers (Frosted Dark Glass) */}
+                <motion.div
+                  animate={{ y: [0, -8, 0], rotate: [10, 25, 10], opacity: [0.7, 1, 0.7] }}
+                  transition={{ repeat: Infinity, duration: 3, ease: "easeInOut", delay: 0.2 }}
+                  className="absolute top-6 left-2 w-5 h-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-sm shadow-sm"
+                  style={{ clipPath: "polygon(0 0, 100% 15%, 85% 100%, 15% 100%)" }}
+                />
+                <motion.div
+                  animate={{ y: [0, 12, 0], rotate: [-15, -30, -15], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 0.8 }}
+                  className="absolute bottom-6 left-6 w-4 h-5 bg-white/[0.05] backdrop-blur-md border border-white/10 rounded-sm shadow-sm"
+                  style={{ clipPath: "polygon(10% 0, 100% 0, 90% 100%, 0 85%)" }}
+                />
+                <motion.div
+                  animate={{ y: [0, -15, 0], rotate: [45, 60, 45], opacity: [0.8, 1, 0.8] }}
+                  transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut", delay: 0.5 }}
+                  className="absolute top-10 right-4 w-6 h-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-sm shadow-sm"
+                  style={{ clipPath: "polygon(0 15%, 100% 0, 85% 100%, 15% 85%)" }}
+                />
+                <motion.div
+                  animate={{ y: [0, 10, 0], rotate: [-20, -5, -20], opacity: [0.6, 0.9, 0.6] }}
+                  transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 1.2 }}
+                  className="absolute bottom-8 right-6 w-5 h-5 bg-white/[0.08] backdrop-blur-md border border-white/10 rounded-sm shadow-sm"
+                  style={{ clipPath: "polygon(15% 0, 100% 15%, 85% 100%, 0 85%)" }}
+                />
+
+                {/* Trash Can Body (Dark Metal) */}
+                <motion.div
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                  className="relative z-10 flex flex-col items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)]"
+                >
+                  <div className="w-8 h-1.5 bg-[#48484A] rounded-t-md absolute -top-1.5 z-10" />
+                  <div className="w-[84px] h-3 bg-[#48484A] rounded-full border-[3px] border-[#2C2C2E] shadow-sm relative z-20" />
+                  <div className="w-[68px] h-20 bg-gradient-to-b from-[#3A3A3C] to-[#1C1C1E] rounded-b-[18px] border-[3px] border-t-0 border-[#2C2C2E] relative -top-1 flex justify-evenly pt-2 pb-3 px-2">
+                    <div className="w-1.5 h-full bg-black/40 rounded-full" />
+                    <div className="w-1.5 h-full bg-black/40 rounded-full" />
+                    <div className="w-1.5 h-full bg-black/40 rounded-full" />
+                    <div className="w-1.5 h-full bg-black/40 rounded-full" />
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-black tracking-[0.2em] uppercase text-white">
-                      {copy.removeGame}
-                    </span>
-                    <span className="text-[10px] font-bold tracking-[0.24em] uppercase text-white/40">
-                      {copy.cannotUndo}
-                    </span>
-                  </div>
-                </div>
+                </motion.div>
+              </div>
+
+              {/* Text Content */}
+              <h2 className="text-[19px] font-semibold text-white tracking-tight mb-2 text-center">
+                {copy.removeGame || "Delete File"}
+              </h2>
+              <p className="text-[13px] font-medium text-white/60 text-center leading-[1.4] mb-8 px-2 max-w-[240px]">
+                {copy.confirmRemove(game.title)}
+              </p>
+
+              {/* Buttons */}
+              <div className="flex gap-3 w-full">
                 <button
+                  type="button"
                   onClick={() => {
                     closeDeleteModal();
                     playSound("back");
                   }}
-                  className="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
+                  disabled={state.isDeleting}
+                  className="flex-1 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/5 text-[14px] font-medium text-white transition-all disabled:opacity-40"
                 >
-                  <X className="text-white/40" size={20} />
+                  {copy.cancel}
                 </button>
-              </div>
-              <div className="px-8 py-7">
-                <p className="text-sm text-white/70 leading-relaxed">
-                  {copy.confirmRemove(game.title)}
-                </p>
-                <input
-                  type="text"
-                  value={state.deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder={copy.confirmDeletePlaceholder}
-                  className="mt-4 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-xs text-white placeholder-white/20 focus:border-white/40 focus:outline-none"
-                  aria-label="Digite o nome do jogo para confirmar"
-                />
-                <div className="flex gap-3 justify-end mt-8">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      closeDeleteModal();
-                      playSound("back");
-                    }}
-                    disabled={state.isDeleting}
-                    className="px-6 py-3 rounded-xl border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/10 transition-all disabled:opacity-40"
-                  >
-                    {copy.cancel}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={actions.handleDeleteGame}
-                    disabled={state.isDeleting || state.deleteConfirmText !== game.title}
-                    className="px-6 py-3 rounded-xl border border-red-500/30 text-[10px] font-black uppercase tracking-[0.2em] text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all disabled:opacity-40 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
-                  >
-                    {state.isDeleting ? copy.removing : copy.remove}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={actions.handleDeleteGame}
+                  disabled={state.isDeleting}
+                  className="flex-1 py-3 rounded-full bg-[#FF453A] hover:bg-[#FF5147] border border-[#FF453A]/50 text-[14px] font-medium text-white shadow-[0_4px_16px_rgba(255,69,58,0.4)] hover:shadow-[0_6px_20px_rgba(255,69,58,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40"
+                >
+                  {state.isDeleting ? copy.removing : (copy.remove || "Delete")}
+                </button>
               </div>
             </div>
           </ModalShell>

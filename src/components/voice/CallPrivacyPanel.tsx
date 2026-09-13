@@ -64,7 +64,7 @@ export const CallPrivacyPanel: React.FC<CallPrivacyPanelProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 10 }}
           transition={{ type: "spring", stiffness: 380, damping: 28 }}
-          className="relative flex flex-col w-full max-w-sm rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1c1d28]/98 via-[#111218]/99 to-[#08090c] shadow-[0_30px_90px_rgba(0,0,0,0.95)] backdrop-blur-2xl z-10 overflow-hidden"
+          className="glass-panel relative flex flex-col w-full max-w-sm rounded-3xl border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.95)] z-10 overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4.5 border-b border-white/8 bg-black/30 backdrop-blur-md">
