@@ -45,6 +45,7 @@ import {
   Settings as AnimatedSettings,
 } from "../components/animate-ui/icons";
 import { SystemPageShell } from "../components/ui/SystemPageShell";
+import { ConfirmationModal } from "../components/home/ConfirmationModal";
 import { Switch } from "../components/ui/switch";
 import {
   DropdownMenu,
@@ -614,7 +615,7 @@ export const SettingsSelect = <T extends string>({
           <button
             type="button"
             className={cn(
-              "flex items-center justify-between w-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 hover:border-white/20 text-white text-[12px] font-medium rounded-xl px-3 py-1.5 transition-all outline-none focus-visible:ring-1 focus-visible:ring-white/30 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm active:scale-[0.98]",
+              "flex items-center justify-between w-full bg-[var(--color-surface)] hover:bg-[#222222] border border-white/10 hover:border-white/20 text-white text-[12px] font-medium rounded-xl px-3 py-1.5 transition-all outline-none focus-visible:ring-1 focus-visible:ring-white/30 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm active:scale-[0.98]",
               triggerClassName
             )}
           >
@@ -626,7 +627,7 @@ export const SettingsSelect = <T extends string>({
           align="end"
           side="bottom"
           sideOffset={6}
-          className="min-w-[180px] max-h-[260px] overflow-y-auto no-scrollbar border border-white/10 bg-[#161619]/95 backdrop-blur-2xl rounded-xl p-1.5 text-white shadow-[0_12px_40px_rgba(0,0,0,0.6)] z-[250]"
+          className="min-w-[180px] max-h-[260px] overflow-y-auto no-scrollbar border border-white/10 bg-[#161619]/95  rounded-xl p-1.5 text-white shadow-[0_12px_40px_rgba(0,0,0,0.6)] z-[250]"
         >
           {options.map((opt) => {
             const isSelected = opt.value === value;
@@ -637,8 +638,8 @@ export const SettingsSelect = <T extends string>({
                 className={cn(
                   "flex items-center justify-between gap-2 px-3 py-2 text-[12px] rounded-lg cursor-pointer transition-all outline-none select-none",
                   isSelected
-                    ? "bg-white/[0.12] text-white font-semibold"
-                    : "text-white/70 hover:text-white hover:bg-white/[0.08]"
+                    ? "bg-[var(--color-surface)] text-white font-semibold"
+                    : "text-white/70 hover:text-white hover:bg-[#222222]"
                 )}
               >
                 <span className="truncate">{opt.label}</span>
@@ -662,7 +663,7 @@ const SettingsRow: React.FC<{
   children: React.ReactNode;
   hasBorder?: boolean;
 }> = ({ icon, title, children, hasBorder = true }) => (
-  <div className={`py-4 ${hasBorder ? 'border-b border-white/[0.05]' : ''}`}>
+  <div className={`py-4 ${hasBorder ? 'border-b border-[var(--color-ui-detail)]' : ''}`}>
     <div className="flex items-center gap-2.5 mb-3.5">
       {icon && <div className="text-white/70">{icon}</div>}
       <span className="text-[13px] font-medium text-white/90 tracking-wide">{title}</span>
@@ -780,14 +781,14 @@ export const ThemePreviewCard: React.FC<{
           backgroundColor: active ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.02)",
         }}
       >
-        <div className="w-[122px] h-[78px] rounded-xl overflow-hidden flex flex-col border border-white/[0.08] bg-black/40 backdrop-blur-xl shadow-inner relative">
+        <div className="w-[122px] h-[78px] rounded-xl overflow-hidden flex flex-col border border-[var(--color-ui-detail)] bg-black/40  shadow-inner relative">
           <div
             className="absolute inset-0 opacity-25 pointer-events-none"
             style={{
               background: `radial-gradient(circle at 80% 20%, ${accentColor} 0%, transparent 70%)`,
             }}
           />
-          <div className="h-4 w-full flex items-center px-2.5 justify-between border-b border-white/[0.06] bg-white/[0.03] shrink-0">
+          <div className="h-4 w-full flex items-center px-2.5 justify-between border-b border-[var(--color-ui-detail)] bg-[var(--color-surface)] shrink-0">
             <div className="h-1 w-6 rounded-full bg-white/25" />
             <div
               className="h-1.5 w-1.5 rounded-full transition-all"
@@ -798,7 +799,7 @@ export const ThemePreviewCard: React.FC<{
             />
           </div>
           <div className="flex flex-1 min-h-0">
-            <div className="w-[34px] h-full p-1.5 flex flex-col gap-1 border-r border-white/[0.06] bg-white/[0.02]">
+            <div className="w-[34px] h-full p-1.5 flex flex-col gap-1 border-r border-[var(--color-ui-detail)] bg-[var(--color-surface)]">
               <div className="h-1 w-full rounded-full bg-white/25" />
               <div className="h-1 w-3/4 rounded-full bg-white/15" />
               <div className="h-1 w-4/5 rounded-full bg-white/15" />
@@ -967,6 +968,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
   const { user, userProfile } = useAuth();
   const [activeTab, setActiveTab] = React.useState<SettingsTab>(initialTab);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = React.useState(false);
   const [passwordResetSent, setPasswordResetSent] = React.useState(false);
   const [isResettingPassword, setIsResettingPassword] = React.useState(false);
   const [profileVisibility, setProfileVisibility] = React.useState<ProfileVisibility>(
@@ -1192,6 +1194,14 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
     }
   };
 
+  const handleSignOut = React.useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  }, []);
+
   const handlePasswordReset = async () => {
     if (!user?.email || isResettingPassword) return;
     setIsResettingPassword(true);
@@ -1365,14 +1375,14 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
   return (
     <div
       data-system-page="settings"
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 backdrop-blur-md animate-in fade-in duration-300 pointer-events-auto select-none"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 sm:p-6 md:p-8  animate-in fade-in duration-300 pointer-events-auto select-none"
     >
       {/* Wrapper Principal - Split Layout estilo macOS[cite: 1] */}
       <div className="flex w-full max-w-[960px] h-[75vh] min-h-[600px] max-h-[820px] gap-2">
 
         {/* SIDEBAR ESQUERDA - Ghost Style */}
         <aside
-          className="w-[240px] border border-white/[0.08] rounded-3xl flex flex-col py-6 px-4 shrink-0 shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] transform-gpu glass-panel"
+          className="w-[240px] border border-[var(--color-border)] bg-[#0B0B0B] rounded-3xl flex flex-col py-6 px-4 shrink-0 shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] transform-gpu"
         >
           <div
             className="flex items-center justify-between px-3 mb-5 group cursor-default"
@@ -1384,7 +1394,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
               <h2 className="text-[14px] font-semibold text-white tracking-wide">{t("settings")}</h2>
             </div>
             {isGamepadConnected && (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.1] text-white/70 shadow-sm">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-ui-detail)] text-white/70 shadow-sm">
                 <span className="text-[10px] font-bold font-mono">L1</span>
                 <span className="text-[9px] text-white/30">•</span>
                 <span className="text-[10px] font-bold font-mono">R1</span>
@@ -1414,8 +1424,8 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   onMouseEnter={() => setHoveredTab(id)}
                   onMouseLeave={() => setHoveredTab(null)}
                   className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[12.5px] font-medium transition-colors cursor-pointer ${isActive
-                    ? "bg-white/[0.12] text-white shadow-sm"
-                    : "text-white/60 hover:bg-white/[0.05] hover:text-white/90"
+                    ? "bg-[var(--color-surface)] text-white shadow-sm"
+                    : "text-white/60 hover:bg-[#222222] hover:text-white/90"
                     }`}
                 >
                   <IconComponent
@@ -1430,13 +1440,13 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
             })}
           </nav>
 
-          <div className="pt-3 mt-3 border-t border-white/[0.08]">
+          <div className="pt-3 mt-3 border-t border-[var(--color-ui-detail)]">
             <button
               type="button"
               onClick={handleQuitApp}
               onMouseEnter={() => setIsQuitHovered(true)}
               onMouseLeave={() => setIsQuitHovered(false)}
-              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[12.5px] font-medium text-white/50 hover:bg-white/[0.05] hover:text-white transition-colors cursor-pointer"
+              className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[12.5px] font-medium text-white/50 hover:bg-[#222222] hover:text-white transition-colors cursor-pointer"
             >
               <AnimatedLogOut size={16} animate={isQuitHovered} animateOnHover={true} className="shrink-0 text-white/40 group-hover:text-white transition-colors" />
               <span>{shellCopy.quit}</span>
@@ -1447,23 +1457,9 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
         {/* PAINEL DIREITO - Ghost Style */}
         <main
           ref={mainScrollRef}
-          className="flex-1 rounded-3xl border border-white/[0.08] overflow-y-auto no-scrollbar relative shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] transform-gpu glass-panel"
+          className="flex-1 rounded-3xl border border-[var(--color-border)] bg-[#0B0B0B] overflow-y-auto no-scrollbar relative shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] transform-gpu"
           style={{ contain: "layout paint" }}
         >
-          {onClose && (
-            <button
-              type="button"
-              onClick={() => {
-                playSound("back");
-                onClose();
-              }}
-              className="absolute top-5 right-5 z-20 flex items-center justify-center w-8 h-8 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-white/70 hover:text-white transition-all duration-200 cursor-pointer group"
-              aria-label="Fechar configurações"
-            >
-              <X className="h-4 w-4 transition-transform group-hover:scale-110" />
-            </button>
-          )}
-
           <div className="p-8 md:p-10 space-y-8 max-w-[680px]">
 
             {/* ABA GERAL */}
@@ -1497,7 +1493,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   ))}
                 </section>
 
-                <div className="h-px w-full bg-white/[0.06]" />
+                <div className="h-px w-full bg-[var(--color-surface)]" />
 
                 {/* Seção de Atualização do Launcher */}
                 <AppUpdateSection />
@@ -1543,7 +1539,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   </SettingsRow>
                 </section>
 
-                <div className="h-px w-full bg-white/[0.06]" />
+                <div className="h-px w-full bg-[var(--color-surface)]" />
 
                 <section>
                   <div className="flex items-center gap-2.5 mb-4">
@@ -1623,7 +1619,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   </SettingsRow>
                 </section>
 
-                <div className="h-px w-full bg-white/[0.06]" />
+                <div className="h-px w-full bg-[var(--color-surface)]" />
 
                 <section>
                   <div className="flex items-center gap-2.5 mb-4">
@@ -1635,7 +1631,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                       type="button"
                       onClick={handlePasswordReset}
                       disabled={isResettingPassword || !user?.email || passwordResetSent}
-                      className="px-4 py-1.5 bg-white/[0.1] hover:bg-white/[0.18] rounded-md text-[12.5px] font-medium text-white transition-all disabled:opacity-50"
+                      className="px-4 py-1.5 bg-[var(--color-surface)] hover:bg-[#222222] rounded-md text-[12.5px] font-medium text-white transition-all disabled:opacity-50"
                     >
                       {passwordResetSent ? detailCopy.emailSent : isResettingPassword ? detailCopy.sending : detailCopy.sendEmail}
                     </button>
@@ -1645,6 +1641,20 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                       <ShieldCheck className="h-4 w-4" />
                       <span>{t("protected")}</span>
                     </div>
+                  </SettingsRow>
+                </section>
+
+                <div className="h-px w-full bg-[var(--color-surface)]" />
+
+                <section>
+                  <SettingsRow title="Sair da Conta" hasBorder={false}>
+                    <button
+                      type="button"
+                      onClick={() => setIsLogoutModalOpen(true)}
+                      className="px-4 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-md text-[12.5px] font-medium transition-colors cursor-pointer"
+                    >
+                      Desconectar
+                    </button>
                   </SettingsRow>
                 </section>
               </div>
@@ -1665,7 +1675,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                         ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
                         : steamConnected
                           ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                          : "bg-white/[0.04] text-white/40 border-white/10"
+                          : "bg-[var(--color-surface)] text-white/40 border-white/10"
                         }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${steamDisconnecting ? "bg-yellow-400 animate-pulse" : steamConnected ? "bg-emerald-400" : "bg-white/30"}`} />
                         {steamDisconnecting ? "Desconectando..." : steamConnected ? t("connected") : t("notConnected")}
@@ -1688,7 +1698,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                         ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
                         : discordConnected
                           ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                          : "bg-white/[0.04] text-white/40 border-white/10"
+                          : "bg-[var(--color-surface)] text-white/40 border-white/10"
                         }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${discordDisconnecting ? "bg-yellow-400 animate-pulse" : discordConnected ? "bg-emerald-400" : "bg-white/30"}`} />
                         {discordDisconnecting ? "Desconectando..." : discordConnected ? (discordUsername || t("connected")) : t("notConnected")}
@@ -1711,7 +1721,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                         ? "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
                         : epicConnected
                           ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                          : "bg-white/[0.04] text-white/40 border-white/10"
+                          : "bg-[var(--color-surface)] text-white/40 border-white/10"
                         }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${epicDisconnecting ? "bg-yellow-400 animate-pulse" : epicConnected ? "bg-emerald-400" : "bg-white/30"}`} />
                         {epicDisconnecting ? "Desconectando..." : epicConnected ? (epicDisplayName || t("connected")) : t("notConnected")}
@@ -1729,7 +1739,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   </SettingsRow>
                 </section>
 
-                <div className="h-px w-full bg-white/[0.06]" />
+                <div className="h-px w-full bg-[var(--color-surface)]" />
 
                 <section>
                   <div className="flex items-center gap-2.5 mb-4">
@@ -1762,7 +1772,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   <SettingsRow title={t("controllerStatus")}>
                     <span className={`inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-2.5 py-1 rounded-xl border transition-colors ${isGamepadConnected
                       ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
-                      : "bg-white/[0.06] text-white/50 border-white/10"
+                      : "bg-[var(--color-surface)] text-white/50 border-white/10"
                       }`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${isGamepadConnected ? "bg-emerald-400 animate-pulse" : "bg-white/30"}`} />
                       {isGamepadConnected ? controllerCopy[1] : t("disconnected")}
@@ -1773,7 +1783,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                       <span className="text-[12px] font-semibold text-white/70 tabular-nums">{isGamepadConnected ? `${batteryLevel !== null ? batteryLevel : '--'}%` : "N/A"}</span>
                       {batteryCharging && <span className="inline-flex items-center gap-1 text-[10.5px] uppercase font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-lg shadow-[0_0_10px_rgba(16,185,129,0.2)]">{t("charging")}</span>}
                       {batteryLevel !== null && batteryLevel <= 20 && !batteryCharging && isGamepadConnected && <span className="inline-flex items-center gap-1 text-[10.5px] uppercase font-bold text-red-300 bg-red-500/15 border border-red-500/30 px-2 py-0.5 rounded-lg shadow-[0_0_10px_rgba(239,68,68,0.2)]">{t("lowBattery")}</span>}
-                      <button onClick={() => setShowControllerStatusModal(true)} className="px-2.5 py-1 bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white rounded-lg text-[11.5px] font-medium transition-colors ml-1 active:scale-95 cursor-pointer">{t("details")}</button>
+                      <button onClick={() => setShowControllerStatusModal(true)} className="px-2.5 py-1 bg-[var(--color-surface)] hover:bg-[#222222] border border-white/10 text-white rounded-lg text-[11.5px] font-medium transition-colors ml-1 active:scale-95 cursor-pointer">{t("details")}</button>
                     </div>
                   </SettingsRow>
                   <SettingsRow title={t("playstationLed")}>
@@ -1857,7 +1867,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
                   <SettingsRow title={voiceCopy.camera} hasBorder={false}>
                     <div className="flex gap-2">
-                      <button onClick={() => setIsVideoPreviewOn(!isVideoPreviewOn)} className="px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-white rounded-xl text-[12px] font-medium transition-colors cursor-pointer active:scale-95">{voiceCopy.preview}</button>
+                      <button onClick={() => setIsVideoPreviewOn(!isVideoPreviewOn)} className="px-3 py-1.5 bg-[var(--color-surface)] hover:bg-[#222222] border border-white/10 text-white rounded-xl text-[12px] font-medium transition-colors cursor-pointer active:scale-95">{voiceCopy.preview}</button>
                       <SettingsSelect
                         value={voiceCallContext?.selectedVideoInput || "default"}
                         onChange={(v) => voiceCallContext?.changeVideoInputDevice(v)}
@@ -1879,7 +1889,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   )}
                 </section>
 
-                <div className="h-px w-full bg-white/[0.06]" />
+                <div className="h-px w-full bg-[var(--color-surface)]" />
 
                 <section>
                   <div className="flex items-center gap-2.5 mb-4">
@@ -1996,7 +2006,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   </SettingsRow>
                 </section>
 
-                <div className="h-px w-full bg-white/[0.06]" />
+                <div className="h-px w-full bg-[var(--color-surface)]" />
 
                 <section>
                   <div className="flex items-center gap-2.5 mb-4">
@@ -2047,10 +2057,10 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-md"
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 "
           >
             <div
-              className="border border-white/[0.08] rounded-2xl p-6 w-[320px] shadow-2xl backdrop-blur-2xl transform-gpu"
+              className="border border-[var(--color-ui-detail)] rounded-2xl p-6 w-[320px] shadow-2xl  transform-gpu"
               style={{
                 background: "linear-gradient(145deg, rgba(20,20,24,0.7) 0%, rgba(10,10,14,0.85) 100%)",
                 boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
@@ -2078,6 +2088,20 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmationModal
+        isOpen={isLogoutModalOpen}
+        title="Sair da Conta"
+        description="Você será desconectado e voltará para a tela de login."
+        confirmLabel="SAIR"
+        cancelLabel="CANCELAR"
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={async () => {
+          setIsLogoutModalOpen(false);
+          await handleSignOut();
+        }}
+        playSound={playSound}
+      />
     </div>
   );
 });
