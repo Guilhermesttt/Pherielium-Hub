@@ -117,7 +117,7 @@ const LibraryFilterModal: React.FC<LibraryFilterModalProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             onClick={(e) => e.stopPropagation()}
-            className="glass-panel relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.8)] thin-scrollbar"
+            className="bg-[#0E0E0E] relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl border border-[var(--color-border)] shadow-[0_24px_80px_rgba(0,0,0,0.8)] thin-scrollbar"
           >
             {/* Header */}
             <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/[0.06] bg-black/40 px-6 py-4">

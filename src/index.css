@@ -41,16 +41,16 @@ html[data-launcher-theme="checkpoint"] {
   /* ======================================= */
   /* DESIGN TOKENS DEFINITIVOS (Fase 6 CMF)  */
   /* ======================================= */
-  --color-bg-main: #070707;
-  /* Noir Housty */
-  --color-surface: #333333;
-  /* Asfalto Urbano */
-  --color-ui-detail: #D3D3D3;
-  /* Névoa Sutil */
+  --color-bg-main: #000000;
+  /* Preto Absoluto */
+  --color-surface: #141414;
+  /* Cinza Escuro Interface */
+  --color-ui-detail: #333333;
+  /* Cinza Médio Detalhes e Bordas */
   --color-text-main: #FFFFFF;
-  /* Luz */
-  --color-text-sub: #D3D3D3;
-  /* Névoa Sutil */
+  /* Branco Texto Principal */
+  --color-text-sub: #999999;
+  /* Cinza Claro Texto Secundário */
 
   /* Fallback legacy remapping */
   --background: var(--color-bg-main);
@@ -62,16 +62,16 @@ html[data-launcher-theme="checkpoint"] {
   --muted-foreground: var(--color-text-sub);
   --text-primary: var(--color-text-main);
   --text-secondary: var(--color-text-sub);
-  --text-tertiary: rgba(211, 211, 211, 0.6);
-  --text-disabled: rgba(211, 211, 211, 0.38);
+  --text-tertiary: rgba(255, 255, 255, 0.4);
+  --text-disabled: rgba(255, 255, 255, 0.25);
   --border: var(--color-ui-detail);
-  --border-subtle: rgba(211, 211, 211, 0.15);
-  --border-strong: rgba(211, 211, 211, 0.3);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.2);
 
-  --launcher-accent: 211 211 211;
-  /* Névoa Sutil RGB base for focus rings */
-  --launcher-accent-soft: rgba(211, 211, 211, 0.2);
-  --launcher-tint: rgba(211, 211, 211, 0.1);
+  --launcher-accent: 255 255 255;
+  /* Branco RGB base for focus rings */
+  --launcher-accent-soft: rgba(255, 255, 255, 0.2);
+  --launcher-tint: rgba(255, 255, 255, 0.1);
   --cosmos-glow: none;
 
   /* Malha Base 4/8 */
@@ -180,10 +180,10 @@ html[data-launcher-theme="sunset"] {
   /* Aplicar font-weight: 900 */
 
   /* Textos de Interface, Corpo, Menus e Legendas (Legibilidade Apple) */
-  --font-body: 'SF Pro Text', system-ui, sans-serif;
-  --font-ui: 'SF Pro Text', system-ui, sans-serif;
-  --font-sans: 'SF Pro Text', system-ui, sans-serif;
-  --font-inter: 'SF Pro Text', system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  --font-inter: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
 
   --color-bg-main: var(--color-bg-main);
   --color-surface: var(--color-surface);
@@ -876,7 +876,7 @@ video {
 
   /* Efeito de Material Otimizado para Painéis Grandes (Substitui o Liquid Glass Pesado) */
   .glass-panel {
-    background: linear-gradient(120deg, rgba(255,255,255,0.06) 0%, var(--color-surface, #13141a) 100%);
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.06) 0%, var(--color-surface, #13141a) 100%);
     backdrop-filter: blur(40px) saturate(180%);
     -webkit-backdrop-filter: blur(40px) saturate(180%);
   }

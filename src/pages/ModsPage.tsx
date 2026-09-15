@@ -277,11 +277,11 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
       ).map((mod) =>
         mod.id === modId
           ? {
-              ...mod,
-              enabled,
-              status: enabled ? "installed" : "downloaded",
-              ...(!enabled ? { manifestPath: undefined } : {}),
-            }
+            ...mod,
+            enabled,
+            status: enabled ? "installed" : "downloaded",
+            ...(!enabled ? { manifestPath: undefined } : {}),
+          }
           : mod,
       );
       const next = { ...prev, [selectedGame.id]: nextForGame };
@@ -310,24 +310,24 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
         const existing = currentForGame.find((entry) => entry.id === mod.id);
         const mergedMod: InstalledModEntry = existing
           ? {
-              ...existing,
-              ...mod,
-              name: mod.name || existing.name,
-              author:
-                mod.author === "Nexus Mods"
-                  ? existing.author || mod.author
-                  : mod.author,
-              pictureUrl: mod.pictureUrl || existing.pictureUrl,
-              version: mod.version || existing.version,
-              status:
-                existing.status === "installed" && mod.status === "downloaded"
-                  ? "installed"
-                  : mod.status,
-              enabled:
-                existing.status === "installed" && mod.status === "downloaded"
-                  ? existing.enabled
-                  : mod.enabled,
-            }
+            ...existing,
+            ...mod,
+            name: mod.name || existing.name,
+            author:
+              mod.author === "Nexus Mods"
+                ? existing.author || mod.author
+                : mod.author,
+            pictureUrl: mod.pictureUrl || existing.pictureUrl,
+            version: mod.version || existing.version,
+            status:
+              existing.status === "installed" && mod.status === "downloaded"
+                ? "installed"
+                : mod.status,
+            enabled:
+              existing.status === "installed" && mod.status === "downloaded"
+                ? existing.enabled
+                : mod.enabled,
+          }
           : mod;
         const nextForGame = [
           mergedMod,
@@ -430,15 +430,20 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
       style={{ padding: "32px 40px 64px", contain: "layout paint", transform: "translate3d(0,0,0)", willChange: "transform" }}
     >
       <div className="mx-auto w-full max-w-7xl space-y-6">
-        {/* Top Header Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs font-body font-semibold tracking-widest text-white/40 uppercase">
-          <span>PHERIELIUM</span>
-          <span>&gt;</span>
-          <span className="text-white/80">MODS</span>
+        <div className="mb-8 w-full">
+          <h1
+            className="font-display font-black bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent leading-[1.08]"
+            style={{ fontSize: "clamp(28px, 4vw, 40px)", letterSpacing: "-0.02em" }}
+          >
+            Mods
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm font-body leading-relaxed text-white/50">
+            Instale, ative e configure modificações para seus jogos instalados.
+          </p>
         </div>
 
         {/* Hero Section Banner */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-r from-white/[0.04] via-white/[0.02] to-transparent p-6 sm:p-8 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+        <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0B0B0B] p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
           <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/[0.03] blur-3xl pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
@@ -446,8 +451,8 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
                 <div className="h-10 w-10 rounded-2xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white">
                   <PackageOpen className="w-5 h-5" />
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-display font-black text-white tracking-wide">
-                  GERENCIADOR DE MODS
+                <h1 className="text-2xl sm:text-3xl font-display font-black bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent tracking-wide">
+                  Gerenciador de Mods
                 </h1>
               </div>
               <p className="text-xs sm:text-sm font-body text-white/50 max-w-2xl leading-relaxed">
@@ -458,7 +463,7 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
 
             {/* Quick Metrics Bar */}
             <div className="flex items-center gap-3 self-start md:self-auto flex-wrap">
-              <div className="px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md">
+              <div className="px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08]">
                 <span className="block text-[10px] font-body font-semibold uppercase tracking-wider text-white/40">
                   Jogos Suportados
                 </span>
@@ -466,7 +471,7 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
                   {games.length}
                 </span>
               </div>
-              <div className="px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md">
+              <div className="px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08]">
                 <span className="block text-[10px] font-body font-semibold uppercase tracking-wider text-white/40">
                   Diretórios Vinculados
                 </span>
@@ -474,7 +479,7 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
                   {configuredGames}
                 </span>
               </div>
-              <div className="px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md">
+              <div className="px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08]">
                 <span className="block text-[10px] font-body font-semibold uppercase tracking-wider text-white/40">
                   Mods Ativos
                 </span>
@@ -543,23 +548,23 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
                 </div>
               </div>
 
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                  <button
-                    type="button"
-                    title="Visualização em Grade"
-                    className="p-1.5 rounded-lg bg-white/10 text-white"
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    title="Visualização em Lista"
-                    className="p-1.5 rounded-lg text-white/40 hover:text-white"
-                  >
-                    <ListFilter className="w-4 h-4" />
-                  </button>
-                </div>
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                <button
+                  type="button"
+                  title="Visualização em Grade"
+                  className="p-1.5 rounded-lg bg-white/10 text-white"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  title="Visualização em Lista"
+                  className="p-1.5 rounded-lg text-white/40 hover:text-white"
+                >
+                  <ListFilter className="w-4 h-4" />
+                </button>
               </div>
+            </div>
             {/* Games Grid Memoizado */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               {filteredGames.map(({ game, gameModsCount, activeModsCount, artwork }, index) => (
@@ -629,3 +634,5 @@ export const ModsPage: React.FC<ModsPageProps> = ({ uid, games }) => {
 };
 
 export default React.memo(ModsPage);
+
+

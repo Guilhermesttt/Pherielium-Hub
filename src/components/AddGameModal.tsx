@@ -1185,12 +1185,7 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
     >
       <div
         aria-busy={isSaving || loading}
-        className="relative flex h-[calc(100dvh-2rem)] max-h-[860px] w-full flex-col overflow-hidden rounded-xl border border-white/[0.08] shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] md:h-[calc(100dvh-4rem)] text-white transform-gpu"
-        style={{
-          background: "rgba(255, 255, 255, 0.02)",
-          backdropFilter: "blur(20px) saturate(180%)",
-          WebkitBackdropFilter: "blur(20px) saturate(180%)",
-        }}
+        className="relative flex h-[calc(100dvh-2rem)] max-h-[860px] w-full flex-col overflow-hidden rounded-xl border border-white/[0.08] shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] md:h-[calc(100dvh-4rem)] text-white transform-gpu bg-[#0E0E0E]"
       >
         <header className="relative flex shrink-0 items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-4 md:px-7 md:py-5">
           <div className="flex min-w-0 items-center gap-4">

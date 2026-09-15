@@ -42,7 +42,7 @@ export const GameDetailStats: React.FC<GameDetailStatsProps> = React.memo(({
             </span>
           </div>
 
-          <div className="w-px h-12 bg-white/[0.08] shrink-0 hidden sm:block" />
+          <div className="w-px h-12 bg-[var(--color-surface)] shrink-0 hidden sm:block" />
 
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-black text-white/35 uppercase tracking-[0.28em]">
@@ -53,7 +53,7 @@ export const GameDetailStats: React.FC<GameDetailStatsProps> = React.memo(({
             </span>
           </div>
 
-          <div className="w-px h-12 bg-white/[0.08] shrink-0 hidden sm:block" />
+          <div className="w-px h-12 bg-[var(--color-surface)] shrink-0 hidden sm:block" />
 
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-black text-white/35 uppercase tracking-[0.28em]">
@@ -67,7 +67,7 @@ export const GameDetailStats: React.FC<GameDetailStatsProps> = React.memo(({
 
         {/* Barra de Progresso Suave */}
         {achievementsTotal > 0 && (
-          <div className="w-full h-[3px] rounded-full bg-white/[0.06] overflow-hidden">
+          <div className="w-full h-[3px] rounded-full bg-[var(--color-surface)] overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-white/60"
               initial={{ width: 0 }}
@@ -79,7 +79,7 @@ export const GameDetailStats: React.FC<GameDetailStatsProps> = React.memo(({
       </div>
 
       {/* Tags de Metadados / Fonte */}
-      <div className="inline-flex flex-wrap items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/[0.02] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] self-start"
+      <div className="inline-flex flex-wrap items-center gap-3 px-4 py-2.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] self-start"
         style={{
           backdropFilter: "blur(20px) saturate(180%)",
           WebkitBackdropFilter: "blur(20px) saturate(180%)",

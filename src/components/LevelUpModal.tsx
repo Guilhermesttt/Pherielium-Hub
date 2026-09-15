@@ -292,7 +292,7 @@ export const LevelUpModal: React.FC = () => {
           {/* BACKDROP */}
           <div
             onClick={handleClose}
-            className="absolute inset-0 bg-black/92 backdrop-blur-xl"
+            className="absolute inset-0 bg-black/75 backdrop-blur-xl"
           />
 
           {/* Vinheta */}
@@ -512,7 +512,7 @@ export const LevelUpModal: React.FC = () => {
               y: reduceMotion ? 0 : 10,
             }}
             transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.16, 1, 0.3, 1] }}
-            className="glass-panel relative w-full max-w-[530px] overflow-hidden rounded-[28px] border border-white/[0.10] px-7 pb-7 pt-8 text-center shadow-[0_40px_120px_rgba(0,0,0,.95)] select-none"
+            className="bg-[#0E0E0E] relative w-full max-w-[530px] overflow-hidden rounded-[28px] border border-[var(--color-border)] px-7 pb-7 pt-8 text-center shadow-[0_40px_120px_rgba(0,0,0,.95)] select-none"
           >
             {isTierPromotion && !reduceMotion && (
               <motion.div

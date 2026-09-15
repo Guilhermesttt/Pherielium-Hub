@@ -130,14 +130,14 @@ const GamingRadarPage: React.FC = () => {
     >
       <div className="relative mx-auto max-w-6xl space-y-6">
         {/* Editorial Atmospheric Header */}
-        <header className="relative overflow-hidden rounded-3xl border border-white/[0.08] p-6 md:p-8 shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] glass-panel">
+        <header className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0E0E0E] p-6 md:p-8 shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)]">
           <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-center">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-wider text-white/70 mb-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 glass-panel px-3 py-1 text-xs font-medium tracking-wider text-white/70 mb-3">
                 <Radio className="h-3 w-3 text-white" />
                 <span>{copy.eyebrow}</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-display font-semibold tracking-tight text-white">
+              <h1 className="text-2xl md:text-3xl font-display font-black tracking-tight bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent">
                 {copy.title}
               </h1>
               <p className="mt-1 max-w-xl text-xs md:text-sm font-normal text-white/70">
@@ -150,7 +150,7 @@ const GamingRadarPage: React.FC = () => {
                 type="button"
                 disabled={loading}
                 onClick={() => void loadNews()}
-                className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] hover:bg-white/[0.12] px-4 py-2 text-xs font-medium text-white shadow-md transition-all disabled:opacity-50 active:scale-95"
+                className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-full border border-white/15 glass-panel hover:bg-white/[0.12] px-4 py-2 text-xs font-medium text-white shadow-md transition-all disabled:opacity-50 active:scale-95"
               >
                 <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
                 <span>{copy.refresh}</span>
@@ -183,8 +183,8 @@ const GamingRadarPage: React.FC = () => {
               type="button"
               onClick={() => setActiveSource(source)}
               className={`cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium tracking-wide transition-all ${activeSource === source
-                  ? "border-white bg-white text-black shadow-md font-semibold"
-                  : "border-white/[0.08] bg-white/[0.03] text-white/60 hover:border-white/20 hover:text-white"
+                ? "border-white bg-white text-black shadow-md font-semibold"
+                : "border-white/[0.08] bg-white/[0.03] text-white/60 hover:border-white/20 hover:text-white"
                 }`}
             >
               {source === "__all__" ? copy.all : source}
@@ -276,3 +276,4 @@ const GamingRadarPage: React.FC = () => {
 };
 
 export default GamingRadarPage;
+

@@ -93,28 +93,23 @@ const ContinueCard: React.FC<{
     <motion.article
       initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: 15 }}
       animate={{ opacity: 1, x: 0 }}
-      whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       transition={enterTransition}
       onClick={onPlay}
       onPointerEnter={() => playSound?.("hover")}
       className="group relative w-[400px] shrink-0 cursor-pointer"
-      style={{ height: COVER_HEIGHT, scrollSnapAlign: "start" }}
+      style={{ height: COVER_HEIGHT }}
       aria-label={`Continuar jogando ${game.title}`}
     >
       {/* Card background — sits BELOW the cover's overhang, own overflow-hidden
           only clips the gradient, never the cover (which is a sibling, not a child) */}
       <div
-        className="absolute inset-x-0 bottom-0 overflow-hidden border shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)]"
+        className="absolute inset-x-0 bottom-0 overflow-hidden border border-[rgb(var(--color-border))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
         style={{
           height: CARD_HEIGHT,
-          borderRadius: 24, /* Squircle */
-          borderColor: "rgba(255,255,255,0.08)",
-          background: accentColor
-            ? `linear-gradient(120deg, ${accentColor.replace("rgb", "rgba").replace(")", ", 0.25)")} 0%, var(--color-surface) 100%)`
-            : "linear-gradient(120deg, rgba(255,255,255,0.06) 0%, var(--color-surface) 100%)",
-          backdropFilter: "blur(40px) saturate(180%)",
-          WebkitBackdropFilter: "blur(40px) saturate(180%)",
+          background: "linear-gradient(145deg, #242424 0%, #0A0A0A 100%)",
+          borderRadius: 32, /* Squircle */
+          borderColor: "rgba(255, 255, 255, 0.08)",
         }}
       />
 
@@ -138,8 +133,6 @@ const ContinueCard: React.FC<{
       {/* Cover — pops above the card, but stays inside the article's own box,
           so the scroll container's overflow-x never clips it */}
       <motion.div
-        whileHover={{ y: -4, scale: 1.05 }}
-        transition={{ type: "spring", bounce: 0.3, duration: 0.4 }}
         className="absolute top-0 z-10 overflow-hidden rounded-[16px] border border-white/10 bg-[#0f1115] shadow-[0_16px_32px_rgba(0,0,0,0.6)]"
         style={{ left: COVER_LEFT, width: COVER_WIDTH, height: COVER_HEIGHT - 12 }}
       >
@@ -162,37 +155,44 @@ export const DashboardContinuePlaying: React.FC<DashboardContinuePlayingProps> =
   playSound,
 }) => {
   const prefersReducedMotion = useReducedMotion();
+  const scrollRef = React.useRef<HTMLDivElement>(null);
 
   if (continuePlayingGames.length === 0) return null;
-  const displayGames = continuePlayingGames.slice(0, 5);
+
+  const handleScrollRight = () => {
+    if (scrollRef.current) {
+      playSound?.("hover");
+      scrollRef.current.scrollBy({ left: 850, behavior: "smooth" });
+    }
+  };
 
   return (
-    <section aria-label="Continuar jogando" className="px-10 pb-4">
-      <div className="mb-16 flex items-end justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/34">
-            Retomar
-          </p>
-          <h2 className="mt-1 text-[18px] font-semibold leading-[1.1] tracking-[-0.02em] text-white/88">
+    <section aria-label="Continuar jogando" className="px-10 pb-6 mb-16 relative group/section">
+      <div className="mb-4 flex flex-col">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/34">
+          Retomar
+        </p>
+        <div className="mt-1 flex items-baseline gap-3">
+          <h2 className="text-[18px] font-semibold leading-[1.1] tracking-[-0.02em] text-white/88">
             Continuar jogando
           </h2>
+          <span className="text-[10.5px] font-medium text-white/34">
+            {continuePlayingGames.length} {continuePlayingGames.length === 1 ? "jogo" : "jogos"}
+          </span>
         </div>
-
-        <span className="text-[10.5px] font-medium text-white/34">
-          {continuePlayingGames.length} {continuePlayingGames.length === 1 ? "jogo" : "jogos"}
-        </span>
       </div>
 
       {/* No pt- hack needed: the cover's overhang is inside each article's own
           height, so overflow-x-auto here never clips it top or bottom. */}
       <motion.div
-        className="no-scrollbar -ml-[12px] flex gap-[24px] overflow-x-auto overscroll-x-contain pb-4 pl-[12px]"
+        ref={scrollRef}
+        className="no-scrollbar -ml-[12px] flex gap-[24px] overflow-x-auto overscroll-x-contain pb-4 pl-[12px] pr-10"
         style={{ scrollSnapType: "x proximity" }}
         initial={false}
         animate={{ opacity: 1 }}
         transition={prefersReducedMotion ? { duration: 0.12 } : STANDARD_SPRING}
       >
-        {displayGames.map((game, index) => (
+        {continuePlayingGames.map((game, index) => (
           <ContinueCard
             key={game.id}
             game={game}
@@ -203,25 +203,16 @@ export const DashboardContinuePlaying: React.FC<DashboardContinuePlayingProps> =
           />
         ))}
 
-        {continuePlayingGames.length > 5 && (
-          <motion.div
-            className="flex shrink-0 items-end justify-center"
-            style={{ width: 122, height: COVER_HEIGHT, paddingBottom: (CARD_HEIGHT - 64) / 2 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
-          >
-            <button
-              className="flex h-16 w-16 cursor-pointer flex-col items-center justify-center gap-3 rounded-full border border-white/[0.08] bg-[#1C1C1E]/75 text-white/50 shadow-[0_16px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors hover:text-white"
-              style={{ backdropFilter: "blur(20px) saturate(180%)", WebkitBackdropFilter: "blur(20px) saturate(180%)" }}
-              title="Ver mais jogos"
-              onClick={() => playSound?.("select")}
-            >
-              <ArrowRight className="h-6 w-6" />
-            </button>
-          </motion.div>
-        )}
       </motion.div>
+
+      {continuePlayingGames.length > 5 && (
+        <button
+          onClick={handleScrollRight}
+          className="absolute right-8 top-[60%] z-10 flex h-12 w-12 items-center justify-center rounded-full bg-[#1A1A1A]/90 border border-white/[0.1] text-white/70 backdrop-blur-xl shadow-2xl transition-all hover:bg-white/[0.1] hover:scale-105 hover:text-white"
+        >
+          <ArrowRight className="h-6 w-6" />
+        </button>
+      )}
     </section>
   );
 };

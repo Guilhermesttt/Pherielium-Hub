@@ -100,7 +100,7 @@ const FriendOnlineCard = React.memo<{
   return (
     <div
       data-friend-id={friend.id}
-      className="group relative rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.10] hover:border-white/20 p-3.5 transition-[transform,background-color,border-color] duration-160 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] backdrop-blur-md flex flex-col justify-between transform-gpu"
+      className="group relative rounded-xl bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] hover:border-white/20 p-3.5 transition-[transform,background-color,border-color] duration-160 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.3)]  flex flex-col justify-between transform-gpu"
       onMouseEnter={handleMouseEnter}
     >
       <div>
@@ -110,7 +110,7 @@ const FriendOnlineCard = React.memo<{
             className="relative cursor-pointer group/avatar"
             title="Ver perfil"
           >
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/[0.05] border border-white/15 group-hover/avatar:border-white/40 transition-colors">
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/15 group-hover/avatar:border-white/40 transition-colors">
               {friend.avatar ? (
                 <img src={friend.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
               ) : (
@@ -120,7 +120,7 @@ const FriendOnlineCard = React.memo<{
               )}
             </div>
             {isLoadingProfile && (
-              <div className="absolute inset-0 rounded-xl bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+              <div className="absolute inset-0 rounded-xl bg-black/60  flex items-center justify-center z-10">
                 <Loader2 className="w-4 h-4 text-white animate-spin" />
               </div>
             )}
@@ -157,13 +157,13 @@ const FriendOnlineCard = React.memo<{
         </div>
       </div>
 
-      <div className="flex items-center gap-2 pt-2.5 border-t border-white/[0.06] mt-1.5">
+      <div className="flex items-center gap-2 pt-2.5 border-t border-[var(--color-ui-detail)] mt-1.5">
         <button
           type="button"
           onMouseEnter={handleMouseEnter}
           onClick={handleChat}
           title="Chat"
-          className="flex-1 h-9 px-3 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.10] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors duration-160 cursor-pointer"
+          className="flex-1 h-9 px-3 rounded-lg bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors duration-160 cursor-pointer"
         >
           <MessageSquare className="w-3.5 h-3.5 text-white/80" />
           <span>Chat</span>
@@ -182,7 +182,7 @@ const FriendOnlineCard = React.memo<{
             title="Ligar"
             className={`h-9 w-9 rounded-lg border transition-colors duration-160 cursor-pointer flex items-center justify-center ${isCallActive
               ? "bg-white text-black border-white shadow-md animate-pulse"
-              : "bg-white/[0.05] hover:bg-white/10 border border-white/[0.08] text-white/70 hover:text-white"
+              : "bg-[var(--color-surface)] hover:bg-white/10 border border-[var(--color-ui-detail)] text-white/70 hover:text-white"
               }`}
           >
             <Phone className="w-3.5 h-3.5" />
@@ -198,7 +198,7 @@ const FriendOnlineCard = React.memo<{
           className={`py-1.5 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
             isLoadingProfile
               ? "bg-white/20 border-white/30 text-white shadow-[0_0_12px_rgba(255,255,255,0.2)] cursor-wait"
-              : "bg-white/[0.05] hover:bg-white/10 border-white/[0.08] text-white cursor-pointer"
+              : "bg-[var(--color-surface)] hover:bg-white/10 border-[var(--color-ui-detail)] text-white cursor-pointer"
           }`}
         >
           {isLoadingProfile ? (
@@ -256,14 +256,14 @@ const FriendOfflineCard = React.memo<{
         }
       }}
       onMouseEnter={() => playSound?.("hover")}
-      className={`shrink-0 snap-start relative flex items-center gap-3 p-3 rounded-xl border transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out transform-gpu will-change-transform backdrop-blur-xl shadow-md data-[gamepad-focused='true']:border-white data-[gamepad-focused='true']:ring-2 data-[gamepad-focused='true']:ring-white/40 ${
+      className={`shrink-0 snap-start relative flex items-center gap-3 p-3 rounded-xl border transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out transform-gpu will-change-transform  shadow-md data-[gamepad-focused='true']:border-white data-[gamepad-focused='true']:ring-2 data-[gamepad-focused='true']:ring-white/40 ${
         isLoadingProfile
-          ? "bg-white/[0.08] border-white/40 ring-1 ring-white/25 shadow-[0_0_24px_rgba(255,255,255,0.18)] cursor-wait scale-[0.99]"
-          : "bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.08] hover:border-white/15 cursor-pointer hover:scale-[1.02]"
+          ? "bg-[var(--color-surface)] border-white/40 ring-1 ring-white/25 shadow-[0_0_24px_rgba(255,255,255,0.18)] cursor-wait scale-[0.99]"
+          : "bg-[var(--color-surface)] hover:bg-[#222222] border-[var(--color-ui-detail)] hover:border-white/15 cursor-pointer hover:scale-[1.02]"
       }`}
       style={{ minWidth: 190 }}
     >
-      <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-white/[0.04] border border-white/10 shrink-0">
+      <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/10 shrink-0">
         {friend.avatar ? (
           <img
             src={friend.avatar}
@@ -280,7 +280,7 @@ const FriendOfflineCard = React.memo<{
           </div>
         )}
         {isLoadingProfile && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-black/60  flex items-center justify-center z-10">
             <Loader2 className="w-4 h-4 text-white animate-spin" />
           </div>
         )}
@@ -339,11 +339,10 @@ const FriendChatCard = React.memo<{
           handleChat();
         }
       }}
-      onMouseEnter={() => playSound?.("hover")}
-      className="group relative flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/20 focus:border-white/40 focus:bg-white/[0.08] focus:outline-none data-[gamepad-focused='true']:border-white data-[gamepad-focused='true']:bg-white/[0.1] data-[gamepad-focused='true']:ring-2 data-[gamepad-focused='true']:ring-white/40 cursor-pointer transition-all backdrop-blur-xl shadow-md transform-gpu will-change-transform"
+      className="group relative flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] hover:border-white/20 focus:border-white/40 focus:bg-[var(--color-surface)] focus:outline-none data-[gamepad-focused='true']:border-white data-[gamepad-focused='true']:bg-[var(--color-surface)] data-[gamepad-focused='true']:ring-2 data-[gamepad-focused='true']:ring-white/40 cursor-pointer transition-all shadow-md transform-gpu will-change-transform"
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-white/[0.05] border border-white/10 shrink-0">
+        <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/10 shrink-0">
           {friend.avatar ? (
             <img src={friend.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
           ) : (
@@ -388,7 +387,7 @@ const FriendChatCard = React.memo<{
               onMouseEnter={() => playSound?.("hover")}
               onClick={handleVoice}
               title="Ligar (Áudio)"
-              className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/10 text-white/70 hover:text-white border border-white/[0.08] transition-all cursor-pointer"
+              className="p-2 rounded-xl bg-[var(--color-surface)] hover:bg-white/10 text-white/70 hover:text-white border border-[var(--color-ui-detail)] transition-all cursor-pointer"
             >
               <Phone className="w-4 h-4" />
             </button>
@@ -398,7 +397,7 @@ const FriendChatCard = React.memo<{
               onMouseEnter={() => playSound?.("hover")}
               onClick={handleVideo}
               title="Chamada de Vídeo"
-              className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/10 text-white/70 hover:text-white border border-white/[0.08] transition-all cursor-pointer"
+              className="p-2 rounded-xl bg-[var(--color-surface)] hover:bg-white/10 text-white/70 hover:text-white border border-[var(--color-ui-detail)] transition-all cursor-pointer"
             >
               <Video className="w-4 h-4" />
             </button>
@@ -433,9 +432,9 @@ const FriendRequestCard = React.memo<{
   const handleReject = useCallback(() => onReject(request.uid), [request.uid, onReject]);
 
   return (
-    <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] transform-gpu will-change-transform">
+    <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)] transform-gpu will-change-transform">
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-xl overflow-hidden bg-white/[0.05] border border-white/10">
+        <div className="w-11 h-11 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/10">
           {request.photoURL ? (
             <img src={request.photoURL} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
           ) : (
@@ -453,7 +452,7 @@ const FriendRequestCard = React.memo<{
         <button
           type="button"
           onClick={handleReject}
-          className="px-3 py-1.5 rounded-xl border border-white/10 bg-white/[0.04] text-white/60 hover:text-white text-xs font-semibold cursor-pointer"
+          className="px-3 py-1.5 rounded-xl border border-white/10 bg-[var(--color-surface)] text-white/60 hover:text-white text-xs font-semibold cursor-pointer"
         >
           Rejeitar
         </button>
@@ -595,7 +594,6 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
 
   return (
     <SystemPageShell
-      eyebrow="Social"
       title="Amigos"
       description="Conecte-se e jogue junto."
       actions={
@@ -613,7 +611,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
       {/* Top Sub-Tabs Navigation - Unified Frosted Obsidian Glass Dock */}
       <div className="w-full flex justify-center mb-7 z-10 relative">
         <div
-          className="flex items-center justify-between p-1.5 rounded-2xl border border-white/[0.08] shadow-2xl backdrop-blur-2xl w-full max-w-4xl"
+          className="flex items-center justify-between p-1.5 rounded-2xl border border-[var(--color-ui-detail)] shadow-2xl  w-full max-w-4xl"
           style={{
             background: "rgba(255, 255, 255, 0.02)",
             backdropFilter: "blur(20px) saturate(180%)",
@@ -643,8 +641,8 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                   }}
                   onMouseEnter={() => playSound?.("hover")}
                   className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer outline-none ${isActive
-                    ? "bg-white/[0.12] text-white shadow-sm border border-white/10"
-                    : "text-white/50 hover:text-white hover:bg-white/[0.05]"
+                    ? "bg-[var(--color-surface)] text-white shadow-sm border border-white/10"
+                    : "text-white/50 hover:text-white hover:bg-[#222222]"
                     }`}
                 >
                   <Icon size={16} animateOnHover className={isActive ? "text-white" : "text-white/40"} />
@@ -661,7 +659,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
 
           {/* Badge ONLINE */}
           <div className="pr-1.5">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] shadow-inner">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)] shadow-inner">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
               <span className="text-[11px] font-bold text-white/80 tracking-widest uppercase">
                 Online {onlineFriends.length}
@@ -678,12 +676,12 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
           <div className="lg:col-span-4 flex flex-col gap-5">
             {/* User Identity Card */}
             <div
-              className="rounded-2xl border border-white/[0.08] p-5 shadow-2xl glass-panel"
+              className="rounded-2xl border border-[var(--color-ui-detail)] p-5 shadow-2xl glass-panel"
             >
 
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white/[0.05] border border-white/15 shadow-md">
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden bg-[var(--color-surface)] border border-white/15 shadow-md">
                     {userProfile?.photoURL || user?.photoURL || discordAvatar ? (
                       <img
                         src={userProfile?.photoURL || user?.photoURL || discordAvatar}
@@ -715,7 +713,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
               </div>
 
               {/* Discord Connection Status */}
-              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-4">
+              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)] mb-4">
                 <div className="flex items-center gap-2">
                   <DiscordBrandIcon className="w-4 h-4 text-white/80" />
                   <span className="text-xs font-semibold text-white/90">Discord</span>
@@ -735,7 +733,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                 )}
               </div>
 
-              <div className="w-full h-px bg-white/[0.06] mb-4" />
+              <div className="w-full h-px bg-[var(--color-surface)] mb-4" />
 
               {/* 3 Metric Mini Counters */}
               <div className="grid grid-cols-3 gap-2 text-center">
@@ -745,7 +743,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                   </span>
                   <p className="text-base font-display font-bold text-white">{friends.length}</p>
                 </div>
-                <div className="space-y-0.5 border-x border-white/[0.06]">
+                <div className="space-y-0.5 border-x border-[var(--color-ui-detail)]">
                   <span className="text-[9.5px] font-body font-semibold uppercase tracking-wider text-white/40">
                     ONLINE
                   </span>
@@ -762,7 +760,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
 
             {/* Recent Social Activity (3 Blocks Max, strictly within last 7h) */}
             <div
-              className="rounded-2xl border border-white/[0.08] p-5 shadow-2xl glass-panel"
+              className="rounded-2xl border border-[var(--color-ui-detail)] p-5 shadow-2xl glass-panel"
             >
 
               <div className="flex items-center justify-between mb-4">
@@ -788,11 +786,11 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                       }}
                       className={`flex items-start gap-3 p-2.5 rounded-2xl transition-all cursor-pointer ${
                         friendProfileLoadingId === friend.id
-                          ? "bg-white/[0.08] border border-white/30 ring-1 ring-white/20"
-                          : "bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.12] hover:bg-white/[0.05]"
+                          ? "bg-[var(--color-surface)] border border-white/30 ring-1 ring-white/20"
+                          : "bg-[var(--color-surface)] border border-[var(--color-ui-detail)] hover:border-[var(--color-ui-detail)] hover:bg-[#222222]"
                       }`}
                     >
-                      <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-white/[0.05] border border-white/10 shrink-0">
+                      <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/10 shrink-0">
                         {friend.avatar ? (
                           <img src={friend.avatar} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -801,7 +799,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                           </div>
                         )}
                         {friendProfileLoadingId === friend.id && (
-                          <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/60  flex items-center justify-center">
                             <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
                           </div>
                         )}
@@ -836,7 +834,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
           {/* Right Column: Friends Search, Filter & Grid (8 Cols) */}
           <div className="lg:col-span-8 flex flex-col gap-6">
             {/* Search & Control Bar */}
-            <div className="relative z-[100] flex flex-wrap items-center gap-2.5 rounded-3xl border border-white/[0.08] p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] glass-panel">
+            <div className="relative z-[100] flex flex-wrap items-center gap-2.5 rounded-3xl border border-[var(--color-ui-detail)] p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] glass-panel">
               <div className="relative flex-1 min-w-[240px]">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
                 <input
@@ -846,7 +844,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                   value={friendSearch}
                   onChange={(e) => setFriendSearch(e.target.value)}
                   placeholder="Buscar amigos..."
-                  className="w-full flex-1 h-9 pl-9 pr-4 rounded-full bg-white/[0.05] border border-white/[0.08] text-[13px] font-body text-white placeholder:text-white/30 focus:outline-none focus:border-white/25 transition-all"
+                  className="w-full flex-1 h-9 pl-9 pr-4 rounded-full bg-[var(--color-surface)] border border-[var(--color-ui-detail)] text-[13px] font-body text-white placeholder:text-white/30 focus:outline-none focus:border-white/25 transition-all"
                 />
               </div>
 
@@ -865,7 +863,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                   />
                 </div>
 
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)]">
                   <button
                     type="button"
                     aria-label="Visualização em Grade"
@@ -941,7 +939,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                     <button
                       type="button"
                       onClick={() => scrollOffline("left")}
-                      className="p-1.5 rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/[0.08] text-white/60 hover:text-white transition-all cursor-pointer"
+                      className="p-1.5 rounded-xl bg-[var(--color-surface)] hover:bg-white/10 border border-[var(--color-ui-detail)] text-white/60 hover:text-white transition-all cursor-pointer"
                       title="Amigos anteriores"
                     >
                       <ChevronLeft className="w-4 h-4" />
@@ -949,7 +947,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                     <button
                       type="button"
                       onClick={() => scrollOffline("right")}
-                      className="p-1.5 rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/[0.08] text-white/60 hover:text-white transition-all cursor-pointer"
+                      className="p-1.5 rounded-xl bg-[var(--color-surface)] hover:bg-white/10 border border-[var(--color-ui-detail)] text-white/60 hover:text-white transition-all cursor-pointer"
                       title="Próximos amigos"
                     >
                       <ChevronRight className="w-4 h-4" />
@@ -984,10 +982,10 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
       {/* SubTab: CHATS */}
       {activeSubTab === "CHAT" && (
         <div
-          className="rounded-2xl border border-white/[0.08] p-6 shadow-2xl glass-panel"
+          className="rounded-2xl border border-[var(--color-ui-detail)] p-6 shadow-2xl glass-panel"
         >
 
-          <div className="mb-6 flex items-center justify-between border-b border-white/[0.06] pb-4">
+          <div className="mb-6 flex items-center justify-between border-b border-[var(--color-ui-detail)] pb-4">
             <div>
               <h2 className="text-lg font-display font-bold text-white">Conversas Recentes</h2>
               <p className="text-xs font-body text-white/40">Abra mensagens diretas e canais de amigos.</p>
@@ -1037,10 +1035,10 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
       {/* SubTab: SOLICITAÇÕES */}
       {activeSubTab === "SOLICITAÇÕES" && (
         <div
-          className="rounded-2xl border border-white/[0.08] p-6 shadow-2xl glass-panel"
+          className="rounded-2xl border border-[var(--color-ui-detail)] p-6 shadow-2xl glass-panel"
         >
 
-          <div className="mb-6 flex items-center justify-between border-b border-white/[0.06] pb-4">
+          <div className="mb-6 flex items-center justify-between border-b border-[var(--color-ui-detail)] pb-4">
             <div>
               <h2 className="text-lg font-display font-bold text-white">Solicitações de Amizade</h2>
               <p className="text-xs font-body text-white/40">Gerencie convites de novas conexões.</p>
@@ -1176,7 +1174,7 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({
                 value={query}
                 onChange={(e) => handleQueryChange(e.target.value)}
                 placeholder={t("addFriendSearchPlaceholder") || "Digite o nome ou email do usuário..."}
-                className="w-full h-12 pl-11 pr-11 rounded-2xl bg-white/[0.04] border border-white/[0.1] text-xs font-body text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 shadow-inner transition-all backdrop-blur-xl"
+                className="w-full h-12 pl-11 pr-11 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)] text-xs font-body text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 shadow-inner transition-all "
                 autoFocus
               />
               {query && (
@@ -1229,7 +1227,7 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({
                     void handleSearch(undefined, item);
                   }}
                   onMouseEnter={() => playSound?.("hover")}
-                  className="px-3 py-1 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-white/20 text-xs font-body text-white/70 hover:text-white transition-all cursor-pointer"
+                  className="px-3 py-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)] hover:border-white/20 text-xs font-body text-white/70 hover:text-white transition-all cursor-pointer"
                 >
                   {item}
                 </button>
@@ -1248,10 +1246,10 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({
             return (
               <div
                 key={user.uid}
-                className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/20 transition-all shadow-md backdrop-blur-xl"
+                className="flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] hover:border-white/20 transition-all shadow-md "
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 rounded-2xl overflow-hidden bg-[var(--color-surface)] border border-white/10 flex items-center justify-center shrink-0">
                     {user.photoURL ? (
                       <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
                     ) : (
@@ -1277,7 +1275,7 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({
                         playSound?.("select");
                         onViewProfile(user);
                       }}
-                      className="cursor-pointer px-4 py-2 rounded-xl bg-white/[0.06] border border-white/10 hover:bg-white/10 text-white font-body font-semibold text-xs transition-all active:scale-95"
+                      className="cursor-pointer px-4 py-2 rounded-xl bg-[var(--color-surface)] border border-white/10 hover:bg-white/10 text-white font-body font-semibold text-xs transition-all active:scale-95"
                     >
                       {t("addFriendViewProfile") || "Ver perfil"}
                     </button>
@@ -1313,7 +1311,7 @@ export const AddFriendModal: React.FC<AddFriendModalProps> = ({
           })}
 
           {hasSearched && results.length === 0 && !searching && (
-            <div className="text-center py-8 rounded-2xl bg-white/[0.02] border border-dashed border-white/[0.08]">
+            <div className="text-center py-8 rounded-2xl bg-[var(--color-surface)] border border-dashed border-[var(--color-ui-detail)]">
               <p className="text-xs font-body text-white/40">Nenhum jogador encontrado para essa busca.</p>
             </div>
           )}

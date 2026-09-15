@@ -299,7 +299,7 @@ const SuccessOverlay = ({ message }: { message: string }) => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="font-display font-semibold text-lg md:text-xl tracking-tight text-white"
+          className="font-display font-semibold text-lg md:text-xl tracking-tight bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent"
         >
           {message}
         </motion.p>
@@ -529,7 +529,7 @@ const LoginContent: React.FC = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
         className="absolute top-8 left-8 md:top-12 md:left-14 z-20 flex items-center gap-1.5"
       >
-        <span className="font-display font-semibold text-xl md:text-xl tracking-tight text-white">
+        <span className="font-display font-semibold text-xl md:text-xl tracking-tight bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent">
           Pherielium
         </span>
         <span className="text-[30px] text-white/40 font-mono align-top">®</span>
@@ -566,7 +566,7 @@ const LoginContent: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <h1 className="text-3xl md:text-4xl font-display font-semibold tracking-tight text-white">
+              <h1 className="text-3xl md:text-4xl font-display font-semibold tracking-tight bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent">
                 {mode === "login" ? "Entrar" : "Criar conta"}
               </h1>
               <p className="mt-1.5 text-xs md:text-sm font-body text-white/45 leading-relaxed">

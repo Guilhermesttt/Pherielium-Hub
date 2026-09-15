@@ -145,7 +145,7 @@ const PSNTierBadge = React.memo<{
     try {
       const audio = new Audio(tierLevelClickSound);
       audio.volume = 0.8;
-      audio.play().catch(() => {});
+      audio.play().catch(() => { });
     } catch {
       playSound?.("select");
     }
@@ -698,7 +698,7 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
       achievementPercents: getAchievementPercentsForGame(g),
     }));
     const agg = aggregateTrophyCounts(gamesForAggregate);
-    
+
     // Fonte unificada e canônica do ecossistema para o nível do jogador
     const playerLevel = user?.uid
       ? getUserUnifiedLevel(user.uid, games as any)
@@ -852,9 +852,21 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
       className="relative min-h-0 flex-1 overflow-y-auto thin-scrollbar px-10 pb-16 pt-8 text-white font-sans"
       style={{ contain: "layout paint", transform: "translate3d(0,0,0)", willChange: "transform" }}
     >
+      <div className="mx-auto mb-8 w-full max-w-5xl">
+        <h1
+          className="font-display font-black bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent leading-[1.08]"
+          style={{ fontSize: "clamp(28px, 4vw, 40px)", letterSpacing: "-0.02em" }}
+        >
+          Troféus
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm font-body leading-relaxed text-white/50">
+          Gerencie suas conquistas e monitore o seu progresso rumo à platina.
+        </p>
+      </div>
+
       <div className="mx-auto max-w-5xl space-y-7">
         {/* Banner PlayStation PSN Level */}
-        <section className="relative rounded-3xl border border-white/[0.08] p-6 sm:p-8 shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] overflow-hidden transform-gpu glass-panel">
+        <section className="relative rounded-3xl border border-white/[0.08] p-6 sm:p-8 shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] overflow-hidden bg-[#0B0B0B]">
 
           <div
             className="absolute -top-32 -left-32 w-80 h-80 rounded-full blur-[100px] opacity-25 pointer-events-none transition-all duration-700"
@@ -922,7 +934,7 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
             </div>
 
             {/* Progression Ladder (Escalada de Troféus por Patente) */}
-            <div className="flex flex-col gap-2.5 rounded-3xl border border-white/[0.08] p-3.5 sm:p-4 shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] glass-panel">
+            <div className="flex flex-col gap-2.5 rounded-3xl border border-white/[0.08] p-3.5 sm:p-4 shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] bg-[#0B0B0B]">
 
               <div className="flex items-center justify-between px-1 text-[10px] font-extrabold uppercase tracking-widest text-neutral-400">
                 <span>Escalada de Troféus</span>
@@ -973,7 +985,7 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
 
         {/* Controles de Filtros e Busca */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-1">
-          <div className="flex items-center gap-1.5 p-1 rounded-3xl border border-white/[0.08] overflow-x-auto shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] glass-panel">
+          <div className="flex items-center gap-1.5 p-1 rounded-3xl border border-white/[0.08] overflow-x-auto shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-[#0B0B0B]">
 
             {filterTabs.map((f) => (
               <motion.button
@@ -1011,7 +1023,7 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
               </button>
 
               {isSortOpen && (
-                <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-white/10 glass-panel shadow-xl overflow-hidden z-20">
+                <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-white/10 bg-[#0B0B0B] shadow-xl overflow-hidden z-20">
                   {sortOptions.map((opt) => (
                     <button
                       key={opt.value}
@@ -1050,7 +1062,7 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
               </button>
 
               {isPlataformFilterOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-white/10 glass-panel shadow-xl overflow-hidden z-20">
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-white/10 bg-[#0B0B0B] shadow-xl overflow-hidden z-20">
                   {platformOptions.map((opt) => (
                     <button
                       key={opt.value}
@@ -1140,3 +1152,4 @@ const TrophiesPage: React.FC<TrophiesPageProps> = ({ games, onOpenGame, playSoun
 };
 
 export default React.memo(TrophiesPage);
+

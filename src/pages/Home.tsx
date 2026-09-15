@@ -1,3 +1,4 @@
+import { Squircle } from "../components/ui/Squircle";
 import React, {
   useState,
   useEffect,
@@ -14,8 +15,7 @@ import {
   Gamepad2,
   X,
   Filter,
-  Trophy,
-  Info,
+  Trophy
 } from "lucide-react";
 
 import DynamicBackground from "../components/DynamicBackground";
@@ -2143,20 +2143,9 @@ const Home: React.FC = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.42, delay: 0.06, ease: [0.32, 0.72, 0, 1] }}
-          className="shrink-0 flex items-center justify-between px-10 pt-8 relative transform-gpu will-change-transform"
+          className="shrink-0 flex items-center justify-between pl-4 pr-10 pt-8 relative will-change-transform"
         >
-          <div className="flex items-center gap-6">
-            <InteractiveBreadcrumb
-              activeCategory={activeCategory}
-              categoryLabel={
-                activeCategory === "SETTINGS"
-                  ? t("settings")
-                  : CATEGORIES.find((c) => c.id === activeCategory)?.label
-              }
-              onSelectCategory={selectCategory}
-              playSound={playSound}
-            />
-
+          <div className="flex items-center gap-2">
             {/* Clean Pill Search Bar - Only in Menu & Platform views */}
             {!["SETTINGS", "FRIENDS", "MODS", "RADAR", "PROFILE", "TROPHIES"].includes(activeCategory) && (
               <div className="relative flex items-center gap-2">
@@ -2164,11 +2153,10 @@ const Home: React.FC = () => {
                   initial={false}
                   animate={{
                     width: searchOpen || searchTerm ? 224 : 36,
-                    backgroundColor: searchOpen || searchTerm ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.02)",
                     borderColor: searchOpen || searchTerm ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.08)",
                   }}
                   transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
-                  className="relative flex items-center h-9 rounded-full overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] border border-transparent backdrop-blur-md"
+                  className="relative flex items-center h-9 rounded-full bg-[#333333] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] border border-transparent backdrop-blur-md"
                 >
                   <button
                     onClick={() => {
@@ -2178,12 +2166,11 @@ const Home: React.FC = () => {
                         playSound("select");
                       }
                     }}
-                    className={`absolute left-0 w-9 h-9 flex items-center justify-center transition-colors z-10 ${
-                      searchOpen || searchTerm ? "pointer-events-none" : "hover:bg-white/10 cursor-pointer"
-                    }`}
+                    className={`group absolute left-0 w-9 h-9 flex items-center justify-center transition-colors z-10 ${searchOpen || searchTerm ? "pointer-events-none" : "hover:bg-white/[0.07] cursor-pointer"
+                      }`}
                     aria-label="Abrir pesquisa"
                   >
-                    <Search className={`w-3.5 h-3.5 transition-colors ${searchOpen || searchTerm ? "text-white/40" : "text-white/80"}`} />
+                    <Search className={`w-3.5 h-3.5 transition-colors ${searchOpen || searchTerm ? "text-white/40" : "text-white/80 group-hover:text-text-main"}`} />
                   </button>
                   <input
                     ref={searchInputRef}
@@ -2197,9 +2184,8 @@ const Home: React.FC = () => {
                       if (!searchTerm) setSearchOpen(false);
                     }}
                     placeholder={t("searchPlaceholder") || "Pesquisar jogo... (S)"}
-                    className={`absolute left-0 top-0 h-full w-full pl-9 pr-8 text-xs text-white placeholder:text-white/30 bg-transparent outline-none transition-opacity duration-300 ${
-                      searchOpen || searchTerm ? "opacity-100" : "opacity-0 pointer-events-none"
-                    }`}
+                    className={`absolute left-0 top-0 h-full w-full pl-9 pr-8 text-xs text-white placeholder:text-white/30 bg-transparent outline-none transition-opacity duration-300 ${searchOpen || searchTerm ? "opacity-100" : "opacity-0 pointer-events-none"
+                      }`}
                   />
                   {searchTerm && (
                     <button
@@ -2213,7 +2199,7 @@ const Home: React.FC = () => {
                       }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-all z-10"
                     >
-                      <X className="w-3 h-3 text-white/40 hover:text-white" />
+                      <X className="w-3 h-3 text-white/40 hover:text-text-main" />
                     </button>
                   )}
                 </motion.div>
@@ -2224,8 +2210,8 @@ const Home: React.FC = () => {
                     playSound("select");
                   }}
                   className={`flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-all ${libraryFilters.launchers.length > 0 || libraryFilters.favoritesOnly || libraryFilters.withAchievements
-                    ? "border-white/20 bg-white/10 text-white"
-                    : "border-white/[0.08] bg-white/[0.04] text-white/40 hover:bg-white/[0.07] hover:text-white/60"
+                    ? "border-white/20 bg-[#333333] text-white"
+                    : "bg-[#333333] border border-white/[0.1] shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150 text-white/40 hover:bg-white/[0.07] hover:text-text-main"
                     }`}
                 >
                   <Filter className="h-3.5 w-3.5" />
@@ -2236,16 +2222,18 @@ const Home: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div
-              className="flex items-center gap-1 p-1 rounded-2xl border border-white/[0.08]"
+            <Squircle
+              cornerRadius={18}
+              cornerSmoothing={0.65}
+              className="flex items-center gap-1 p-2 rounded-2xl bg-[#333333]"
               style={{
-                background: "rgba(28, 28, 30, 0.75)",
-                backdropFilter: "blur(40px) saturate(180%)",
-                WebkitBackdropFilter: "blur(40px) saturate(180%)",
-                boxShadow: "0 16px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12)",
+                boxShadow: "0 16px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
               }}
             >
-              <button
+              <Squircle
+                as="button"
+                cornerRadius={10}
+                cornerSmoothing={0.65}
                 type="button"
                 aria-label={t("new") || "Adicionar novo jogo"}
                 onClick={() => {
@@ -2253,19 +2241,28 @@ const Home: React.FC = () => {
                   playSound("showModal");
                 }}
                 onMouseEnter={() => playSound("hover")}
-                className="cursor-pointer flex items-center gap-2 px-3.5 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/10 active:scale-95 group"
+                className="cursor-pointer flex items-center gap-2 px-3.5 py-1.5 rounded-lg transition-all duration-200 hover:scale-105 hover:bg-white/10 active:scale-95 group"
               >
-                <Plus className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
-                <span className="text-xs font-semibold text-white/70 group-hover:text-white transition-colors">
+                <Plus className="w-4 h-4 text-[#D3D3D3] group-hover:text-white transition-colors" />
+                <span className="text-xs font-semibold text-[#D3D3D3] group-hover:text-white transition-colors">
                   {t("new")}
                 </span>
-              </button>
+              </Squircle>
 
-              <div className="w-px h-4 bg-white/10" />
+              <div
+                className="w-px h-5 self-center mx-1.5"
+                style={{
+                  background:
+                    "linear-gradient(to bottom, transparent, rgba(211,211,211,0.18) 25%, rgba(211,211,211,0.18) 75%, transparent)",
+                }}
+              />
 
               {/* STEAM PILL */}
               {resolvedSteamId ? (
-                <button
+                <Squircle
+                  as="button"
+                  cornerRadius={12}
+                  cornerSmoothing={0.65}
                   type="button"
                   aria-label="Sincronizar jogos da Steam"
                   onClick={handleSyncSteam}
@@ -2279,38 +2276,52 @@ const Home: React.FC = () => {
                   ) : (
                     <>
                       <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.75)] group-hover/steam:scale-110 transition-all" />
-                      <span className="text-xs font-medium text-white/80 group-hover/steam:text-white transition-colors">
+                      <span className="text-xs font-medium text-[#D3D3D3] group-hover/steam:text-white transition-colors">
                         Steam
                       </span>
-                      <RefreshCw className="w-3 h-3 text-white/40 group-hover/steam:text-white/80 transition-colors" />
+                      <RefreshCw className="w-3 h-3 text-[#D3D3D3]/60 group-hover/steam:text-white transition-colors" />
                     </>
                   )}
-                </button>
+                </Squircle>
               ) : (
-                <button
+                <Squircle
+                  as="button"
+                  cornerRadius={12}
+                  cornerSmoothing={0.65}
                   type="button"
                   aria-label={t("connectSteam") || "Conectar Steam"}
                   onClick={connectSteam}
                   onMouseEnter={() => playSound("hover")}
                   disabled={steamConnecting}
-                  className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.08] active:scale-95 disabled:opacity-70 group"
+                  className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.06] active:scale-95 disabled:opacity-70 group"
                 >
                   {steamConnecting ? (
                     <LoadingState label={t("connecting") || "Conectando..."} variant="Dots" size="sm" showTimer={false} />
                   ) : (
                     <>
-                      <div className="w-2 h-2 rounded-full bg-white/30" />
-                      <span className="text-xs font-medium text-white/60 group-hover:text-white transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-[#D3D3D3]/40" />
+                      <span className="text-xs font-medium text-[#D3D3D3] group-hover:text-white transition-colors">
                         {t("connectSteam")}
                       </span>
                     </>
                   )}
-                </button>
+                </Squircle>
               )}
+
+              <div
+                className="w-px h-5 self-center mx-1.5"
+                style={{
+                  background:
+                    "linear-gradient(to bottom, transparent, rgba(211,211,211,0.18) 25%, rgba(211,211,211,0.18) 75%, transparent)",
+                }}
+              />
 
               {/* EPIC GAMES PILL */}
               {epicAuthConnected ? (
-                <button
+                <Squircle
+                  as="button"
+                  cornerRadius={12}
+                  cornerSmoothing={0.65}
                   type="button"
                   aria-label="Sincronizar jogos da Epic Games"
                   onClick={async () => {
@@ -2327,15 +2338,18 @@ const Home: React.FC = () => {
                   ) : (
                     <>
                       <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.75)] group-hover/epic:scale-110 transition-all" />
-                      <span className="text-xs font-medium text-white/80 group-hover/epic:text-white transition-colors">
+                      <span className="text-xs font-medium text-[#D3D3D3] group-hover/epic:text-white transition-colors">
                         Epic
                       </span>
-                      <RefreshCw className="w-3 h-3 text-white/40 group-hover/epic:text-white/80 transition-colors" />
+                      <RefreshCw className="w-3 h-3 text-[#D3D3D3]/60 group-hover/epic:text-white transition-colors" />
                     </>
                   )}
-                </button>
+                </Squircle>
               ) : (
-                <button
+                <Squircle
+                  as="button"
+                  cornerRadius={12}
+                  cornerSmoothing={0.65}
                   type="button"
                   aria-label={t("connectEpic") || "Conectar Epic Games"}
                   onClick={() => setEpicConnectModalOpen(true)}
@@ -2347,16 +2361,15 @@ const Home: React.FC = () => {
                     <LoadingState label={t("connecting") || "Conectando..."} variant="Dots" size="sm" showTimer={false} />
                   ) : (
                     <>
-                      <div className="w-2 h-2 rounded-full bg-white/30" />
-                      <span className="text-xs font-medium text-white/60 group-hover:text-white transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-[#D3D3D3]/40" />
+                      <span className="text-xs font-medium text-[#D3D3D3] group-hover:text-white transition-colors">
                         {t("connectEpic") || "Conectar Epic"}
                       </span>
                     </>
                   )}
-                </button>
+                </Squircle>
               )}
-            </div>
-
+            </Squircle>
             <ProfileDropdown
               userDisplay={userDisplay}
               email={user?.email || undefined}
@@ -2378,6 +2391,7 @@ const Home: React.FC = () => {
               }}
             />
           </div>
+
         </motion.div>
         <div className="flex-1 flex flex-col justify-end min-h-0 hub-60fps will-change-transform" style={{ contain: "layout paint" }}>
           <AnimatePresence mode="wait" custom={activeCategory}>
@@ -2389,440 +2403,442 @@ const Home: React.FC = () => {
               transition={{ type: "spring", bounce: 0, duration: 0.4 }}
               className="flex-1 flex flex-col justify-end min-h-0 w-full"
             >
-          {activeCategory === "SETTINGS" ? (
-            <SettingsPageV2
-              language={launcherLanguage}
-              effectsVolume={effectsVolume}
-              achievementVolume={achievementVolume}
-              notificationVolume={notificationVolume}
-              musicVolume={musicVolume}
-              soundTheme={soundTheme}
-              visualTheme={visualTheme}
-              languageOptions={LANGUAGE_OPTIONS}
-              appThemeOptions={APP_THEME_OPTIONS}
-              SteamIcon={SteamBrandIcon}
-              DiscordIcon={DiscordBrandIcon}
-              EpicIcon={EpicBrandIcon}
-              onLanguageChange={(next: any) => {
-                setLauncherLanguage(next);
-                playSound("select");
-              }}
-              onEffectsVolumeChange={(next: number) => {
-                setEffectsVolume(next);
-              }}
-              onAchievementVolumeChange={setAchievementVolume}
-              onNotificationVolumeChange={setNotificationVolume}
-              onMusicVolumeChange={setMusicVolume}
-              onSoundThemeChange={(next: any) => {
-                setSoundTheme(next);
-                playSound("select");
-              }}
-              onVisualThemeChange={(next: any) => {
-                setVisualTheme(next);
-                playSound("select");
-              }}
-              onPreviewSound={() => playSound("select")}
-              onTestNotificationSound={() => playSound("notification")}
-              t={t}
-              steamConnected={Boolean(resolvedSteamId)}
-              discordConnected={Boolean(resolvedDiscordId)}
-              discordUsername={userProfile?.discordUsername}
-              discordAvatar={userProfile?.discordAvatar}
-              steamConnecting={steamConnecting}
-              discordConnecting={discordConnecting}
-              epicConnected={epicAuthConnected}
-              epicDisplayName={epicDisplayName}
-              epicConnecting={epicSyncing}
-              steamDisconnecting={steamDisconnecting}
-              discordDisconnecting={discordDisconnecting}
-              epicDisconnecting={epicDisconnecting}
-              onConnectSteam={connectSteam}
-              onConnectDiscord={connectDiscord}
-              onConnectEpic={() => setEpicConnectModalOpen(true)}
-              onDisconnectSteam={() => {
-                playSound("back");
-                setDisconnectSteamModalOpen(true);
-              }}
-              onDisconnectDiscord={() => {
-                playSound("back");
-                setDisconnectDiscordModalOpen(true);
-              }}
-              onDisconnectEpic={() => {
-                playSound("back");
-                setDisconnectEpicModalOpen(true);
-              }}
-              onTestOverlayWelcome={() => {
-                playSound("select");
-                void window.electronAPI?.testOverlayWelcome();
-              }}
-              onTestOverlayAchievement={(tier) => {
-                playSound("select");
-                void window.electronAPI?.testOverlayAchievement(tier);
-              }}
-              initialTab={settingsTab}
-              onTabChange={handleSettingsTabChange}
-              onClose={() => {
-                playSound("back");
-                selectCategory("ALL");
-              }}
-              platformOperations={platformOperations}
-            />
-          ) : activeCategory === "FRIENDS" ? (
-            <FriendsPage
-              t={t}
-              language={launcherLanguage}
-              discordConnected={Boolean(resolvedDiscordId)}
-              userDisplay={userDisplay}
-              discordUsername={userProfile?.discordUsername}
-              discordAvatar={userProfile?.discordAvatar}
-              DiscordIcon={DiscordBrandIcon}
-              friends={socialFriends}
-              unreadMessagesByFriend={unreadMessagesByFriend}
-              incomingRequests={incomingFriendRequests}
-              currentPresenceGame={currentPresenceGame}
-              onConnectDiscord={connectDiscord}
-              onRemoveFriend={(friend) => {
-                playSound("back");
-                setPendingFriendRemoval(friend);
-              }}
-              onViewFriendProfile={handleViewFriendProfile}
-              friendProfileLoadingId={friendProfileLoadingId}
-              onAcceptRequest={acceptFriendRequest}
-              onRejectRequest={rejectFriendRequest}
-              onAddFriendClick={() => {
-                playSound("select");
-                setIsAddFriendModalOpen(true);
-              }}
-              onOpenChat={(friend) => {
-                playSound("select");
-                setActiveChatFriend(friend);
-              }}
-              onStartVoiceCall={(friend, withVideo) => void startCall(friend, withVideo)}
-              onStartTestCall={startTestCall}
-              playSound={playSound}
-            />
-          ) : activeCategory === "FEED" ? (
-            <React.Suspense fallback={
-              <div className="flex flex-1 items-center justify-center">
-                <LoadingState label="Carregando Radar Gamer" variant="Drive" />
-              </div>
-            }>
-              <GamingRadarPage />
-            </React.Suspense>
-          ) : activeCategory === "MODS" ? (
-            <React.Suspense fallback={
-              <div className="flex flex-1 items-center justify-center">
-                <LoadingState label="Carregando Gerenciador de Mods" variant="Drive" />
-              </div>
-            }>
-              <ModsPage uid={user?.uid || "local"} games={games} />
-            </React.Suspense>
-          ) : activeCategory === "PROFILE" ? (
-            <React.Suspense fallback={
-              <div className="flex flex-1 items-center justify-center">
-                <LoadingState label="Carregando Perfil" variant="Drive" />
-              </div>
-            }>
-              <UserProfilePage
-                userProfile={userProfile}
-                user={user}
-                userId={user?.uid ?? null}
-                games={games}
-                onOpenGame={openDetails}
-                onProfileUpdated={refreshProfile}
-                playSound={playSound as any}
-                language={launcherLanguage}
-              />
-            </React.Suspense>
-          ) : activeCategory === "TROPHIES" ? (
-            <React.Suspense fallback={
-              <div className="flex flex-1 items-center justify-center">
-                <LoadingState label="Carregando Troféus" variant="Drive" />
-              </div>
-            }>
-              <TrophiesPage
-                games={games}
-                onOpenGame={openDetails}
-                playSound={playSound}
-              />
-            </React.Suspense>
-          ) : isLoading ? (
-            <div className="flex-1 flex flex-col justify-between w-full h-full">
-              <LoadingSkeleton />
-            </div>
-          ) : (activeCategory === "ALL" && isAnySyncing && displayGames.length === 0) ? (
-            <div className="flex-1 flex flex-col justify-between w-full h-full">
-              {steamSyncing ? (
-                <PlatformLibrarySkeleton
-                  platform="steam"
-                  phase={(platformOperations?.steam as { status: string; phase?: string })?.phase || "reading-library"}
-                  completed={(platformOperations?.steam as { status: string; completed?: number })?.completed}
-                  total={(platformOperations?.steam as { status: string; total?: number })?.total}
-                />
-              ) : epicSyncing ? (
-                <PlatformLibrarySkeleton
-                  platform="epic"
-                  phase={(platformOperations?.epic as { status: string; phase?: string })?.phase || "reading-library"}
-                  completed={(platformOperations?.epic as { status: string; completed?: number })?.completed}
-                  total={(platformOperations?.epic as { status: string; total?: number })?.total}
-                />
-              ) : (
-                <LoadingSkeleton />
-              )}
-            </div>
-          ) : (activeCategory === "STEAM" && steamSyncing) ? (
-            <div className="flex-1 flex flex-col justify-between w-full h-full">
-              <PlatformLibrarySkeleton
-                platform="steam"
-                phase={(platformOperations?.steam as { status: string; phase?: string })?.phase || "reading-library"}
-                completed={(platformOperations?.steam as { status: string; completed?: number })?.completed}
-                total={(platformOperations?.steam as { status: string; total?: number })?.total}
-              />
-            </div>
-          ) : (activeCategory === "EPIC" && epicSyncing) ? (
-            <div className="flex-1 flex flex-col justify-between w-full h-full">
-              <PlatformLibrarySkeleton
-                platform="epic"
-                phase={(platformOperations?.epic as { status: string; phase?: string })?.phase || "reading-library"}
-                completed={(platformOperations?.epic as { status: string; completed?: number })?.completed}
-                total={(platformOperations?.epic as { status: string; total?: number })?.total}
-              />
-            </div>
-          ) : displayGames.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center px-10 py-6 overflow-y-auto thin-scrollbar">
-              {onboardingCompleted ? (
-                <EmptyState
-                  searchTerm={searchTerm}
-                  activeCategory={activeCategory}
-                  onAddGame={() => openAddGameModal(categoryToLauncherType(activeCategory))}
-                  onConnect={connectSteam}
-                  onSyncSteam={handleSyncSteam}
+              {activeCategory === "SETTINGS" ? (
+                <SettingsPageV2
+                  language={launcherLanguage}
+                  effectsVolume={effectsVolume}
+                  achievementVolume={achievementVolume}
+                  notificationVolume={notificationVolume}
+                  musicVolume={musicVolume}
+                  soundTheme={soundTheme}
+                  visualTheme={visualTheme}
+                  languageOptions={LANGUAGE_OPTIONS}
+                  appThemeOptions={APP_THEME_OPTIONS}
+                  SteamIcon={SteamBrandIcon}
+                  DiscordIcon={DiscordBrandIcon}
+                  EpicIcon={EpicBrandIcon}
+                  onLanguageChange={(next: any) => {
+                    setLauncherLanguage(next);
+                    playSound("select");
+                  }}
+                  onEffectsVolumeChange={(next: number) => {
+                    setEffectsVolume(next);
+                  }}
+                  onAchievementVolumeChange={setAchievementVolume}
+                  onNotificationVolumeChange={setNotificationVolume}
+                  onMusicVolumeChange={setMusicVolume}
+                  onSoundThemeChange={(next: any) => {
+                    setSoundTheme(next);
+                    playSound("select");
+                  }}
+                  onVisualThemeChange={(next: any) => {
+                    setVisualTheme(next);
+                    playSound("select");
+                  }}
+                  onPreviewSound={() => playSound("select")}
+                  onTestNotificationSound={() => playSound("notification")}
+                  t={t}
                   steamConnected={Boolean(resolvedSteamId)}
-                  isSyncingSteam={steamSyncing}
-                  isConnectingSteam={steamConnecting}
-                  onConnectEpic={() => setEpicConnectModalOpen(true)}
-                  onSyncEpic={async () => {
-                    await handleSyncEpic();
-                    await checkEpicStatus();
-                  }}
+                  discordConnected={Boolean(resolvedDiscordId)}
+                  discordUsername={userProfile?.discordUsername}
+                  discordAvatar={userProfile?.discordAvatar}
+                  steamConnecting={steamConnecting}
+                  discordConnecting={discordConnecting}
                   epicConnected={epicAuthConnected}
-                  isSyncingEpic={epicSyncing}
-                  isConnectingEpic={epicConnecting}
-                />
-              ) : (
-                <EmptyLibraryOnboarding
+                  epicDisplayName={epicDisplayName}
+                  epicConnecting={epicSyncing}
+                  steamDisconnecting={steamDisconnecting}
+                  discordDisconnecting={discordDisconnecting}
+                  epicDisconnecting={epicDisconnecting}
                   onConnectSteam={connectSteam}
-                  onOpenAddGame={() => openAddGameModal(categoryToLauncherType(activeCategory))}
-                  onComplete={async () => {
-                    if (!user?.uid) return;
-                    localStorage.setItem(
-                      `checkpoint_onboarding_${user.uid}`,
-                      "1",
-                    );
-                    setOnboardingCompleted(true);
-                    await supabase.from("profiles").update({
-                      onboarding_completed_at: new Date().toISOString(),
-                    }).eq("uid", user.uid);
-                    await refreshProfile();
+                  onConnectDiscord={connectDiscord}
+                  onConnectEpic={() => setEpicConnectModalOpen(true)}
+                  onDisconnectSteam={() => {
+                    playSound("back");
+                    setDisconnectSteamModalOpen(true);
                   }}
+                  onDisconnectDiscord={() => {
+                    playSound("back");
+                    setDisconnectDiscordModalOpen(true);
+                  }}
+                  onDisconnectEpic={() => {
+                    playSound("back");
+                    setDisconnectEpicModalOpen(true);
+                  }}
+                  onTestOverlayWelcome={() => {
+                    playSound("select");
+                    void window.electronAPI?.testOverlayWelcome();
+                  }}
+                  onTestOverlayAchievement={(tier) => {
+                    playSound("select");
+                    void window.electronAPI?.testOverlayAchievement(tier);
+                  }}
+                  initialTab={settingsTab}
+                  onTabChange={handleSettingsTabChange}
+                  onClose={() => {
+                    playSound("back");
+                    selectCategory("ALL");
+                  }}
+                  platformOperations={platformOperations}
+                />
+              ) : activeCategory === "FRIENDS" ? (
+                <FriendsPage
+                  t={t}
+                  language={launcherLanguage}
+                  discordConnected={Boolean(resolvedDiscordId)}
+                  userDisplay={userDisplay}
+                  discordUsername={userProfile?.discordUsername}
+                  discordAvatar={userProfile?.discordAvatar}
+                  DiscordIcon={DiscordBrandIcon}
+                  friends={socialFriends}
+                  unreadMessagesByFriend={unreadMessagesByFriend}
+                  incomingRequests={incomingFriendRequests}
+                  currentPresenceGame={currentPresenceGame}
+                  onConnectDiscord={connectDiscord}
+                  onRemoveFriend={(friend) => {
+                    playSound("back");
+                    setPendingFriendRemoval(friend);
+                  }}
+                  onViewFriendProfile={handleViewFriendProfile}
+                  friendProfileLoadingId={friendProfileLoadingId}
+                  onAcceptRequest={acceptFriendRequest}
+                  onRejectRequest={rejectFriendRequest}
+                  onAddFriendClick={() => {
+                    playSound("select");
+                    setIsAddFriendModalOpen(true);
+                  }}
+                  onOpenChat={(friend) => {
+                    playSound("select");
+                    setActiveChatFriend(friend);
+                  }}
+                  onStartVoiceCall={(friend, withVideo) => void startCall(friend, withVideo)}
+                  onStartTestCall={startTestCall}
                   playSound={playSound}
                 />
-              )}
-            </div>
-          ) : (
-            <>
-              {/* Dashboard: Continuar Jogando + Favoritos */}
-              {activeCategory === "ALL" && displayGames.length > 0 && (
-                <DashboardContinuePlaying
-                  continuePlayingGames={continuePlayingGames}
-                  onPlayGame={(game) => {
-                    openDetails(game);
-                    playSound("select");
-                  }}
-                  onOpenDetails={(game) => {
-                    openDetails(game);
-                    playSound("select");
-                  }}
-                  playSound={playSound}
-                />
-              )}
-
-              <motion.div
-                className="px-10 pb-4 shrink-0 transform-gpu will-change-transform"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.35, delay: 0.08, ease: [0.32, 0.72, 0, 1] }}
-              >
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={`hero-${currentGame?.id}`}
-                    initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
-                    transition={{ duration: 0.26, ease: [0.32, 0.72, 0, 1] }}
-                    className="flex items-end justify-between gap-8 transform-gpu"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <h1
-                        className="tracking-tight font-display font-black text-3xl md:text-5xl text-white leading-[1.08] drop-shadow-[0_8px_32px_rgba(0,0,0,0.85)] line-clamp-1"
-                        style={{
-                          maxWidth: "64vw",
-                        }}
-                      >
-                        {currentGame?.title}
-                      </h1>
-                      <div className="mt-4 flex items-center gap-2.5 flex-wrap font-body">
-                        {(currentGame?.launcherType === "steam" || currentGame?.source === "steam") ? (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
-                            <SteamBrandIcon className="w-3.5 h-3.5 text-white" /> Steam
-                          </span>
-                        ) : (currentGame?.launcherType === "epic" || currentGame?.source === "epic") ? (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
-                            <EpicBrandIcon className="w-3.5 h-3.5 text-white" /> Epic Games
-                          </span>
-                        ) : currentGame?.launcherType === "ea" ? (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
-                            <EaBrandIcon className="w-3.5 h-3.5 text-white" /> EA App
-                          </span>
-                        ) : currentGame?.launcherType === "ubisoft" ? (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
-                            <UbisoftBrandIcon className="w-3.5 h-3.5 text-white" /> Ubisoft
-                          </span>
-                        ) : currentGame?.launcherType === "gog" ? (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
-                            <GogBrandIcon className="w-3.5 h-3.5 text-white" /> GOG
-                          </span>
-                        ) : currentGame?.launcherType === "xbox" ? (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
-                            <XboxBrandIcon className="w-3.5 h-3.5 text-white" /> Xbox
-                          </span>
-                        ) : currentGame?.launcherType === "riot" ? (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
-                            <RiotBrandIcon className="w-3.5 h-3.5 text-white" /> Riot Games
-                          </span>
-                        ) : currentGame?.launcherType === "battlenet" ? (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
-                            <BattlenetBrandIcon className="w-3.5 h-3.5 text-white" /> Battle.net
-                          </span>
-                        ) : currentGame?.launcherType === "rockstar" ? (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
-                            <RockstarBrandIcon className="w-3.5 h-3.5 text-white" /> Rockstar
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/80 border border-white/[0.12] px-3 py-1 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md">
-                            <Gamepad2 className="w-3.5 h-3.5 text-white" /> Executável Local
-                          </span>
-                        )}
-
-                        {currentGame && (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-[#12141c]/70 border border-white/[0.08] px-3 py-1 text-xs font-medium text-white/60 backdrop-blur-md">
-                            {formatPlayedHours(getGamePlayedHours(currentGame))}h jogadas
-                          </span>
-                        )}
-
-                        {currentGame?.isFavorite && (
-                          <span className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-400/25 px-3 py-1 text-xs font-semibold text-amber-300 shadow-sm backdrop-blur-md">
-                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> Favorito
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                      <ShinyButton
-                        onClick={() => currentGame && openDetails(currentGame)}
-                        onMouseEnter={() => playSound("hover")}
-                        className="!shrink-0 !flex !items-center gap-2 shadow-[0_4px_20px_rgba(255,255,255,0.12)] !px-6 !py-3 !text-sm cursor-pointer"
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          className="w-4 h-4 fill-white text-white shrink-0 transition-transform duration-300 group-hover:scale-110"
-                        >
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                        <span>{t("playNow")}</span>
-                      </ShinyButton>
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
-              </motion.div>
-
-              <div className="shrink-0 pb-8 hub-scroll will-change-transform transform-gpu">
-
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={activeCategory}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    transition={{ duration: 0.26, ease: [0.32, 0.72, 0, 1] }}
-                  >
-                    <GameRow
-                      games={displayGames}
-                      selectedIndex={selectedIndex}
-                      onSelect={onSelectHandler}
-                      onContextMenu={handleMenuAction}
+              ) : activeCategory === "FEED" ? (
+                <React.Suspense fallback={
+                  <div className="flex flex-1 items-center justify-center">
+                    <LoadingState label="Carregando Radar Gamer" variant="Drive" />
+                  </div>
+                }>
+                  <GamingRadarPage />
+                </React.Suspense>
+              ) : activeCategory === "MODS" ? (
+                <React.Suspense fallback={
+                  <div className="flex flex-1 items-center justify-center">
+                    <LoadingState label="Carregando Gerenciador de Mods" variant="Drive" />
+                  </div>
+                }>
+                  <ModsPage uid={user?.uid || "local"} games={games} />
+                </React.Suspense>
+              ) : activeCategory === "PROFILE" ? (
+                <React.Suspense fallback={
+                  <div className="flex flex-1 items-center justify-center">
+                    <LoadingState label="Carregando Perfil" variant="Drive" />
+                  </div>
+                }>
+                  <UserProfilePage
+                    userProfile={userProfile}
+                    user={user}
+                    userId={user?.uid ?? null}
+                    games={games}
+                    onOpenGame={openDetails}
+                    onProfileUpdated={refreshProfile}
+                    playSound={playSound as any}
+                    language={launcherLanguage}
+                  />
+                </React.Suspense>
+              ) : activeCategory === "TROPHIES" ? (
+                <React.Suspense fallback={
+                  <div className="flex flex-1 items-center justify-center">
+                    <LoadingState label="Carregando Troféus" variant="Drive" />
+                  </div>
+                }>
+                  <TrophiesPage
+                    games={games}
+                    onOpenGame={openDetails}
+                    playSound={playSound}
+                  />
+                </React.Suspense>
+              ) : isLoading ? (
+                <div className="flex-1 flex flex-col justify-between w-full h-full">
+                  <LoadingSkeleton />
+                </div>
+              ) : (activeCategory === "ALL" && isAnySyncing && displayGames.length === 0) ? (
+                <div className="flex-1 flex flex-col justify-between w-full h-full">
+                  {steamSyncing ? (
+                    <PlatformLibrarySkeleton
+                      platform="steam"
+                      phase={(platformOperations?.steam as { status: string; phase?: string })?.phase || "reading-library"}
+                      completed={(platformOperations?.steam as { status: string; completed?: number })?.completed}
+                      total={(platformOperations?.steam as { status: string; total?: number })?.total}
+                    />
+                  ) : epicSyncing ? (
+                    <PlatformLibrarySkeleton
+                      platform="epic"
+                      phase={(platformOperations?.epic as { status: string; phase?: string })?.phase || "reading-library"}
+                      completed={(platformOperations?.epic as { status: string; completed?: number })?.completed}
+                      total={(platformOperations?.epic as { status: string; total?: number })?.total}
+                    />
+                  ) : (
+                    <LoadingSkeleton />
+                  )}
+                </div>
+              ) : (activeCategory === "STEAM" && steamSyncing) ? (
+                <div className="flex-1 flex flex-col justify-between w-full h-full">
+                  <PlatformLibrarySkeleton
+                    platform="steam"
+                    phase={(platformOperations?.steam as { status: string; phase?: string })?.phase || "reading-library"}
+                    completed={(platformOperations?.steam as { status: string; completed?: number })?.completed}
+                    total={(platformOperations?.steam as { status: string; total?: number })?.total}
+                  />
+                </div>
+              ) : (activeCategory === "EPIC" && epicSyncing) ? (
+                <div className="flex-1 flex flex-col justify-between w-full h-full">
+                  <PlatformLibrarySkeleton
+                    platform="epic"
+                    phase={(platformOperations?.epic as { status: string; phase?: string })?.phase || "reading-library"}
+                    completed={(platformOperations?.epic as { status: string; completed?: number })?.completed}
+                    total={(platformOperations?.epic as { status: string; total?: number })?.total}
+                  />
+                </div>
+              ) : displayGames.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center px-10 py-6 overflow-y-auto thin-scrollbar">
+                  {onboardingCompleted ? (
+                    <EmptyState
+                      searchTerm={searchTerm}
+                      activeCategory={activeCategory}
+                      onAddGame={() => openAddGameModal(categoryToLauncherType(activeCategory))}
+                      onConnect={connectSteam}
+                      onSyncSteam={handleSyncSteam}
+                      steamConnected={Boolean(resolvedSteamId)}
+                      isSyncingSteam={steamSyncing}
+                      isConnectingSteam={steamConnecting}
+                      onConnectEpic={() => setEpicConnectModalOpen(true)}
+                      onSyncEpic={async () => {
+                        await handleSyncEpic();
+                        await checkEpicStatus();
+                      }}
+                      epicConnected={epicAuthConnected}
+                      isSyncingEpic={epicSyncing}
+                      isConnectingEpic={epicConnecting}
+                    />
+                  ) : (
+                    <EmptyLibraryOnboarding
+                      onConnectSteam={connectSteam}
+                      onOpenAddGame={() => openAddGameModal(categoryToLauncherType(activeCategory))}
+                      onComplete={async () => {
+                        if (!user?.uid) return;
+                        localStorage.setItem(
+                          `checkpoint_onboarding_${user.uid}`,
+                          "1",
+                        );
+                        setOnboardingCompleted(true);
+                        await supabase.from("profiles").update({
+                          onboarding_completed_at: new Date().toISOString(),
+                        }).eq("uid", user.uid);
+                        await refreshProfile();
+                      }}
                       playSound={playSound}
                     />
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Dashboard: Continuar Jogando + Favoritos */}
+                  {activeCategory === "ALL" && displayGames.length > 0 && (
+                    <DashboardContinuePlaying
+                      continuePlayingGames={continuePlayingGames}
+                      onPlayGame={(game) => {
+                        openDetails(game);
+                        playSound("select");
+                      }}
+                      onOpenDetails={(game) => {
+                        openDetails(game);
+                        playSound("select");
+                      }}
+                      playSound={playSound}
+                    />
+                  )}
+
+                  <motion.div
+                    className="px-10 pb-4 shrink-0 transform-gpu will-change-transform"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.35, delay: 0.08, ease: [0.32, 0.72, 0, 1] }}
+                  >
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`hero-${currentGame?.id}`}
+                        initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
+                        transition={{ duration: 0.26, ease: [0.32, 0.72, 0, 1] }}
+                        className="flex flex-col transform-gpu mt-4"
+                      >
+                        <div className="flex items-center justify-between gap-8 w-full mb-3">
+                          <h1
+                            className="tracking-tight font-display font-black text-3xl md:text-5xl bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent leading-[1.08] drop-shadow-[0_8px_32px_rgba(0,0,0,0.85)] line-clamp-1"
+                            style={{
+                              maxWidth: "74vw",
+                            }}
+                          >
+                            {currentGame?.title}
+                          </h1>
+                          <div className="flex items-center shrink-0">
+                            <ShinyButton
+                              onClick={() => currentGame && openDetails(currentGame)}
+                              onMouseEnter={() => playSound("hover")}
+                              className="!shrink-0 !flex !items-center gap-2.5 shadow-[0_4px_24px_rgba(255,255,255,0.15)] !px-8 !py-4 !text-[15px] cursor-pointer"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                className="w-5 h-5 fill-white text-white shrink-0 transition-transform duration-300 group-hover:scale-110"
+                              >
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                              <span className="font-bold tracking-widest uppercase">{t("playNow")}</span>
+                            </ShinyButton>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 flex-wrap font-body mb-8">
+                          {(currentGame?.launcherType === "steam" || currentGame?.source === "steam") ? (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              <SteamBrandIcon className="w-3.5 h-3.5 text-white" /> Steam
+                            </span>
+                          ) : (currentGame?.launcherType === "epic" || currentGame?.source === "epic") ? (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              <EpicBrandIcon className="w-3.5 h-3.5 text-white" /> Epic Games
+                            </span>
+                          ) : currentGame?.launcherType === "ea" ? (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              <EaBrandIcon className="w-3.5 h-3.5 text-white" /> EA App
+                            </span>
+                          ) : currentGame?.launcherType === "ubisoft" ? (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              <UbisoftBrandIcon className="w-3.5 h-3.5 text-white" /> Ubisoft
+                            </span>
+                          ) : currentGame?.launcherType === "gog" ? (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              <GogBrandIcon className="w-3.5 h-3.5 text-white" /> GOG
+                            </span>
+                          ) : currentGame?.launcherType === "xbox" ? (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              <XboxBrandIcon className="w-3.5 h-3.5 text-white" /> Xbox
+                            </span>
+                          ) : currentGame?.launcherType === "riot" ? (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              <RiotBrandIcon className="w-3.5 h-3.5 text-white" /> Riot Games
+                            </span>
+                          ) : currentGame?.launcherType === "battlenet" ? (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              <BattlenetBrandIcon className="w-3.5 h-3.5 text-white" /> Battle.net
+                            </span>
+                          ) : currentGame?.launcherType === "rockstar" ? (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              <RockstarBrandIcon className="w-3.5 h-3.5 text-white" /> Rockstar
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              <Gamepad2 className="w-3.5 h-3.5 text-white" /> Executável Local
+                            </span>
+                          )}
+
+                          {currentGame && (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.02] border border-white/[0.08] px-3 py-1 text-xs font-medium text-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              {formatPlayedHours(getGamePlayedHours(currentGame))}h jogadas
+                            </span>
+                          )}
+
+                          {currentGame?.isFavorite && (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-400/25 px-3 py-1 text-xs font-semibold text-amber-300 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> Favorito
+                            </span>
+                          )}
+                        </div>
+                      </motion.div>
+                    </AnimatePresence>
                   </motion.div>
-                </AnimatePresence>
-              </div>
-            </>
-          )}
+
+                  <div className="shrink-0 pb-8 hub-scroll will-change-transform transform-gpu">
+
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.div
+                        key={activeCategory}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.26, ease: [0.32, 0.72, 0, 1] }}
+                      >
+                        <GameRow
+                          games={displayGames}
+                          selectedIndex={selectedIndex}
+                          onSelect={onSelectHandler}
+                          onContextMenu={handleMenuAction}
+                          playSound={playSound}
+                        />
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+                </>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {shouldShowLibraryFooter(activeCategory) && <div
-          className="fixed bottom-0 z-30 flex items-center justify-between px-8 py-3.5 pointer-events-none transition-[left] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-          style={{
-            left: isSidebarExpanded ? 328 : 104,
-            right: 0,
-            background:
-              "linear-gradient(to top, var(--background) 0%, transparent 100%)",
-          }}
-        >
-          <p
-            className="text-[10px] font-semibold uppercase tracking-[0.2em] font-body"
-            style={{ color: "rgba(255,255,255,0.45)" }}
+        {
+          shouldShowLibraryFooter(activeCategory) && <div
+            className="fixed bottom-0 z-30 flex items-center justify-between px-8 py-3.5 pointer-events-none transition-[left] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{
+              left: isSidebarExpanded ? 328 : 104,
+              right: 0,
+              background:
+                "linear-gradient(to top, var(--background) 0%, transparent 100%)",
+            }}
           >
-            {displayGames.length} {displayGames.length === 1 ? "jogo" : "jogos"}
-          </p>
-          <InputHints hints={activeInputType === "gamepad" ? (
-            activeCategory === "FRIENDS" ? [
-              { button: "L1_R1", label: "Trocar Aba" },
-              { button: "DPAD", label: "Selecionar" },
-              { button: "SQUARE", label: "Chat" },
-              { button: "TRIANGLE", label: "Ligar" },
-              { button: "O", label: "Voltar" }
-            ] : activeCategory === "SETTINGS" ? [
-              { button: "L1_R1", label: "Trocar Aba" },
-              { button: "DPAD", label: "Navegar" },
-              { button: "X", label: "Selecionar" },
-              { button: "O", label: "Voltar" }
-            ] : activeCategory === "TROPHIES" ? [
-              { button: "L1_R1", label: "Filtrar" },
-              { button: "DPAD", label: "Navegar" },
-              { button: "X", label: "Abrir Jogo" },
-              { button: "O", label: "Voltar" }
-            ] : activeCategory === "MODS" ? [
-              { button: "DPAD", label: "Navegar" },
-              { button: "X", label: "Gerenciar" },
-              { button: "O", label: "Voltar" }
-            ] : [
+            <p
+              className="text-[10px] font-semibold uppercase tracking-[0.2em] font-body"
+              style={{ color: "rgba(255,255,255,0.45)" }}
+            >
+              {displayGames.length} {displayGames.length === 1 ? "jogo" : "jogos"}
+            </p>
+            <InputHints hints={activeInputType === "gamepad" ? (
+              activeCategory === "FRIENDS" ? [
+                { button: "L1_R1", label: "Trocar Aba" },
+                { button: "DPAD", label: "Selecionar" },
+                { button: "SQUARE", label: "Chat" },
+                { button: "TRIANGLE", label: "Ligar" },
+                { button: "O", label: "Voltar" }
+              ] : activeCategory === "SETTINGS" ? [
+                { button: "L1_R1", label: "Trocar Aba" },
+                { button: "DPAD", label: "Navegar" },
+                { button: "X", label: "Selecionar" },
+                { button: "O", label: "Voltar" }
+              ] : activeCategory === "TROPHIES" ? [
+                { button: "L1_R1", label: "Filtrar" },
+                { button: "DPAD", label: "Navegar" },
+                { button: "X", label: "Abrir Jogo" },
+                { button: "O", label: "Voltar" }
+              ] : activeCategory === "MODS" ? [
+                { button: "DPAD", label: "Navegar" },
+                { button: "X", label: "Gerenciar" },
+                { button: "O", label: "Voltar" }
+              ] : [
+                { button: "DPAD", label: "Navegar" },
+                { button: "X", label: "Abrir" },
+                { button: "TRIANGLE", label: "Novo Jogo" },
+                { button: "L2_R2", label: "Categorias" },
+                { button: "SHARE", label: "Amigos" },
+                { button: "OPTIONS", label: "Ajustes" }
+              ]
+            ) : [
               { button: "DPAD", label: "Navegar" },
               { button: "X", label: "Abrir" },
-              { button: "TRIANGLE", label: "Novo Jogo" },
-              { button: "L2_R2", label: "Categorias" },
-              { button: "SHARE", label: "Amigos" },
-              { button: "OPTIONS", label: "Ajustes" }
-            ]
-          ) : [
-            { button: "DPAD", label: "Navegar" },
-            { button: "X", label: "Abrir" },
-            { button: "CONTEXT", label: "Opções" }
-          ]} />
-        </div>}
+              { button: "CONTEXT", label: "Opções" }
+            ]} />
+          </div>
+        }
       </div>
 
       <React.Suspense fallback={null}>
@@ -3260,64 +3276,68 @@ const Home: React.FC = () => {
       </AnimatePresence>
 
       {/* Botão flutuante no canto da tela para abrir/reaparecer o Guia de Missões */}
-      {isQuestsEligible && activeCategory === "ALL" && (
-        <button
-          type="button"
-          onClick={() => {
-            playSound("select");
-            setIsQuestsModalOpen(true);
-          }}
-          className="fixed bottom-6 right-6 z-[120] flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#0D0E15]/90 hover:bg-[#161824] border border-amber-500/40 hover:border-amber-500/80 shadow-[0_10px_30px_rgba(0,0,0,0.7),0_0_20px_rgba(245,158,11,0.2)] text-white text-xs font-bold transition-all duration-200 backdrop-blur-xl group hover:scale-105 cursor-pointer"
-          title="Abrir Guia de Missões"
-        >
-          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-amber-400 group-hover:bg-amber-500/30">
-            <Compass className="h-3.5 w-3.5 animate-[spin_20s_linear_infinite]" />
-          </div>
-          <span className="tracking-wide">Missões</span>
-          <span className="rounded-full bg-amber-500/25 px-2 py-0.5 font-mono text-[10px] font-extrabold text-amber-400">
-            {questsStatus.completed}/{questsStatus.total}
-          </span>
-        </button>
-      )}
+      {
+        isQuestsEligible && activeCategory === "ALL" && (
+          <button
+            type="button"
+            onClick={() => {
+              playSound("select");
+              setIsQuestsModalOpen(true);
+            }}
+            className="fixed bottom-6 right-6 z-[120] flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#0D0E15]/90 hover:bg-[#161824] border border-amber-500/40 hover:border-amber-500/80 shadow-[0_10px_30px_rgba(0,0,0,0.7),0_0_20px_rgba(245,158,11,0.2)] text-white text-xs font-bold transition-all duration-200 backdrop-blur-xl group hover:scale-105 cursor-pointer"
+            title="Abrir Guia de Missões"
+          >
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-amber-400 group-hover:bg-amber-500/30">
+              <Compass className="h-3.5 w-3.5 animate-[spin_20s_linear_infinite]" />
+            </div>
+            <span className="tracking-wide">Missões</span>
+            <span className="rounded-full bg-amber-500/25 px-2 py-0.5 font-mono text-[10px] font-extrabold text-amber-400">
+              {questsStatus.completed}/{questsStatus.total}
+            </span>
+          </button>
+        )
+      }
 
       {/* Modal/Overlay Flutuante de Missões */}
-      {isQuestsModalOpen && (
-        <HomeOnboardingQuests
-          userId={user?.uid}
-          userProfile={userProfile}
-          userLevel={playerLevel.level}
-          hasFriends={(userProfile?.checkpointFriends?.length || 0) > 0}
-          totalGames={games.length}
-          favoritesCount={games.filter((g) => (g as any).isFavorite || (g as any).favorite).length}
-          hasAchievements={games.some((g) => (g.completedAchievements || 0) > 0)}
-          hasSteamConnected={Boolean(resolvedSteamId)}
-          hasEpicConnected={epicAuthConnected}
-          hasDiscordConnected={Boolean(userProfile?.discordId)}
-          onOpenAddFriend={() => {
-            setIsQuestsModalOpen(false);
-            setIsAddFriendModalOpen(true);
-          }}
-          onOpenAddGame={() => {
-            setIsQuestsModalOpen(false);
-            openAddGameModal(categoryToLauncherType(activeCategory));
-          }}
-          onOpenSettings={() => {
-            setIsQuestsModalOpen(false);
-            selectCategory("SETTINGS");
-          }}
-          onOpenProfile={() => {
-            setIsQuestsModalOpen(false);
-            selectCategory("PROFILE");
-          }}
-          onOpenTrophies={() => {
-            setIsQuestsModalOpen(false);
-            selectCategory("TROPHIES");
-          }}
-          playSound={playSound}
-          isModal={true}
-          onClose={() => setIsQuestsModalOpen(false)}
-        />
-      )}
+      {
+        isQuestsModalOpen && (
+          <HomeOnboardingQuests
+            userId={user?.uid}
+            userProfile={userProfile}
+            userLevel={playerLevel.level}
+            hasFriends={(userProfile?.checkpointFriends?.length || 0) > 0}
+            totalGames={games.length}
+            favoritesCount={games.filter((g) => (g as any).isFavorite || (g as any).favorite).length}
+            hasAchievements={games.some((g) => (g.completedAchievements || 0) > 0)}
+            hasSteamConnected={Boolean(resolvedSteamId)}
+            hasEpicConnected={epicAuthConnected}
+            hasDiscordConnected={Boolean(userProfile?.discordId)}
+            onOpenAddFriend={() => {
+              setIsQuestsModalOpen(false);
+              setIsAddFriendModalOpen(true);
+            }}
+            onOpenAddGame={() => {
+              setIsQuestsModalOpen(false);
+              openAddGameModal(categoryToLauncherType(activeCategory));
+            }}
+            onOpenSettings={() => {
+              setIsQuestsModalOpen(false);
+              selectCategory("SETTINGS");
+            }}
+            onOpenProfile={() => {
+              setIsQuestsModalOpen(false);
+              selectCategory("PROFILE");
+            }}
+            onOpenTrophies={() => {
+              setIsQuestsModalOpen(false);
+              selectCategory("TROPHIES");
+            }}
+            playSound={playSound}
+            isModal={true}
+            onClose={() => setIsQuestsModalOpen(false)}
+          />
+        )
+      }
     </div>
   );
 };

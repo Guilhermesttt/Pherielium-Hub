@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   User, Star, Gamepad2, Zap, Car, Swords, Trophy, Globe, Crosshair,
-  Settings, Users, Newspaper, Laptop, Puzzle, Folder, FolderOpen,
+  Settings, Users, Newspaper, Laptop, Puzzle, Folder, FolderOpen, PanelLeft,
 } from "lucide-react";
 import {
   GamepadIcon as AnimatedGamepadIcon,
@@ -280,6 +280,17 @@ const Sidebar: React.FC<SidebarProps> = ({
     window.dispatchEvent(new CustomEvent("checkpoint:sidebar-toggle", { detail: { expanded: next } }));
   };
 
+  React.useEffect(() => {
+    const handleForceToggle = (e: any) => {
+      if (e.detail?.expanded !== undefined) {
+        setIsExpanded(e.detail.expanded);
+        try { localStorage.setItem("checkpoint_sidebar_expanded", String(e.detail.expanded)); } catch { void 0; }
+      }
+    };
+    window.addEventListener("checkpoint:sidebar-toggle", handleForceToggle);
+    return () => window.removeEventListener("checkpoint:sidebar-toggle", handleForceToggle);
+  }, []);
+
   const toggleGroup = (key: string) => {
     setExpandedGroups((prev) => {
       const next = { ...prev, [key]: !prev[key] };
@@ -320,14 +331,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       className="fixed left-4 top-4 bottom-4 z-50 flex flex-col pointer-events-none transform-gpu"
     >
       <div
-        className="pointer-events-auto flex-1 flex flex-col py-6 px-4 min-h-0 rounded-[32px] border border-white/[0.08]"
-        style={{
-          background: "rgba(255, 255, 255, 0.02)",
-          backdropFilter: "blur(20px) saturate(180%)",
-          WebkitBackdropFilter: "blur(20px) saturate(180%)",
-          boxShadow: "0 32px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12)",
-          contain: "layout paint",
-        }}
+        className="pointer-events-auto flex-1 flex flex-col py-6 px-4 min-h-0 rounded-4xl border border-[var(--color-border)] bg-[#0B0B0B]"
       >
         <div
           onClick={toggleExpand}
@@ -335,20 +339,21 @@ const Sidebar: React.FC<SidebarProps> = ({
           tabIndex={0}
           className={`relative mb-8 flex items-center cursor-pointer group p-1 transition-all duration-300 ${isExpanded ? "justify-start gap-4 px-1" : "justify-center"}`}
         >
-          <div className="relative w-10 h-10 rounded-2xl flex items-center justify-center bg-white/[0.05] border border-white/[0.1] shadow-[0_4px_16px_rgba(0,0,0,0.2)] group-hover:bg-white/[0.08] group-hover:shadow-[0_4px_20px_rgba(255,255,255,0.05)] transition-all duration-300 shrink-0">
-            <img src={PHERIELIUM_LOGO_PATH} alt="Pherielium" className="h-[22px] w-[22px] object-contain grayscale brightness-200 opacity-90 group-hover:opacity-100 transition-opacity" />
+          <div className="relative w-[38px] h-[38px] rounded-[14px] flex items-center justify-center bg-white/[0.04] shadow-[0_4px_16px_rgba(0,0,0,0.2)] group-hover:bg-white/[0.06] transition-all duration-300 shrink-0">
+            <img src={PHERIELIUM_LOGO_PATH} alt="Pherielium" className="h-[50px] w-[50px] object-contain grayscale brightness-200 opacity-90 group-hover:opacity-100 transition-opacity" />
           </div>
           {isExpanded && (
-            <div className="flex flex-1 items-center min-w-0">
-              <span className="font-display font-medium text-sm text-white tracking-[0.2em] uppercase drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">
+            <div className="flex items-center min-w-0">
+              <span className="font-display font-bold text-[25px] bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent tracking-tight flex items-start gap-[2px]">
                 Pherielium
+                <span className="text-white/40 text-[15px] font-semibold translate-y-[2px]">&reg;</span>
               </span>
             </div>
           )}
         </div>
 
         <nav aria-label="Navegação principal" className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto overscroll-contain no-scrollbar gap-6">
-          {SIDEBAR_NAVIGATION_GROUPS.map((group) => {
+          {SIDEBAR_NAVIGATION_GROUPS.map((group, index) => {
             const isCollapsible = COLLAPSIBLE_GROUP_KEYS.has(group.key);
             const isOpen = !isCollapsible || Boolean(expandedGroups[group.key]);
             const items = group.ids
@@ -357,115 +362,128 @@ const Sidebar: React.FC<SidebarProps> = ({
             const isGroupActive = items.some((item) => item.id === activeCategory);
 
             return (
-              <div key={group.key} role="group" className="flex w-full flex-col gap-1.5">
-                {isExpanded ? (
-                  isCollapsible ? (
-                    <button
-                      onClick={() => toggleGroup(group.key)}
-                      onFocus={() => {
-                        if (document.documentElement.dataset.gamepadNavigation === "active") {
-                          setExpandedGroups((prev) => ({ ...prev, [group.key]: true }));
-                        }
-                      }}
-                      className="flex items-center gap-3 px-2 w-full py-1.5 transition-colors duration-300 hover:bg-white/[0.04] rounded-lg group/folder cursor-pointer"
-                      aria-expanded={isOpen}
-                    >
-                      <motion.span className="flex items-center justify-center shrink-0 text-white/30 group-hover/folder:text-white/60 transition-colors">
-                        {isOpen ? <FolderOpen className="h-[14px] w-[14px]" /> : <Folder className="h-[14px] w-[14px]" />}
-                      </motion.span>
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/40 font-body group-hover/folder:text-white/80 transition-colors">
+              <React.Fragment key={group.key}>
+                {index > 0 && (
+                  <div className="w-full h-[1px] my-1 shrink-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+                )}
+                <div role="group" className="flex w-full flex-col gap-1.5">
+                  {isExpanded ? (
+                    isCollapsible ? (
+                      <button
+                        onClick={() => toggleGroup(group.key)}
+                        onFocus={() => {
+                          if (document.documentElement.dataset.gamepadNavigation === "active") {
+                            setExpandedGroups((prev) => ({ ...prev, [group.key]: true }));
+                          }
+                        }}
+                        className="flex items-center gap-3 px-2 w-full py-1.5 transition-colors duration-300 hover:bg-white/[0.04] rounded-lg group/folder cursor-pointer"
+                        aria-expanded={isOpen}
+                      >
+                        <motion.span className="flex items-center justify-center shrink-0 text-white/30 group-hover/folder:text-white/60 transition-colors">
+                          {isOpen ? <FolderOpen className="h-[14px] w-[14px]" /> : <Folder className="h-[14px] w-[14px]" />}
+                        </motion.span>
+                        <span className="text-[11px] font-semibold capitalize tracking-wide text-white/40 font-body group-hover/folder:text-white/80 transition-colors">
+                          {groupLabels[group.key]}
+                        </span>
+                      </button>
+                    ) : (
+                      <span className="px-2 pb-1 text-[11px] font-semibold capitalize tracking-wide text-white/30 font-body">
                         {groupLabels[group.key]}
                       </span>
-                    </button>
+                    )
                   ) : (
-                    <span className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30 font-body">
-                      {groupLabels[group.key]}
-                    </span>
-                  )
-                ) : (
-                  isCollapsible && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex w-full justify-center">
-                          <motion.button
-                            type="button"
-                            onClick={() => toggleGroup(group.key)}
-                            onFocus={() => {
-                              if (document.documentElement.dataset.gamepadNavigation === "active") {
-                                setExpandedGroups((prev) => ({ ...prev, [group.key]: true }));
-                              }
-                            }}
-                            whileTap={{ scale: 0.95 }}
-                            transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
-                            aria-label={`${groupLabels[group.key]} (${isOpen ? "Aberta" : "Fechada"})`}
-                            className={`relative group flex h-12 w-12 items-center justify-center rounded-[18px] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50 ${
-                              isGroupActive && !isOpen
+                    isCollapsible && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex w-full justify-center">
+                            <motion.button
+                              type="button"
+                              onClick={() => toggleGroup(group.key)}
+                              onFocus={() => {
+                                if (document.documentElement.dataset.gamepadNavigation === "active") {
+                                  setExpandedGroups((prev) => ({ ...prev, [group.key]: true }));
+                                }
+                              }}
+                              whileTap={{ scale: 0.95 }}
+                              transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
+                              aria-label={`${groupLabels[group.key]} (${isOpen ? "Aberta" : "Fechada"})`}
+                              className={`relative group flex h-12 w-12 items-center justify-center rounded-[18px] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50 ${isGroupActive && !isOpen
                                 ? "bg-[rgb(var(--launcher-accent)/0.14)] text-[rgb(var(--launcher-accent))] shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_0_1px_0_rgb(var(--launcher-accent)/0.20)]"
                                 : isOpen
                                   ? "bg-white/[0.08] text-white"
                                   : "text-white/40 hover:text-white/80 hover:bg-white/[0.06]"
-                            }`}
-                          >
-                            {isOpen ? (
-                              <FolderOpen className="h-6 w-6 text-[rgb(var(--launcher-accent))]" style={{ filter: "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" }} />
-                            ) : (
-                              <Folder className="h-6 w-6" style={isGroupActive ? { color: "rgb(var(--launcher-accent))", filter: "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" } : undefined} />
-                            )}
-                            {isGroupActive && !isOpen && (
-                              <span
-                                className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full"
-                                style={{ background: "rgb(var(--launcher-accent))", boxShadow: "0 0 8px rgb(var(--launcher-accent))" }}
-                              />
-                            )}
-                          </motion.button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" align="center" sideOffset={16} className="border border-white/10 bg-[#121214]/90 px-3 py-1.5 text-xs text-white/90 tracking-wide backdrop-blur-2xl rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-                        {groupLabels[group.key]} {isOpen ? "(Aberta)" : "(Pasta)"}
-                      </TooltipContent>
-                    </Tooltip>
-                  )
-                )}
+                                }`}
+                            >
+                              {isOpen ? (
+                                <FolderOpen className="h-6 w-6 text-[rgb(var(--launcher-accent))]" style={{ filter: "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" }} />
+                              ) : (
+                                <Folder className="h-6 w-6" style={isGroupActive ? { color: "rgb(var(--launcher-accent))", filter: "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" } : undefined} />
+                              )}
+                              {isGroupActive && !isOpen && (
+                                <span
+                                  className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full"
+                                  style={{ background: "rgb(var(--launcher-accent))", boxShadow: "0 0 8px rgb(var(--launcher-accent))" }}
+                                />
+                              )}
+                            </motion.button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" align="center" sideOffset={16} className="border border-white/10 bg-[#121214]/90 px-3 py-1.5 text-xs text-white/90 tracking-wide backdrop-blur-2xl rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+                          {groupLabels[group.key]} {isOpen ? "(Aberta)" : "(Pasta)"}
+                        </TooltipContent>
+                      </Tooltip>
+                    )
+                  )}
 
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      initial={isCollapsible ? { height: 0, opacity: 0 } : false}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                      className={`overflow-hidden ${
-                        isCollapsible
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={isCollapsible ? { height: 0, opacity: 0 } : false}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                        className={`overflow-hidden ${isCollapsible
                           ? isExpanded
-                            ? "relative pl-3"
+                            ? "relative pl-4"
                             : "relative flex flex-col items-center py-1.5 gap-1 rounded-2xl bg-white/[0.03] border border-white/[0.06] shadow-inner"
                           : ""
-                      }`}
-                    >
-                      {isCollapsible && isExpanded && (
-                        <div className="absolute left-4 top-2 bottom-2 w-[1px] bg-white/[0.08]" />
-                      )}
-                      <div className="flex flex-col gap-1 w-full items-center">
-                        {items.map((category) => (
-                          <SidebarButton
-                            key={category.id}
-                            id={category.id}
-                            label={sidebarLabels[category.id] || category.label}
-                            Icon={category.Icon}
-                            AnimatedIcon={category.AnimatedIcon}
-                            active={activeCategory === category.id}
-                            onClick={() => { onCategory(category.id); playSound("showModal"); }}
-                            notificationCount={category.id === "FRIENDS" ? notificationCount : 0}
-                            reducedMotion={Boolean(prefersReducedMotion)}
-                            isExpanded={isExpanded}
-                            nested={isCollapsible}
-                          />
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                          }`}
+                      >
+                        <div className="flex flex-col gap-1 w-full items-center">
+                          {items.map((category, itemIndex) => {
+                            const isLastItem = itemIndex === items.length - 1;
+                            return (
+                              <div
+                                key={category.id}
+                                className={`relative w-full ${isCollapsible && isExpanded
+                                    ? `before:content-[''] before:absolute before:top-0 before:left-[-8px] before:w-3 before:h-1/2 before:border-l before:border-b before:border-white/[0.08] before:rounded-bl-[8px] ${!isLastItem
+                                      ? "after:content-[''] after:absolute after:top-1/2 after:left-[-8px] after:bottom-0 after:w-px after:bg-white/[0.08]"
+                                      : ""
+                                    }`
+                                    : ""
+                                  }`}
+                              >
+                                <SidebarButton
+                                  id={category.id}
+                                  label={sidebarLabels[category.id] || category.label}
+                                  Icon={category.Icon}
+                                  AnimatedIcon={category.AnimatedIcon}
+                                  active={activeCategory === category.id}
+                                  onClick={() => { onCategory(category.id); playSound("showModal"); }}
+                                  notificationCount={category.id === "FRIENDS" ? notificationCount : 0}
+                                  reducedMotion={Boolean(prefersReducedMotion)}
+                                  isExpanded={isExpanded}
+                                  nested={isCollapsible}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </React.Fragment>
             );
           })}
         </nav>

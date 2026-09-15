@@ -88,7 +88,7 @@ export const GameDetailSocialMods: React.FC<GameDetailSocialModsProps> = React.m
           {localScreenshots.length > 0 && (
             <button
               onClick={onOpenFolder}
-              className="flex items-center gap-1.5 text-xs font-bold text-white/50 hover:text-white px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/5 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-bold text-white/50 hover:text-white px-3 py-1.5 rounded-lg bg-[var(--color-surface)] border border-white/5 transition-colors"
             >
               <FolderOpen className="w-3.5 h-3.5" />
               {copy.openFolder}
@@ -97,7 +97,7 @@ export const GameDetailSocialMods: React.FC<GameDetailSocialModsProps> = React.m
         </div>
 
         {localScreenshots.length === 0 ? (
-          <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center p-8">
+          <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[var(--color-surface)] text-center p-8">
             <Camera className="mb-3 h-8 w-8 text-white/20" />
             <p className="text-sm font-semibold text-white/50">{copy.noScreenshot}</p>
           </div>
@@ -120,7 +120,7 @@ export const GameDetailSocialMods: React.FC<GameDetailSocialModsProps> = React.m
                   loading="lazy"
                 />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-white uppercase tracking-widest px-4 py-2 bg-white/10 rounded-full backdrop-blur-md">
+                  <span className="text-[10px] font-bold text-white uppercase tracking-widest px-4 py-2 bg-white/10 rounded-full ">
                     {copy.viewGallery}
                   </span>
                 </div>
@@ -148,7 +148,7 @@ export const GameDetailSocialMods: React.FC<GameDetailSocialModsProps> = React.m
         />
 
         {gameMods.length === 0 ? (
-          <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center p-8">
+          <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[var(--color-surface)] text-center p-8">
             <PackageOpen className="mb-3 h-8 w-8 text-white/20" />
             <p className="text-sm font-semibold text-white/50">Nenhum mod instalado para este jogo.</p>
           </div>
@@ -157,7 +157,7 @@ export const GameDetailSocialMods: React.FC<GameDetailSocialModsProps> = React.m
             {gameMods.map((mod) => (
               <div
                 key={mod.id}
-                className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition-colors hover:bg-white/[0.06]"
+                className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[var(--color-surface)] p-4 transition-colors hover:bg-[#222222]"
               >
                 <div className="h-12 w-16 shrink-0 overflow-hidden rounded-xl bg-black/40 border border-white/10">
                   {mod.pictureUrl ? (
@@ -222,13 +222,13 @@ export const GameDetailSocialMods: React.FC<GameDetailSocialModsProps> = React.m
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {sanitizedMinRequirementsHtml && (
                 <div
-                  className="bg-white/[0.02] p-4 rounded-xl border border-white/[0.05] prose prose-invert prose-sm"
+                  className="bg-[var(--color-surface)] p-4 rounded-xl border border-[var(--color-ui-detail)] prose prose-invert prose-sm"
                   dangerouslySetInnerHTML={{ __html: sanitizedMinRequirementsHtml }}
                 />
               )}
               {sanitizedRecRequirementsHtml && (
                 <div
-                  className="bg-white/[0.02] p-4 rounded-xl border border-white/[0.05] prose prose-invert prose-sm"
+                  className="bg-[var(--color-surface)] p-4 rounded-xl border border-[var(--color-ui-detail)] prose prose-invert prose-sm"
                   dangerouslySetInnerHTML={{ __html: sanitizedRecRequirementsHtml }}
                 />
               )}
@@ -236,7 +236,7 @@ export const GameDetailSocialMods: React.FC<GameDetailSocialModsProps> = React.m
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-6 pt-6 border-t border-white/[0.07]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-6 pt-6 border-t border-[var(--color-ui-detail)]">
           <TechnicalDetail label={copy.developer} value={developer} fallback={copy.notInformed} />
           <TechnicalDetail label={copy.publisher} value={publisher} fallback={copy.notInformed} />
           <TechnicalDetail label={copy.releaseDate} value={releaseDate} fallback={copy.notInformed} />
@@ -280,7 +280,7 @@ export const GameDetailSocialMods: React.FC<GameDetailSocialModsProps> = React.m
               {tags.slice(0, 15).map((tag, i) => (
                 <span
                   key={i}
-                  className="px-3 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-[10px] font-semibold text-white/65"
+                  className="px-3 py-1.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-ui-detail)] text-[10px] font-semibold text-white/65"
                 >
                   {tag}
                 </span>

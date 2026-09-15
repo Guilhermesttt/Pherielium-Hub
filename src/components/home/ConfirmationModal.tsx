@@ -49,8 +49,8 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = React.memo(
         zIndexClassName="z-[170]"
         className={
           variant === "delete" || variant === "logout" || variant === "disconnect"
-            ? "glass-panel relative overflow-hidden rounded-[32px] border border-white/[0.08] p-8 shadow-[0_32px_64px_rgba(0,0,0,0.6)] flex flex-col items-center"
-            : "glass-panel relative overflow-hidden rounded-2xl border border-white/10 p-7 shadow-[0_24px_60px_rgba(0,0,0,0.85)]"
+            ? "bg-[#0E0E0E] relative overflow-hidden rounded-[32px] border border-[var(--color-border)] p-8 shadow-[0_32px_64px_rgba(0,0,0,0.6)] flex flex-col items-center"
+            : "bg-[#0E0E0E] relative overflow-hidden rounded-2xl border border-white/10 p-7 shadow-[0_24px_60px_rgba(0,0,0,0.85)]"
         }
       >
         {variant === "delete" || variant === "logout" || variant === "disconnect" ? (
@@ -61,7 +61,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = React.memo(
               <motion.div animate={{ y: [0, 12, 0], rotate: [-15, -30, -15], opacity: [0.5, 0.8, 0.5] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 0.8 }} className="absolute bottom-6 left-6 w-4 h-5 bg-white/[0.05] backdrop-blur-md border border-white/10 rounded-sm shadow-sm" style={{ clipPath: "polygon(10% 0, 100% 0, 90% 100%, 0 85%)" }} />
               <motion.div animate={{ y: [0, -15, 0], rotate: [45, 60, 45], opacity: [0.8, 1, 0.8] }} transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut", delay: 0.5 }} className="absolute top-10 right-4 w-6 h-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-sm shadow-sm" style={{ clipPath: "polygon(0 15%, 100% 0, 85% 100%, 15% 85%)" }} />
               <motion.div animate={{ y: [0, 10, 0], rotate: [-20, -5, -20], opacity: [0.6, 0.9, 0.6] }} transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 1.2 }} className="absolute bottom-8 right-6 w-5 h-5 bg-white/[0.08] backdrop-blur-md border border-white/10 rounded-sm shadow-sm" style={{ clipPath: "polygon(15% 0, 100% 15%, 85% 100%, 0 85%)" }} />
-              
+
               <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }} className="relative z-10 flex flex-col items-center drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)]">
                 {variant === "delete" ? (
                   <>
@@ -89,10 +89,10 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = React.memo(
                 )}
               </motion.div>
             </div>
-            
+
             <h2 className="text-[19px] font-semibold text-white tracking-tight mb-2 text-center">{title}</h2>
             <p className="text-[13px] font-medium text-white/60 text-center leading-[1.4] mb-8 px-2 max-w-[240px]">{description}</p>
-            
+
             <div className="flex gap-3 w-full">
               <button type="button" onClick={handleCloseAction} onMouseEnter={() => playSound("hover")} className="flex-1 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/5 text-[14px] font-medium text-white transition-all">
                 {cancelLabel}

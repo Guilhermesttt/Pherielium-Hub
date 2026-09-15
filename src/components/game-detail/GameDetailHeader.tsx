@@ -83,11 +83,11 @@ export const GameDetailHeader: React.FC<GameDetailHeaderProps> = React.memo(({
               {game.title}
             </h1>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 text-[9px] font-black tracking-[0.25em] text-white/60 uppercase">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-[var(--color-surface)] border border-white/10 text-[9px] font-black tracking-[0.25em] text-white/60 uppercase">
                 {platformLabel}
               </span>
               {localizedCategory && localizedCategory.toUpperCase() !== platformLabel.toUpperCase() && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.07] text-[9px] font-black tracking-[0.25em] text-white/40 uppercase">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-[var(--color-surface)] border border-[var(--color-ui-detail)] text-[9px] font-black tracking-[0.25em] text-white/40 uppercase">
                   {localizedCategory}
                 </span>
               )}

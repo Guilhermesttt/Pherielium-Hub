@@ -236,11 +236,11 @@ const PlatformRow: React.FC<{
   compact?: boolean;
 }> = ({ name, connected, username, avatar, icon, connectedLabel, disconnectedLabel, compact = false }) => (
   <div
-    className={`flex items-center justify-between transition-colors hover:bg-white/[0.03] rounded-xl ${compact ? "py-2 px-2.5 gap-2.5" : "py-2.5 px-3 gap-3"
+    className={`flex items-center bg-[#0E0E0E] justify-between transition-colors hover:bg-white/[0.03] rounded-xl ${compact ? "py-2 px-2.5 gap-2.5" : "py-2.5 px-3 gap-3"
       }`}
   >
     <div className="flex min-w-0 items-center gap-3">
-      <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/[0.05] text-neutral-300 ${compact ? "h-8 w-8" : "h-9 w-9"}`}>
+      <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#0E0E0E] text-neutral-300 ${compact ? "h-8 w-8" : "h-9 w-9"}`}>
         {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover rounded-lg" /> : icon}
       </div>
       <div className="min-w-0">
@@ -307,7 +307,7 @@ const Section: React.FC<SectionProps> = ({
   compact = false,
 }) => (
   <section
-    className={`${compact ? "rounded-2xl p-4 md:p-5" : "rounded-2xl p-5 md:p-6"} border border-white/[0.08] transform-gpu glass-panel ${className}`}
+    className={`${compact ? "rounded-2xl p-4 md:p-5" : "rounded-2xl p-5 md:p-6"} bg-[#0E0E0E] border border-[var(--color-border)] ${className}`}
     style={{
       boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
     }}
@@ -453,7 +453,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [isQuestsVisible, setIsQuestsVisible] = useState(() => {
     return localStorage.getItem("checkpoint_quests_visible") !== "false";
   });
-  
+
   const toggleQuestsVisibility = useCallback(() => {
     setIsQuestsVisible(prev => {
       const next = !prev;
@@ -640,10 +640,22 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       className={`relative min-h-0 flex-1 overflow-y-auto thin-scrollbar ${compactProfile ? "px-6 pb-6 pt-4" : "px-10 pb-12 pt-8"}`}
       style={{ contain: "layout paint", transform: "translate3d(0,0,0)", willChange: "transform" }}
     >
+      <div className="mx-auto mb-8 w-full max-w-6xl">
+        <h1
+          className="font-display font-black bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent leading-[1.08]"
+          style={{ fontSize: "clamp(28px, 4vw, 40px)", letterSpacing: "-0.02em" }}
+        >
+          Perfil
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm font-body leading-relaxed text-white/50">
+          Visualize as suas estatísticas, nível e histórico de atividades.
+        </p>
+      </div>
+
       <div className={`relative mx-auto max-w-6xl ${compactProfile ? "space-y-4" : "space-y-6"}`}>
         {/* HERO SECTION EDITORIAL MINIMALISTA */}
         <section
-          className={`relative rounded-3xl border border-white/[0.08] glass-panel ${compactProfile ? "p-5 md:p-6" : "p-6 sm:p-8"}`}
+          className={`relative rounded-3xl border border-white/[0.08] bg-[#0B0B0B] ${compactProfile ? "p-5 md:p-6" : "p-6 sm:p-8"}`}
           style={{
             boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.06)",
           }}
@@ -677,7 +689,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 <div className="min-w-0 flex-1">
                   {/* Nível 1: Nome do Jogador + Atalho para Editar */}
                   <div className="flex items-center gap-3">
-                    <h1 className={`${compactProfile ? "text-2xl" : "text-3xl sm:text-4xl"} font-black tracking-tight text-white leading-none truncate`}>
+                    <h1 className={`${compactProfile ? "text-2xl" : "text-3xl sm:text-4xl"} font-black tracking-tight bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent leading-none truncate`}>
                       {displayName}
                     </h1>
                     {editable && (
@@ -687,7 +699,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           setIsEditing(true);
                           playSound?.("showModal");
                         }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/10 bg-white/[0.05] hover:bg-white/10 text-xs font-semibold text-neutral-300 hover:text-white transition cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/10 bg-[#0B0B0B] text-xs font-semibold text-neutral-300 hover:text-white transition cursor-pointer"
                         title="Editar perfil"
                       >
                         <Pencil className="h-3 w-3 text-neutral-400" />
@@ -976,7 +988,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         </section>
 
         {isPrivateProfile ? (
-          <section className="glass-panel flex flex-col items-center justify-center rounded-2xl border border-white/10 p-12 text-center shadow-[0_24px_90px_rgba(0,0,0,0.55)]">
+          <section className="bg-[#0B0B0B] flex flex-col items-center justify-center rounded-2xl border border-white/10 p-12 text-center shadow-[0_24px_90px_rgba(0,0,0,0.55)]">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-white/60 shadow-inner">
               <Lock className="h-8 w-8 text-white/80" />
             </div>
@@ -1009,11 +1021,11 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     hasSteamConnected={Boolean(userProfile?.steamId)}
                     hasEpicConnected={localStorage.getItem("checkpoint_epic_linked_uid") === (userId || userProfile?.uid)}
                     hasDiscordConnected={Boolean(userProfile?.discordId)}
-                    onOpenAddFriend={() => {}}
-                    onOpenAddGame={() => {}}
-                    onOpenSettings={() => {}}
-                    onOpenProfile={() => {}}
-                    onOpenTrophies={() => {}}
+                    onOpenAddFriend={() => { }}
+                    onOpenAddGame={() => { }}
+                    onOpenSettings={() => { }}
+                    onOpenProfile={() => { }}
+                    onOpenTrophies={() => { }}
                     playSound={playSound}
                   />
                 )}
@@ -1346,10 +1358,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                                 animate={{ width: `${pct}%` }}
                                 transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                                 className={`h-full rounded-full ${row.label === "Steam"
-                                    ? "bg-sky-400/80"
-                                    : row.label === "Epic Games"
-                                      ? "bg-white/80"
-                                      : "bg-neutral-400/80"
+                                  ? "bg-sky-400/80"
+                                  : row.label === "Epic Games"
+                                    ? "bg-white/80"
+                                    : "bg-neutral-400/80"
                                   }`}
                               />
                             </div>
@@ -1390,3 +1402,4 @@ const EmptyProfileState: React.FC<{ title: string; body: string; compact?: boole
 );
 
 export default UserProfilePage;
+

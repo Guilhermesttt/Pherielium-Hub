@@ -32,7 +32,7 @@ export const StandardEmptyState: React.FC<StandardEmptyStateProps> = ({
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className={`w-full max-w-lg mx-auto py-8 px-6 rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-md flex flex-col items-center justify-center text-center max-h-[240px] ${className}`}
+      className={`w-full max-w-lg mx-auto py-8 px-6 rounded-2xl border border-white/[0.08] bg-[var(--color-surface)] flex flex-col items-center justify-center text-center max-h-[240px] ${className}`}
     >
       {Icon && (
         <div className="w-9 h-9 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center mb-3 shrink-0 text-white/60">

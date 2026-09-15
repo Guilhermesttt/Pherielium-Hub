@@ -106,7 +106,7 @@ function resolveTierIndex(
 
 // ── Componente Skeleton ───────────────────────────────────────────────────────
 const AchievementSkeleton: React.FC = () => (
-  <div className="h-[96px] flex items-center gap-4 animate-pulse p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+  <div className="h-[96px] flex items-center gap-4 animate-pulse p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)]">
     <div className="w-12 h-12 rounded-xl bg-white/10 flex-shrink-0" />
     <div className="flex-1 space-y-2 min-w-0">
       <div className="h-4 w-1/3 bg-white/10 rounded" />
@@ -362,7 +362,7 @@ const AchievementCard: React.FC<{
         {/* Barra de raridade global */}
         {typeof achievement.percent === "number" && achievement.percent > 0 && (
           <div className="mt-1.5 flex items-center gap-1.5">
-            <div className="relative h-1 flex-1 rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="relative h-1 flex-1 rounded-full bg-[var(--color-surface)] overflow-hidden">
               <div
                 className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
                 style={{
@@ -575,7 +575,7 @@ export const GameDetailAchievements: React.FC<GameDetailAchievementsProps> = Rea
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     isActive
                       ? "text-black shadow-md"
-                      : "bg-white/[0.04] text-white/50 hover:text-white border border-white/5"
+                      : "bg-[var(--color-surface)] text-white/50 hover:text-white border border-white/5"
                   }`}
                   style={isActive ? {
                     background: "rgb(var(--launcher-accent))",
@@ -602,7 +602,7 @@ export const GameDetailAchievements: React.FC<GameDetailAchievementsProps> = Rea
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={copy.searchPlaceholder}
-            className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-9 pr-8 py-1.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors"
+            className="w-full bg-[var(--color-surface)] border border-white/10 rounded-xl pl-9 pr-8 py-1.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors"
           />
           {searchQuery && (
             <button
@@ -642,7 +642,7 @@ export const GameDetailAchievements: React.FC<GameDetailAchievementsProps> = Rea
           <p className="text-sm font-semibold text-white/70 mb-4">{error}</p>
           <button
             onClick={onRetry}
-            className="flex items-center gap-2 rounded-xl bg-white/[0.06] border border-white/15 px-4 py-2 text-xs font-bold text-white hover:bg-white/10 transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-[var(--color-surface)] border border-white/15 px-4 py-2 text-xs font-bold text-white hover:bg-white/10 transition-colors"
           >
             <RotateCw className="w-3.5 h-3.5" />
             {copy.tryAgain}
@@ -652,7 +652,7 @@ export const GameDetailAchievements: React.FC<GameDetailAchievementsProps> = Rea
 
       {/* Sem suporte a conquistas */}
       {!isLoading && !error && achievements.length === 0 && (
-        <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-center">
+        <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[var(--color-surface)] p-8 text-center">
           <Trophy className="mb-3 h-8 w-8 text-white/20" />
           <p className="text-sm font-bold text-white/70">{copy.achievementsNoSupportTitle}</p>
           <p className="mt-1 text-xs text-white/40 max-w-sm">{copy.achievementsNoSupportDesc}</p>

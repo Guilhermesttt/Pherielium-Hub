@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useGamepadNavigation } from "../../hooks/useGamepadNavigation";
 
 export interface SystemPageShellProps {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description?: string;
   actions?: React.ReactNode;
@@ -54,7 +54,7 @@ export const SystemPageShell: React.FC<SystemPageShellProps> = React.memo(
               </div>
             )}
             <h1
-              className="font-display font-black text-white leading-[1.08]"
+              className="font-display font-black bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent leading-[1.08]"
               style={{ fontSize: "clamp(28px, 4vw, 40px)", letterSpacing: "-0.02em" }}
             >
               {title}
@@ -77,3 +77,4 @@ export const SystemPageShell: React.FC<SystemPageShellProps> = React.memo(
 );
 
 SystemPageShell.displayName = "SystemPageShell";
+
