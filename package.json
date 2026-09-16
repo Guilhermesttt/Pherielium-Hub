@@ -127,6 +127,7 @@
     "electron-updater": "^6.8.9",
     "express": "^5.1.0",
     "express-rate-limit": "8.7.0",
+    "figma-squircle": "^1.1.0",
     "google-auth-library": "^10.9.0",
     "helmet": "8.3.0",
     "html2canvas": "^1.4.1",

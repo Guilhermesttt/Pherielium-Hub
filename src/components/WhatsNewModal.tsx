@@ -19,6 +19,8 @@ const highlightIcons: Record<
   platforms: Sparkles,
   search: Sparkles,
   mods: Sparkles,
+  ui: Sparkles,
+  security: Sparkles,
 };
 
 const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ release, onClose }) => {
