@@ -144,6 +144,9 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
   notificationCount = 0, reducedMotion = false,
   rotateOnHover = false, isExpanded = true, nested = false,
 }) => {
+  // Hover local: só este botão re-renderiza (sem thrash no layout da sidebar
+  // inteira), então o glide nunca perde a medição no meio do voo.
+  const [isHovered, setIsHovered] = useState(false);
   const hasNotifications = notificationCount > 0;
   const animatedIconRef = React.useRef<AnimatedIconHandle>(null);
   const animationTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -161,21 +164,37 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
     }, 1300);
   };
 
-  // Ícone com cor e brilho seguindo o tema ativo
-  const iconStyle = {
-    color: active ? "rgb(var(--launcher-accent))" : "rgba(255,255,255,0.4)",
-    filter: active ? "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))" : "none",
-    transition: "color 0.3s ease, filter 0.3s ease",
-  };
+  // Ícone inativo usa a paleta Orbloom (#6C6C6C -> branco no hover via classe);
+  // o estado ativo mantém o accent do tema como indicador de seleção.
+  const iconStyle = active
+    ? {
+        color: "rgb(var(--launcher-accent))",
+        filter: "drop-shadow(0 0 10px rgb(var(--launcher-accent) / 0.7))",
+        transition: "color 0.3s ease, filter 0.3s ease",
+      }
+    : { transition: "color 0.3s ease, filter 0.3s ease" };
+  const inactiveIconClass = active ? "" : "text-[#6C6C6C] group-hover:text-white";
 
   const iconSizeClass = isExpanded
     ? (nested ? "h-4 w-4" : "h-6 w-6")
     : (nested ? "h-5 w-5" : "h-6 w-6");
 
+  // Glide highlight estilo Vercel: pill compartilhado (layoutId global)
+  // desliza entre botões; entrada com fade+scale. O hover estático
+  // `hover:bg-white/[0.08]` fica como fallback garantido.
+  const showGlide = Boolean(!reducedMotion && !active && isHovered);
+  const glideRadius = isExpanded ? "rounded-2xl" : nested ? "rounded-xl" : "rounded-2xl";
+
   const buttonContent = (
     <motion.button
       onClick={onClick}
-      onMouseEnter={playIconAnimation}
+      onMouseEnter={() => {
+        playIconAnimation();
+        setIsHovered(true);
+      }}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
       aria-label={hasNotifications ? `${label}, ${notificationCount} notificações` : label}
       aria-current={active ? "page" : undefined}
       data-sidebar-item={id}
@@ -186,8 +205,7 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
         focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50
         ${isExpanded
           ? `w-full ${nested ? "h-10 px-3 gap-3" : "h-12 px-4 gap-4"} rounded-2xl text-left`
-          : (nested ? "h-10 w-10 justify-center rounded-xl" : "h-12 w-12 justify-center rounded-2xl")}
-        ${!active ? "hover:bg-white/[0.06]" : ""}`}
+          : (nested ? "h-10 w-10 justify-center rounded-xl" : "h-12 w-12 justify-center rounded-2xl")}`}
       style={{
         background: active ? "rgb(var(--launcher-accent) / 0.14)" : "transparent",
         boxShadow: active
@@ -197,25 +215,35 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
         willChange: "transform",
       }}
     >
+      {showGlide && (
+        <motion.span
+          aria-hidden
+          layoutId="sidebar-glide"
+          initial={{ opacity: 0, scale: 0.88 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 700, damping: 40 }}
+          className={`absolute inset-0 ${glideRadius} bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.09)]`}
+        />
+      )}
       <motion.div
         layout
-        className={`shrink-0 
+        className={`relative z-10 shrink-0 
           ${rotateOnHover && !AnimatedIcon ? "group-hover:rotate-45" : ""}`}
       >
         {AnimatedIcon ? (
-          <AnimatedIcon ref={animatedIconRef} size={isExpanded ? (nested ? 16 : 24) : (nested ? 20 : 24)} duration={1} className={`${iconSizeClass}`} style={iconStyle} />
+          <AnimatedIcon ref={animatedIconRef} size={isExpanded ? (nested ? 16 : 24) : (nested ? 20 : 24)} duration={1} className={`${iconSizeClass} ${inactiveIconClass}`} style={iconStyle} />
         ) : (
-          <Icon className={`${iconSizeClass}`} style={iconStyle} />
+          <Icon className={`${iconSizeClass} ${inactiveIconClass}`} style={iconStyle} />
         )}
       </motion.div>
 
       {isExpanded && (
-        <div className="flex flex-1 items-center justify-between min-w-0">
+        <div className="relative z-10 flex flex-1 items-center justify-between min-w-0">
           <motion.span
             layout
             className={`truncate font-body tracking-[0.015em]
               ${nested ? "text-xs" : "text-sm"} 
-              ${active ? "font-semibold" : "text-white/50 group-hover:text-white/80"}`}
+              ${active ? "font-semibold" : "text-[#6C6C6C] group-hover:text-white"}`}
             style={active ? { color: "rgb(var(--launcher-accent))", textShadow: "0 0 8px rgb(var(--launcher-accent) / 0.5)" } : undefined}
           >
             {label}
@@ -248,7 +276,7 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({
         <TooltipTrigger asChild>
           <span className="inline-flex w-full justify-center">{buttonContent}</span>
         </TooltipTrigger>
-        <TooltipContent side="right" align="center" sideOffset={16} className="border border-white/10 bg-[#121214]/80 px-3 py-1.5 text-xs text-white/90 tracking-wide backdrop-blur-2xl rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+        <TooltipContent side="right" align="center" sideOffset={16} className="border border-[#161616] bg-[#0F0F0F]/80 px-3 py-1.5 text-xs text-[#D2D2D2] tracking-wide backdrop-blur-2xl rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
           {label}
         </TooltipContent>
       </Tooltip>
@@ -331,7 +359,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       className="fixed left-4 top-4 bottom-4 z-50 flex flex-col pointer-events-none transform-gpu"
     >
       <div
-        className="pointer-events-auto flex-1 flex flex-col py-6 px-4 min-h-0 rounded-4xl border border-[var(--color-border)] bg-[#0B0B0B]"
+        className="pointer-events-auto flex-1 flex flex-col py-6 px-4 min-h-0 rounded-4xl border-4 border-[#161616] bg-[#0F0F0F]/95"
       >
         <div
           onClick={toggleExpand}
@@ -339,7 +367,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           tabIndex={0}
           className={`relative mb-8 flex items-center cursor-pointer group p-1 transition-all duration-300 ${isExpanded ? "justify-start gap-4 px-1" : "justify-center"}`}
         >
-          <div className="relative w-[38px] h-[38px] rounded-[14px] flex items-center justify-center bg-white/[0.04] shadow-[0_4px_16px_rgba(0,0,0,0.2)] group-hover:bg-white/[0.06] transition-all duration-300 shrink-0">
+          <div className="relative w-[38px] h-[38px] rounded-[14px] flex items-center justify-center bg-[#161616] shadow-[0_4px_16px_rgba(0,0,0,0.2)] group-hover:bg-[#1E1E1E] transition-all duration-300 shrink-0">
             <img src={PHERIELIUM_LOGO_PATH} alt="Pherielium" className="h-[50px] w-[50px] object-contain grayscale brightness-200 opacity-90 group-hover:opacity-100 transition-opacity" />
           </div>
           {isExpanded && (
@@ -364,7 +392,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             return (
               <React.Fragment key={group.key}>
                 {index > 0 && (
-                  <div className="w-full h-[1px] my-1 shrink-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+                  <div className="w-full h-[1px] my-1 shrink-0 bg-gradient-to-r from-transparent via-[#6C6C6C]/30 to-transparent" />
                 )}
                 <div role="group" className="flex w-full flex-col gap-1.5">
                   {isExpanded ? (
@@ -376,18 +404,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                             setExpandedGroups((prev) => ({ ...prev, [group.key]: true }));
                           }
                         }}
-                        className="flex items-center gap-3 px-2 w-full py-1.5 transition-colors duration-300 hover:bg-white/[0.04] rounded-lg group/folder cursor-pointer"
+                        className="flex items-center gap-3 px-2 w-full py-1.5 transition-colors duration-300 hover:bg-[#161616] rounded-lg group/folder cursor-pointer"
                         aria-expanded={isOpen}
                       >
-                        <motion.span className="flex items-center justify-center shrink-0 text-white/30 group-hover/folder:text-white/60 transition-colors">
+                        <motion.span className="flex items-center justify-center shrink-0 text-[#6C6C6C] group-hover/folder:text-white transition-colors">
                           {isOpen ? <FolderOpen className="h-[14px] w-[14px]" /> : <Folder className="h-[14px] w-[14px]" />}
                         </motion.span>
-                        <span className="text-[11px] font-semibold capitalize tracking-wide text-white/40 font-body group-hover/folder:text-white/80 transition-colors">
+                        <span className="text-[11px] font-semibold capitalize tracking-wide text-[#6C6C6C] font-body group-hover/folder:text-white transition-colors">
                           {groupLabels[group.key]}
                         </span>
                       </button>
                     ) : (
-                      <span className="px-2 pb-1 text-[11px] font-semibold capitalize tracking-wide text-white/30 font-body">
+                      <span className="px-2 pb-1 text-[11px] font-semibold capitalize tracking-wide text-[#6C6C6C] font-body">
                         {groupLabels[group.key]}
                       </span>
                     )
@@ -410,8 +438,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                               className={`relative group flex h-12 w-12 items-center justify-center rounded-[18px] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50 ${isGroupActive && !isOpen
                                 ? "bg-[rgb(var(--launcher-accent)/0.14)] text-[rgb(var(--launcher-accent))] shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_0_1px_0_rgb(var(--launcher-accent)/0.20)]"
                                 : isOpen
-                                  ? "bg-white/[0.08] text-white"
-                                  : "text-white/40 hover:text-white/80 hover:bg-white/[0.06]"
+                                  ? "bg-[#161616] text-white"
+                                  : "text-[#6C6C6C] hover:text-white hover:bg-[#161616]"
                                 }`}
                             >
                               {isOpen ? (
@@ -428,7 +456,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </motion.button>
                           </span>
                         </TooltipTrigger>
-                        <TooltipContent side="right" align="center" sideOffset={16} className="border border-white/10 bg-[#121214]/90 px-3 py-1.5 text-xs text-white/90 tracking-wide backdrop-blur-2xl rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+                        <TooltipContent side="right" align="center" sideOffset={16} className="border border-[#161616] bg-[#0F0F0F]/90 px-3 py-1.5 text-xs text-[#D2D2D2] tracking-wide backdrop-blur-2xl rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
                           {groupLabels[group.key]} {isOpen ? "(Aberta)" : "(Pasta)"}
                         </TooltipContent>
                       </Tooltip>
@@ -445,7 +473,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         className={`overflow-hidden ${isCollapsible
                           ? isExpanded
                             ? "relative pl-4"
-                            : "relative flex flex-col items-center py-1.5 gap-1 rounded-2xl bg-white/[0.03] border border-white/[0.06] shadow-inner"
+                            : "relative flex flex-col items-center py-1.5 gap-1 rounded-2xl bg-[#0F0F0F] border border-[#161616] shadow-inner"
                           : ""
                           }`}
                       >
@@ -456,8 +484,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                               <div
                                 key={category.id}
                                 className={`relative w-full ${isCollapsible && isExpanded
-                                    ? `before:content-[''] before:absolute before:top-0 before:left-[-8px] before:w-3 before:h-1/2 before:border-l before:border-b before:border-white/[0.08] before:rounded-bl-[8px] ${!isLastItem
-                                      ? "after:content-[''] after:absolute after:top-1/2 after:left-[-8px] after:bottom-0 after:w-px after:bg-white/[0.08]"
+                                    ? `before:content-[''] before:absolute before:top-0 before:left-[-8px] before:w-3 before:h-1/2 before:border-l before:border-b before:border-[#2A2A2A] before:rounded-bl-[8px] ${!isLastItem
+                                       ? "after:content-[''] after:absolute after:top-1/2 after:left-[-8px] after:bottom-0 after:w-px after:bg-[#2A2A2A]"
                                       : ""
                                     }`
                                     : ""
@@ -489,7 +517,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* Separador inferior com gradient sutil */}
-        <div className="w-full h-[1px] mt-4 mb-4 shrink-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+        <div className="w-full h-[1px] mt-4 mb-4 shrink-0 bg-gradient-to-r from-transparent via-[#6C6C6C]/30 to-transparent" />
 
         <div className="w-full flex flex-col gap-1 shrink-0">
           <SidebarButton

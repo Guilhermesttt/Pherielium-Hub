@@ -40,17 +40,18 @@ html[data-launcher-theme="phelierium"],
 html[data-launcher-theme="checkpoint"] {
   /* ======================================= */
   /* DESIGN TOKENS DEFINITIVOS (Fase 6 CMF)  */
+  /* Estética Orbloom: #0F0F0F #161616 #D2D2D2 #6C6C6C */
   /* ======================================= */
-  --color-bg-main: #000000;
-  /* Preto Absoluto */
-  --color-surface: #141414;
-  /* Cinza Escuro Interface */
-  --color-ui-detail: #333333;
-  /* Cinza Médio Detalhes e Bordas */
-  --color-text-main: #FFFFFF;
-  /* Branco Texto Principal */
-  --color-text-sub: #999999;
-  /* Cinza Claro Texto Secundário */
+  --color-bg-main: #0F0F0F;
+  /* Orbloom Page */
+  --color-surface: #161616;
+  /* Orbloom Card */
+  --color-ui-detail: #2A2A2A;
+  /* Borda derivada de #6C6C6C em baixa opacidade */
+  --color-text-main: #D2D2D2;
+  /* Orbloom Texto Principal */
+  --color-text-sub: #6C6C6C;
+  /* Orbloom Texto Secundário */
 
   /* Fallback legacy remapping */
   --background: var(--color-bg-main);
@@ -62,11 +63,17 @@ html[data-launcher-theme="checkpoint"] {
   --muted-foreground: var(--color-text-sub);
   --text-primary: var(--color-text-main);
   --text-secondary: var(--color-text-sub);
-  --text-tertiary: rgba(255, 255, 255, 0.4);
-  --text-disabled: rgba(255, 255, 255, 0.25);
+  --text-tertiary: rgba(210, 210, 210, 0.4);
+  --text-disabled: rgba(210, 210, 210, 0.25);
   --border: var(--color-ui-detail);
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.2);
+  --border-subtle: rgba(210, 210, 210, 0.08);
+  --border-strong: rgba(210, 210, 210, 0.2);
+
+  /* Tokens brutos Orbloom (uso direto em overrides pontuais) */
+  --orbloom-bg: #0F0F0F;
+  --orbloom-card: #161616;
+  --orbloom-text: #D2D2D2;
+  --orbloom-muted: #6C6C6C;
 
   --launcher-accent: 255 255 255;
   /* Branco RGB base for focus rings */
@@ -540,11 +547,10 @@ html[data-launcher-theme="sunset"] {
     scrollbar-color: rgba(255, 255, 255, 0.18) rgba(255, 255, 255, 0.02);
   }
 
-  /* ── Glass Effect – Performance-safe (NO backdrop-filter) ──
-     Uses rgba transparency + border. Zero GPU blur cost.
-  ── */
+  /* ── Orbloom Liquid Glass (paleta padrão #0F0F0F/#161616/#D2D2D2/#6C6C6C) ──
+     Vidro escuro real com blur. Em low-performance o blur é removido
+     pelo override `body.low-performance *` mais abaixo. */
   .liquid-glass,
-  .liquid-glass-subtle,
   .liquid-glass-dark,
   .fluid-glass-accent,
   .glass,
@@ -552,11 +558,36 @@ html[data-launcher-theme="sunset"] {
   .premium-glass,
   .premium-glass-black,
   .premium-glass-white {
-    background: transparent;
-    border: 1px solid var(--border);
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    background: linear-gradient(180deg, rgba(22, 22, 22, 0.72) 0%, rgba(15, 15, 15, 0.78) 100%);
+    border: 1px solid rgba(210, 210, 210, 0.09);
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(210, 210, 210, 0.08);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    color: var(--color-text-main, #D2D2D2);
+  }
+
+  .liquid-glass-subtle {
+    background: linear-gradient(180deg, rgba(22, 22, 22, 0.55) 0%, rgba(15, 15, 15, 0.6) 100%);
+    border: 1px solid rgba(210, 210, 210, 0.07);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(210, 210, 210, 0.06);
+    backdrop-filter: blur(12px) saturate(130%);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    color: var(--color-text-main, #D2D2D2);
+  }
+
+  /* Canonical Orbloom glass para código novo */
+  .orbloom-glass {
+    background: linear-gradient(180deg, rgba(22, 22, 22, 0.78) 0%, rgba(15, 15, 15, 0.85) 100%);
+    border: 1px solid #2A2A2A;
+    border-radius: var(--radius-card, 16px);
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(210, 210, 210, 0.09);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    color: var(--orbloom-text, #D2D2D2);
   }
 
   .fluid-glass-accent::before {
@@ -725,6 +756,11 @@ body.low-performance::before {
   display: none !important;
 }
 
+/* Cursor glow desligado em low-performance (só repaint, mas poupamos mesmo assim) */
+body.low-performance .cursor-glow::before {
+  display: none !important;
+}
+
 @keyframes pixel-on {
 
   0%,
@@ -758,22 +794,22 @@ video {
 
 @layer components {
 
-  /* Concentric Card Architecture (R_outer - padding = R_inner) */
+  /* Concentric Card Architecture (R_outer - padding = R_inner) — paleta Orbloom */
   .ds-shell {
     border-radius: 24px;
-    background: rgba(11, 13, 20, 0.88);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
+    background: rgba(15, 15, 15, 0.88);
+    border: 1px solid rgba(210, 210, 210, 0.08);
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
   }
 
   .ds-card {
     border-radius: 16px;
-    background: rgba(13, 15, 24, 0.82);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(22, 22, 22, 0.82);
+    border: 1px solid rgba(210, 210, 210, 0.08);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
   }
 
@@ -874,10 +910,73 @@ video {
     transform: scale(0.97);
   }
 
-  /* Efeito de Material Otimizado para Painéis Grandes (Substitui o Liquid Glass Pesado) */
+  /* Fundo opaco meio-termo para painéis (substitui o liquid glass) */
   .glass-panel {
-    background: linear-gradient(120deg, rgba(255, 255, 255, 0.06) 0%, var(--color-surface, #13141a) 100%);
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    background: linear-gradient(180deg, rgba(24, 24, 24, 0.82) 0%, rgba(15, 15, 15, 0.88) 100%);
+    border: 1px solid rgba(210, 210, 210, 0.09);
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(210, 210, 210, 0.08);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+  }
+
+  /* ── Orbloom aesthetic (ref: recent.design Orbloom Voice Orb) ──
+     Página #0F0F0F, card #161616, texto #D2D2D2, muted #6C6C6C.
+     Controles estilo pill sobre o card, como no showcase. */
+  .orbloom-page {
+    background: var(--orbloom-bg, #0F0F0F);
+    color: var(--orbloom-text, #D2D2D2);
+  }
+
+  .orbloom-card {
+    background: var(--orbloom-card, #161616);
+    border: 1px solid rgba(210, 210, 210, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  }
+
+  .orbloom-muted {
+    color: var(--orbloom-muted, #6C6C6C);
+  }
+
+  .orbloom-control {
+    background: rgba(210, 210, 210, 0.06);
+    border: 1px solid rgba(210, 210, 210, 0.08);
+    border-radius: 9999px;
+    color: var(--orbloom-text, #D2D2D2);
+  }
+
+  .orbloom-control:hover {
+    background: rgba(210, 210, 210, 0.12);
+  }
+
+  /* ── Luma-style cursor glow (managed by handleCursorGlow, sem re-render) ── */
+  .cursor-glow {
+    position: relative;
+  }
+
+  .cursor-glow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(220px circle at var(--cg-x, 50%) var(--cg-y, 50%),
+        rgba(210, 210, 210, 0.12),
+        transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .cursor-glow:hover::before {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cursor-glow::before {
+      display: none;
+    }
   }
 }

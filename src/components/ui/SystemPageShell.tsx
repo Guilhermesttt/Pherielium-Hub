@@ -31,9 +31,7 @@ export const SystemPageShell: React.FC<SystemPageShellProps> = React.memo(
         className="flex-1 overflow-y-auto thin-scrollbar"
         style={{
           padding: "32px 40px 48px",
-          contain: "layout paint",
-          transform: "translate3d(0,0,0)",
-          willChange: "transform",
+          contain: "layout",
         }}
       >
         <div className="mx-auto flex min-h-full max-w-6xl flex-col">

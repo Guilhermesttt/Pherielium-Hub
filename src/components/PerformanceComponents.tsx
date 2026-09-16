@@ -8,8 +8,13 @@ import {
 import { usePreferences } from "../context/PreferencesContext";
 
 export function useLowPerf() {
-  const { lowPerformanceMode } = usePreferences();
-  return lowPerformanceMode;
+  // Seguro fora do PreferencesProvider (ex: fallback do Suspense no main.tsx):
+  // sem provider, assume efeitos ligados.
+  try {
+    return usePreferences().lowPerformanceMode;
+  } catch {
+    return false;
+  }
 }
 
 export const PAnimatePresence: React.FC<AnimatePresenceProps & { children: React.ReactNode }> = ({
@@ -138,6 +143,8 @@ export const PVideoBackground: React.FC<PVideoBackgroundProps> = ({ src, classNa
 
   if (low) return null;
 
+  const mimeType = src.endsWith(".webm") ? "video/webm" : "video/mp4";
+
   return (
     <video
       ref={videoRef}
@@ -148,7 +155,7 @@ export const PVideoBackground: React.FC<PVideoBackgroundProps> = ({ src, classNa
       className={className}
       style={{ opacity }}
     >
-      <source src={src} type="video/mp4" />
+      <source src={src} type={mimeType} />
     </video>
   );
 };

@@ -100,7 +100,7 @@ const FriendOnlineCard = React.memo<{
   return (
     <div
       data-friend-id={friend.id}
-      className="group relative rounded-xl bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] hover:border-white/20 p-3.5 transition-[transform,background-color,border-color] duration-160 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.3)]  flex flex-col justify-between transform-gpu"
+      className="group relative rounded-xl bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] hover:border-white/20 p-3.5 transition-[transform,background-color,border-color] duration-160 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.3)]  flex flex-col justify-between"
       onMouseEnter={handleMouseEnter}
     >
       <div>
@@ -256,7 +256,7 @@ const FriendOfflineCard = React.memo<{
         }
       }}
       onMouseEnter={() => playSound?.("hover")}
-      className={`shrink-0 snap-start relative flex items-center gap-3 p-3 rounded-xl border transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out transform-gpu will-change-transform  shadow-md data-[gamepad-focused='true']:border-white data-[gamepad-focused='true']:ring-2 data-[gamepad-focused='true']:ring-white/40 ${
+      className={`shrink-0 snap-start relative flex items-center gap-3 p-3 rounded-xl border transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out  shadow-md data-[gamepad-focused='true']:border-white data-[gamepad-focused='true']:ring-2 data-[gamepad-focused='true']:ring-white/40 ${
         isLoadingProfile
           ? "bg-[var(--color-surface)] border-white/40 ring-1 ring-white/25 shadow-[0_0_24px_rgba(255,255,255,0.18)] cursor-wait scale-[0.99]"
           : "bg-[var(--color-surface)] hover:bg-[#222222] border-[var(--color-ui-detail)] hover:border-white/15 cursor-pointer hover:scale-[1.02]"
@@ -339,7 +339,7 @@ const FriendChatCard = React.memo<{
           handleChat();
         }
       }}
-      className="group relative flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] hover:border-white/20 focus:border-white/40 focus:bg-[var(--color-surface)] focus:outline-none data-[gamepad-focused='true']:border-white data-[gamepad-focused='true']:bg-[var(--color-surface)] data-[gamepad-focused='true']:ring-2 data-[gamepad-focused='true']:ring-white/40 cursor-pointer transition-all shadow-md transform-gpu will-change-transform"
+      className="group relative flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] hover:border-white/20 focus:border-white/40 focus:bg-[var(--color-surface)] focus:outline-none data-[gamepad-focused='true']:border-white data-[gamepad-focused='true']:bg-[var(--color-surface)] data-[gamepad-focused='true']:ring-2 data-[gamepad-focused='true']:ring-white/40 cursor-pointer transition-all shadow-md"
     >
       <div className="flex items-center gap-3 min-w-0">
         <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/10 shrink-0">
@@ -432,7 +432,7 @@ const FriendRequestCard = React.memo<{
   const handleReject = useCallback(() => onReject(request.uid), [request.uid, onReject]);
 
   return (
-    <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)] transform-gpu will-change-transform">
+      <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)]">
       <div className="flex items-center gap-3">
         <div className="w-11 h-11 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/10">
           {request.photoURL ? (
@@ -608,10 +608,10 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
       }
     >
 
-      {/* Top Sub-Tabs Navigation - Unified Frosted Obsidian Glass Dock */}
+      {/* Top Sub-Tabs Navigation - largura cheia alinhada ao conteúdo (max-w-5xl do shell) */}
       <div className="w-full flex justify-center mb-7 z-10 relative">
         <div
-          className="flex items-center justify-between p-1.5 rounded-2xl border border-[var(--color-ui-detail)] shadow-2xl  w-full max-w-4xl"
+          className="flex items-center justify-between p-1.5 rounded-2xl border border-[var(--color-ui-detail)] shadow-2xl  w-full max-w-5xl"
           style={{
             background: "rgba(255, 255, 255, 0.02)",
             backdropFilter: "blur(20px) saturate(180%)",
@@ -832,7 +832,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
           </div>
 
           {/* Right Column: Friends Search, Filter & Grid (8 Cols) */}
-          <div className="lg:col-span-8 flex flex-col gap-6">
+          <div className="lg:col-span-8 flex flex-col gap-5">
             {/* Search & Control Bar */}
             <div className="relative z-[100] flex flex-wrap items-center gap-2.5 rounded-3xl border border-[var(--color-ui-detail)] p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] glass-panel">
               <div className="relative flex-1 min-w-[240px]">
@@ -869,7 +869,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                     aria-label="Visualização em Grade"
                     aria-pressed={viewMode === "grid"}
                     onClick={() => handleSetViewMode("grid")}
-                    className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${viewMode === "grid" ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
+                    className={`h-7 w-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${viewMode === "grid" ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
                       }`}
                   >
                     <LayoutGrid className="w-4 h-4" />
@@ -879,7 +879,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                     aria-label="Visualização em Lista"
                     aria-pressed={viewMode === "list"}
                     onClick={() => handleSetViewMode("list")}
-                    className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${viewMode === "list" ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
+                    className={`h-7 w-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${viewMode === "list" ? "bg-white/15 text-white" : "text-white/40 hover:text-white"
                       }`}
                   >
                     <ListFilter className="w-4 h-4" />
@@ -900,6 +900,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
               {onlineFriends.length === 0 ? (
                 <StandardEmptyState
                   icon={Users}
+                  illustrated="friends"
                   title="Nenhum amigo online"
                   description="Seus amigos aparecerão aqui quando estiverem conectados ou jogando."
                   actionLabel="Adicionar amigo"
@@ -925,7 +926,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
             </div>
 
             {/* Section: OFFLINE Friends Carousel with Navigation Controls */}
-            <div className="space-y-3.5 pt-2">
+            <div className="space-y-3.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-white/20" />

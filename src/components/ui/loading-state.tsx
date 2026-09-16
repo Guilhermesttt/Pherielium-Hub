@@ -1,42 +1,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ThinkingOrbLoader, type ThinkingOrbState } from "../ThinkingOrbLoader";
 
 /* ─────────────────────────────────────────────────────────
- * LOADING STATE — pixel-grid loader for long-running work
+ * LOADING STATE — thinking-orb loader
  *
- * Variants:
- *   Drive  — square cells, chevron wavefront driving right;
- *            the 650ms cycle is shorter than the sweep, so
- *            two fronts are always in flight
- *   Dots   — same wavefront, circular cells
- *   Orbit  — a comet lapping the grid perimeter
+ * As 9 variações são os estados do thinking-orbs (cada um com
+ * sua animação calibrada):
+ *   working, searching, solving, listening, connecting,
+ *   weaving, composing, breathing, shaping
+ *
+ * Nomes legados (Drive/Dots/Orbit/Thinking) continuam
+ * funcionando via mapa abaixo.
+ *
+ * Tamanhos: sm → orb 20px (inline), md/lg → orb 64px.
+ * `dark` inverte a tinta para fundos claros.
  *
  * Paired with a shimmering label and a live elapsed timer
- * in mono tabular figures. Reduced motion freezes the grid
- * to its dim state; the timer still ticks.
+ * in mono tabular figures.
  * ───────────────────────────────────────────────────────── */
 
-const chevron = Array.from({ length: 9 }, (_, i) => {
-  const r = Math.floor(i / 3),
-    c = i % 3;
-  return (c + Math.abs(r - 1)) * 90;
-});
-
-const ORBIT_ORDER = [0, 1, 2, 5, 8, 7, 6, 3];
-const orbit = Array.from({ length: 9 }, (_, i) => {
-  const k = ORBIT_ORDER.indexOf(i);
-  return k === -1 ? null : k * 110;
-});
-
-const PATTERNS: Record<
-  string,
-  { delays: (number | null)[]; dur: number; round: boolean }
-> = {
-  Drive: { delays: chevron, dur: 650, round: false },
-  Dots: { delays: chevron, dur: 650, round: true },
-  Orbit: { delays: orbit, dur: 950, round: false },
+const LEGACY_VARIANTS: Record<string, ThinkingOrbState> = {
+  Drive: "working",
+  Dots: "searching",
+  Orbit: "breathing",
+  Thinking: "searching",
 };
+
+function resolveOrbState(variant: string): ThinkingOrbState {
+  if (variant in LEGACY_VARIANTS) return LEGACY_VARIANTS[variant];
+  return variant as ThinkingOrbState;
+}
 
 function useElapsed(enabled = true) {
   const [ds, setDs] = useState(0);
@@ -52,26 +47,27 @@ function useElapsed(enabled = true) {
 
 export interface LoadingStateProps {
   label?: string;
-  variant?: "Drive" | "Dots" | "Orbit" | string;
+  variant?: ThinkingOrbState | "Drive" | "Dots" | "Orbit" | "Thinking";
   className?: string;
   showTimer?: boolean;
   size?: "sm" | "md" | "lg";
   dark?: boolean;
+  /** Exibe o orb ao lado do texto (padrão true) */
+  showIcon?: boolean;
 }
 
 export function LoadingState({
   label = "Carregando",
-  variant = "Drive",
+  variant = "working",
   className = "",
   showTimer = true,
   size = "md",
   dark = false,
+  showIcon = true,
 }: LoadingStateProps) {
   const elapsed = useElapsed(showTimer);
-  const { delays, dur, round } = PATTERNS[variant] ?? PATTERNS.Drive;
+  const orbState = resolveOrbState(variant);
 
-  const pixelSize = size === "sm" ? "size-[3px]" : size === "lg" ? "size-[5px]" : "size-[4px]";
-  const gridGap = size === "sm" ? "gap-[1px]" : "gap-[1.5px]";
   const textSize = size === "sm" ? "text-[11px]" : size === "lg" ? "text-[14px]" : "text-[13px]";
   const timerSize = size === "sm" ? "text-[10px]" : size === "lg" ? "text-[13px]" : "text-[12px]";
 
@@ -81,21 +77,16 @@ export function LoadingState({
 
   return (
     <div className={`flex w-fit items-center gap-2.5 ${className}`}>
-      <span aria-hidden className={`grid grid-cols-[repeat(3,auto)] ${gridGap}`}>
-        {delays.map((d, i) => (
-          <span
-            key={i}
-            className={`${pixelSize} ${dark ? "bg-black" : "bg-white"} ${round ? "rounded-full" : "rounded-[1px]"}`}
-            style={{
-              opacity: d === null ? (dark ? 0.1 : 0.07) : (dark ? 0.2 : 0.15),
-              animation:
-                d === null
-                  ? "none"
-                  : `pixel-on ${dur}ms ease-in-out ${d}ms infinite`,
-            }}
+      {showIcon && (
+        <span aria-hidden className="inline-flex shrink-0 items-center">
+          <ThinkingOrbLoader
+            state={orbState}
+            size={size === "sm" ? 20 : 64}
+            theme={dark ? "light" : "dark"}
+            label={label}
           />
-        ))}
-      </span>
+        </span>
+      )}
       {label && (
         <span
           className={`bg-clip-text ${textSize} font-medium text-transparent`}

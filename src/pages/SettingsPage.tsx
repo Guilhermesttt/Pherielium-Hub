@@ -70,6 +70,7 @@ import type { SettingsTab } from "../services/launcherNavigation";
 import type { ProfileVisibility } from "../types/domain";
 import { ElasticSlider } from "../components/ReactBits/ElasticSlider";
 import InputHints from "../components/ui/InputHints";
+import { LinearProgress } from "../components/ui/LinearProgress";
 
 type TranslationFn = ReturnType<typeof usePreferences>["t"];
 type BrandIcon = React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
@@ -634,6 +635,7 @@ export const SettingsSelect = <T extends string>({
             return (
               <DropdownMenuItem
                 key={opt.value}
+                glideId={opt.value}
                 onClick={() => onChange(opt.value)}
                 className={cn(
                   "flex items-center justify-between gap-2 px-3 py-2 text-[12px] rounded-lg cursor-pointer transition-all outline-none select-none",
@@ -1686,7 +1688,12 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                         </button>
                       ) : (
                         <button onClick={onConnectSteam} disabled={steamConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
-                          {steamConnecting ? t("connecting") : t("connectSteam")}
+                          {steamConnecting ? (
+                            <span className="flex items-center gap-2">
+                              <LinearProgress className="w-12" label={t("connecting")} />
+                              <span>{t("connecting")}</span>
+                            </span>
+                          ) : t("connectSteam")}
                         </button>
                       )}
                     </div>
@@ -1709,7 +1716,12 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                         </button>
                       ) : (
                         <button onClick={onConnectDiscord} disabled={discordConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
-                          {discordConnecting ? t("connecting") : t("connectDiscord")}
+                          {discordConnecting ? (
+                            <span className="flex items-center gap-2">
+                              <LinearProgress className="w-12" label={t("connecting")} />
+                              <span>{t("connecting")}</span>
+                            </span>
+                          ) : t("connectDiscord")}
                         </button>
                       )}
                     </div>
@@ -1732,7 +1744,12 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                         </button>
                       ) : (
                         <button onClick={onConnectEpic} disabled={epicConnecting} className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-xl text-[12px] font-medium transition-colors disabled:opacity-50 active:scale-95 cursor-pointer">
-                          {epicConnecting ? t("connecting") : t("connectEpic")}
+                          {epicConnecting ? (
+                            <span className="flex items-center gap-2">
+                              <LinearProgress className="w-12" label={t("connecting")} />
+                              <span>{t("connecting")}</span>
+                            </span>
+                          ) : t("connectEpic")}
                         </button>
                       )}
                     </div>

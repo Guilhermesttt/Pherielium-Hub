@@ -389,6 +389,9 @@ const AppContent: React.FC = () => {
             <AsyncLoader
               key="hub-preloader"
               minDurationMs={2400}
+              // Pré-aquece o chunk lazy do toast de troféus durante o boot
+              // para a Home não travar no primeiro unlock
+              preload={[() => import("./components/TrophyUnlockToast")]}
               onFinish={() => {
                 setIsPreloaderVisible(false);
                 setIsIntroVisible(true);

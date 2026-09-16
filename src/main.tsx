@@ -18,7 +18,7 @@ const isDesktopRuntime = Boolean(window.electronAPI);
 
 const routeFallback = (
   <div className="flex min-h-screen items-center justify-center bg-[#030405] text-white">
-    <LoadingState label="Iniciando Pherielium" variant="Drive" />
+    <LoadingState label="Iniciando Pherielium" variant="working" />
   </div>
 );
 

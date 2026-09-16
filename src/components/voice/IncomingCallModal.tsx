@@ -2,6 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Phone, PhoneOff, Video, Signal, ShieldCheck, Activity } from "lucide-react";
 import { PHERIELIUM_LOGO_PATH } from "../../constants/assets";
+import { OrbloomOrb } from "./OrbloomOrb";
 import type { CallInvitePayload } from "../../services/voiceCall";
 
 interface IncomingCallModalProps {
@@ -21,7 +22,7 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-xl select-none">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-[#0F0F0F]/85 p-4 backdrop-blur-xl select-none">
         <motion.div
           initial={{ opacity: 0, scale: 0.92, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -53,25 +54,13 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
               </div>
             </div>
 
-            {/* Concentric Orbital Radar Avatar */}
+            {/* Orbloom como presença viva da chamada */}
             <div className="flex flex-col items-center text-center">
-              <div className="relative my-2 flex h-36 w-36 items-center justify-center">
-                {/* Outer rotating/pulsing rings */}
-                <div className="absolute inset-0 rounded-full border border-white/10 animate-ping opacity-20 duration-1000" />
-                <div className="absolute inset-2 rounded-full border border-white/15" />
-                <div className="absolute inset-5 rounded-full border border-dashed border-white/25 animate-spin" style={{ animationDuration: "12s" }} />
-
-                {/* Orbiting Radar Node */}
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
-                  className="absolute inset-2 pointer-events-none"
-                >
-                  <div className="h-2 w-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,1)] -translate-x-1/2" />
-                </motion.div>
+              <div className="relative my-2 flex h-44 w-44 items-center justify-center">
+                <OrbloomOrb size={168} orbState="listening" participantId={invite.callerId} ambientMotion={false} label={`Chamada de ${invite.callerName}`} />
 
                 {/* Avatar */}
-                <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-white/30 bg-[#12131a] shadow-[0_0_40px_rgba(255,255,255,0.15)]">
+                <div className="absolute h-16 w-16 overflow-hidden rounded-full border-2 border-white/20 bg-[#0F0F0F] shadow-[0_0_40px_rgba(0,0,0,0.6)]">
                   {invite.callerAvatar ? (
                     <img
                       src={invite.callerAvatar}
@@ -79,44 +68,44 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-white/[0.06] text-2xl font-display font-black text-white">
+                    <div className="flex h-full w-full items-center justify-center bg-black/50 text-xl font-display font-black text-white backdrop-blur-sm">
                       {invite.callerName.slice(0, 2).toUpperCase()}
                     </div>
                   )}
                 </div>
               </div>
 
-              <h2 className="text-2xl font-display font-bold tracking-tight text-white mt-4">
+              <h2 className="text-2xl font-display font-bold tracking-tight text-[#D2D2D2] mt-4">
                 {invite.callerName}
               </h2>
 
-              <p className="mt-1 text-xs font-body font-semibold tracking-widest text-white/60 uppercase">
+              <p className="mt-1 text-xs font-body font-semibold tracking-widest text-[#6C6C6C] uppercase">
                 ESTÁ LIGANDO PARA VOCÊ...
               </p>
 
               {/* Call Details Pill Box */}
-              <div className="mt-6 w-full rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3 grid grid-cols-3 gap-2">
-                <div className="flex flex-col items-center justify-center gap-1 border-r border-white/[0.06] pr-1">
+              <div className="mt-6 w-full rounded-2xl border border-[#161616] bg-[#0F0F0F]/60 p-3 grid grid-cols-3 gap-2">
+                <div className="flex flex-col items-center justify-center gap-1 border-r border-[#2A2A2A] pr-1">
                   {invite.hasVideo ? (
-                    <Video className="h-4 w-4 text-white/70" />
+                    <Video className="h-4 w-4 text-[#D2D2D2]" />
                   ) : (
-                    <Phone className="h-4 w-4 text-white/70" />
+                    <Phone className="h-4 w-4 text-[#D2D2D2]" />
                   )}
-                  <span className="text-[10.5px] font-semibold text-white">
+                  <span className="text-[10.5px] font-semibold text-[#D2D2D2]">
                     {invite.hasVideo ? "Chamada de vídeo" : "Chamada de voz"}
                   </span>
                 </div>
 
-                <div className="flex flex-col items-center justify-center gap-1 border-r border-white/[0.06] px-1">
-                  <Signal className="h-4 w-4 text-white" />
-                  <span className="text-[9px] font-body text-white/40 uppercase">QUALIDADE</span>
-                  <span className="text-[10.5px] font-semibold text-white">EXCELENTE</span>
+                <div className="flex flex-col items-center justify-center gap-1 border-r border-[#2A2A2A] px-1">
+                  <Signal className="h-4 w-4 text-[#D2D2D2]" />
+                  <span className="text-[9px] font-body text-[#6C6C6C] uppercase">QUALIDADE</span>
+                  <span className="text-[10.5px] font-semibold text-[#D2D2D2]">EXCELENTE</span>
                 </div>
 
                 <div className="flex flex-col items-center justify-center gap-1 pl-1">
-                  <ShieldCheck className="h-4 w-4 text-white" />
-                  <span className="text-[9px] font-body text-white/40 uppercase">CONEXÃO</span>
-                  <span className="text-[10.5px] font-semibold text-white">SEGURA</span>
+                  <ShieldCheck className="h-4 w-4 text-[#D2D2D2]" />
+                  <span className="text-[9px] font-body text-[#6C6C6C] uppercase">CONEXÃO</span>
+                  <span className="text-[10.5px] font-semibold text-[#D2D2D2]">SEGURA</span>
                 </div>
               </div>
 
@@ -153,8 +142,8 @@ export const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
           </div>
 
           {/* Bottom Footnote */}
-          <div className="border-t border-white/[0.06] bg-black/30 px-6 py-3 text-center">
-            <span className="text-[10px] font-body text-white/30 tracking-wide">
+          <div className="border-t border-[#161616] bg-[#0F0F0F]/60 px-6 py-3 text-center">
+            <span className="text-[10px] font-body text-[#6C6C6C] tracking-wide">
               ⓘ VOCÊ PODE ACEITAR OU RECUSAR A CHAMADA
             </span>
           </div>

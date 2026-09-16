@@ -1185,7 +1185,7 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
     >
       <div
         aria-busy={isSaving || loading}
-        className="relative flex h-[calc(100dvh-2rem)] max-h-[860px] w-full flex-col overflow-hidden rounded-xl border border-white/[0.08] shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] md:h-[calc(100dvh-4rem)] text-white transform-gpu bg-[#0E0E0E]"
+        className="relative flex h-[calc(100dvh-2rem)] max-h-[860px] w-full flex-col overflow-hidden rounded-xl border border-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] md:h-[calc(100dvh-4rem)] text-white bg-[#0F0F0F]/95"
       >
         <header className="relative flex shrink-0 items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-4 md:px-7 md:py-5">
           <div className="flex min-w-0 items-center gap-4">
@@ -1631,7 +1631,7 @@ const AddGameModal: React.FC<AddGameModalProps> = ({
             className="inline-flex min-w-40 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-[12px] font-bold text-black transition-all hover:bg-white/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/25 disabled:text-black/50"
           >
             {isSaving ? (
-              <LoadingState label={copy.saving} variant="Drive" dark size="sm" showTimer={false} />
+              <LoadingState label={copy.saving} variant="working" dark size="sm" showTimer={false} />
             ) : (
               <>
                 <Check size={14} strokeWidth={3} />

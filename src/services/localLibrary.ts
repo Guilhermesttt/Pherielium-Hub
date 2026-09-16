@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import type { Game, UserProfile } from "../types/domain";
 import { cachedQuery, invalidate } from "../lib/queryCache";
+import { getUsableSession } from "./api";
 
 const CLOUD_PAGE_SIZE = 100;
 const CLOUD_GAME_LIMIT = 500;
@@ -61,6 +62,13 @@ const fromCloudGameRow = (row: Record<string, any>): Game => ({
 const syncLocalGamesToCloud = async (uid: string) => {
   if (!window.electronAPI?.listLocalGames) return;
 
+  // Verificar se temos uma sessão válida antes de tentar sincronizar
+  const session = await getUsableSession();
+  if (!session) {
+    console.warn("[LocalLibrary] Sessão expirada ou inválida, pulando sync de biblioteca");
+    throw new Error("Sessão expirada. Por favor, faça login novamente.");
+  }
+
   const localGames = await window.electronAPI.listLocalGames(uid);
   const normalizedGames = Array.isArray(localGames)
     ? localGames.slice(0, CLOUD_GAME_LIMIT)
@@ -72,7 +80,10 @@ const syncLocalGamesToCloud = async (uid: string) => {
       .from("user_games")
       .upsert(chunk, { onConflict: "user_id,id" });
 
-    if (upsertError) throw upsertError;
+    if (upsertError) {
+      console.error("[LocalLibrary] Erro ao upsert jogos:", upsertError);
+      throw upsertError;
+    }
   }
 
   // Remove da cópia pública jogos que já não existem na biblioteca local.
@@ -82,7 +93,10 @@ const syncLocalGamesToCloud = async (uid: string) => {
     .select("id")
     .eq("user_id", uid);
 
-  if (existingError) throw existingError;
+  if (existingError) {
+    console.error("[LocalLibrary] Erro ao buscar jogos existentes:", existingError);
+    throw existingError;
+  }
 
   const desiredIds = new Set(rows.map((row) => String(row.id)));
   const staleIds = (existingRows || [])
@@ -96,7 +110,10 @@ const syncLocalGamesToCloud = async (uid: string) => {
       .eq("user_id", uid)
       .in("id", staleChunk);
 
-    if (deleteError) throw deleteError;
+    if (deleteError) {
+      console.error("[LocalLibrary] Erro ao deletar jogos antigos:", deleteError);
+      throw deleteError;
+    }
   }
 };
 
@@ -255,64 +272,85 @@ export const syncPublicLibrarySummary = async (
 ) => {
   if (!window.electronAPI?.getLocalLibrarySummary) return false;
 
-  const summary = await window.electronAPI.getLocalLibrarySummary(uid);
-  const photoURL = profile?.photoURL
-    || profile?.discordAvatar
-    || profile?.steamAvatar
-    || "";
-  const profileVisibility = profile?.profileVisibility === "private" ? "private" : "public";
+  // Verificar se temos uma sessão válida antes de tentar sincronizar
+  const session = await getUsableSession();
+  if (!session) {
+    console.warn("[LocalLibrary] Sessão expirada ou inválida, pulando sync de perfil público");
+    return false;
+  }
 
-  // v2 força uma ressincronização única para quem ficou preso no fluxo antigo,
-  // que marcava o resumo como sincronizado antes de user_games terminar.
-  const profileFingerprint = JSON.stringify([
-    PUBLIC_LIBRARY_SYNC_VERSION,
-    profile?.displayName || "Jogador",
-    photoURL,
-    profile?.bio || "",
-    profile?.website || "",
-    profile?.favoriteGenres || [],
-    profileVisibility,
-  ]);
-  const fingerprintKey = `checkpoint_public_profile_fingerprint_v${PUBLIC_LIBRARY_SYNC_VERSION}_${uid}`;
+  try {
+    const summary = await window.electronAPI.getLocalLibrarySummary(uid);
+    const photoURL = profile?.photoURL
+      || profile?.discordAvatar
+      || profile?.steamAvatar
+      || "";
+    const profileVisibility = profile?.profileVisibility === "private" ? "private" : "public";
 
-  if (
-    !summary.dirty
-    && localStorage.getItem(fingerprintKey) === profileFingerprint
-  ) return false;
+    // v2 força uma ressincronização única para quem ficou preso no fluxo antigo,
+    // que marcava o resumo como sincronizado antes de user_games terminar.
+    const profileFingerprint = JSON.stringify([
+      PUBLIC_LIBRARY_SYNC_VERSION,
+      profile?.displayName || "Jogador",
+      photoURL,
+      profile?.bio || "",
+      profile?.website || "",
+      profile?.favoriteGenres || [],
+      profileVisibility,
+    ]);
+    const fingerprintKey = `checkpoint_public_profile_fingerprint_v${PUBLIC_LIBRARY_SYNC_VERSION}_${uid}`;
 
-  // 1) Primeiro garante que a biblioteca pública real esteja coerente.
-  // Se isso falhar, NÃO marcamos o resumo local como sincronizado.
-  await syncLocalGamesToCloud(uid);
+    if (
+      !summary.dirty
+      && localStorage.getItem(fingerprintKey) === profileFingerprint
+    ) return false;
 
-  // 2) Depois publica apenas as colunas que realmente existem em public_profiles.
-  // Steam/Discord continuam vindo de profiles; não duplicamos isso em "platforms".
-  const { error: publicProfileError } = await supabase
-    .from("public_profiles")
-    .upsert({
+    // 1) Primeiro garante que a biblioteca pública real esteja coerente.
+    // Se isso falhar, NÃO marcamos o resumo local como sincronizado.
+    await syncLocalGamesToCloud(uid);
+
+    // 2) Depois publica apenas as colunas que realmente existem em public_profiles.
+    // Steam/Discord continuam vindo de profiles; não duplicamos isso em "platforms".
+    const { error: publicProfileError } = await supabase
+      .from("public_profiles")
+      .upsert({
+        uid,
+        display_name: profile?.displayName || "Jogador",
+        photo_url: photoURL,
+        bio: profile?.bio || "",
+        website: profile?.website || "",
+        favorite_genres: profile?.favoriteGenres || [],
+        stats: summary.stats,
+        achievements: summary.achievements,
+        top_games: summary.topGames,
+        favorite_games: summary.favoriteGames,
+        profile_visibility: profileVisibility,
+        revision: summary.revision,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "uid" });
+
+    if (publicProfileError) {
+      console.error("[LocalLibrary] Erro ao upsert perfil público:", publicProfileError);
+      throw publicProfileError;
+    }
+
+    // 3) Só agora podemos considerar a revisão realmente sincronizada.
+    await window.electronAPI.markLocalLibrarySummarySynced(
       uid,
-      display_name: profile?.displayName || "Jogador",
-      photo_url: photoURL,
-      bio: profile?.bio || "",
-      website: profile?.website || "",
-      favorite_genres: profile?.favoriteGenres || [],
-      stats: summary.stats,
-      achievements: summary.achievements,
-      top_games: summary.topGames,
-      favorite_games: summary.favoriteGames,
-      profile_visibility: profileVisibility,
-      revision: summary.revision,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "uid" });
+      summary.revision,
+    );
+    localStorage.setItem(fingerprintKey, profileFingerprint);
+    invalidate(`games:list:${uid}`);
 
-  if (publicProfileError) throw publicProfileError;
-
-  // 3) Só agora podemos considerar a revisão realmente sincronizada.
-  await window.electronAPI.markLocalLibrarySummarySynced(
-    uid,
-    summary.revision,
-  );
-  localStorage.setItem(fingerprintKey, profileFingerprint);
-  invalidate(`games:list:${uid}`);
-
-  return true;
+    return true;
+  } catch (error) {
+    console.error("[LocalLibrary] Erro em syncPublicLibrarySummary:", error);
+    // Se o erro for relacionado a autenticação, não marcar como sincronizado
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes("Sessão expirada") || errorMessage.includes("JWT")) {
+      console.warn("[LocalLibrary] Erro de autenticação, requer re-login");
+      return false;
+    }
+    throw error;
+  }
 };

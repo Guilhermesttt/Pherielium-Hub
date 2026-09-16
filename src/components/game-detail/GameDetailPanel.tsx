@@ -331,7 +331,7 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
           <button
             onClick={onClose}
             aria-label={copy.close}
-            className="fixed top-8 right-8 z-[150] p-4 bg-[var(--color-surface)]  border border-[var(--color-border)] rounded-full hover:bg-white/10 transition-all hover:rotate-90 active:scale-90 cursor-pointer shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="fixed top-8 right-8 z-150 p-4 bg-[#0F0F0F]  border border-[#161616] rounded-full hover:bg-white/10 transition-all hover:rotate-90 active:scale-90 cursor-pointer shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <X className="w-5 h-5 text-white" />
           </button>
@@ -352,8 +352,8 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
               loading="eager"
               decoding="async"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-black via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-b from-black/80 via-transparent to-transparent" />
           </div>
 
           {/* Container de Conteúdo */}
@@ -362,7 +362,7 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="flex-1 w-full pb-24 rounded-t-[40px] border-t border-[var(--color-border)] shadow-[0_-10px_60px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] bg-[#0E0E0E]"
+              className="flex-1 w-full pb-24 rounded-t-[40px] border-t border-[#161616] shadow-[0_-10px_60px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] bg-[#0F0F0F]"
             >
               <div className="max-w-5xl w-full mx-auto px-4 sm:px-8 md:px-12 py-10">
                 {/* Header (Capa + Título + Badges + Botão Jogar na direita) */}
@@ -419,19 +419,21 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
                         <div className="w-full">
                           <h3 className="text-[10px] font-black tracking-[0.28em] text-white/35 uppercase mb-4 flex items-center gap-2">
                             <Camera className="w-3.5 h-3.5" /> {copy.photoWall}
-                            <span className="ml-1 px-2 py-0.5 rounded-md bg-[var(--color-surface)] border border-white/10 text-[9px] font-black text-white/40">
+                            <span className="ml-1 px-2 py-0.5 rounded-md bg-[#0F0F0F] border border-[#161616] text-[9px] font-black text-white/40">
                               {galleryItems.length}
                             </span>
                           </h3>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             {galleryItems.slice(0, 4).map((item, idx) => (
+                              
                               <button
                                 key={idx}
                                 onClick={() => {
                                   openGallery(idx);
                                   playSound("select");
                                 }}
-                                className="group relative rounded-xl overflow-hidden aspect-video border border-white/10 bg-black/40 hover:border-white/30 transition-all cursor-pointer"
+                                
+                                className="group relative rounded-xl overflow-hidden aspect-video border border-[#161616] bg-[#0F0F0F] hover:border-white/30 hover:bg-white/10 transition-all cursor-pointer"
                               >
                                 <img src={item.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                               </button>

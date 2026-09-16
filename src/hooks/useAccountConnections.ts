@@ -63,7 +63,48 @@ export function useAccountConnections({
     };
   }, []);
 
+  // Polling da vinculação (reaproveitado pelos fluxos Electron e web):
+  // abre a URL, avisa e aguarda o perfil ganhar steamId/discordId.
+  const pollProfileLink = (
+    kind: "steam" | "discord",
+    isLinked: (prof: any) => boolean,
+    onLinked?: () => void,
+  ) => {
+    const intervalRef = kind === "steam" ? steamIntervalRef : discordIntervalRef;
+    const focusRef = kind === "steam" ? steamFocusRef : discordFocusRef;
+    const setConnecting = kind === "steam" ? setSteamConnecting : setDiscordConnecting;
+    let attempts = 0;
+    const maxAttempts = 40;
+
+    const check = async () => {
+      attempts++;
+      const prof = await refreshProfile();
+      const linked = isLinked(prof);
+      if (linked || attempts >= maxAttempts) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = null;
+        if (focusRef.current) {
+          window.removeEventListener("focus", focusRef.current);
+          focusRef.current = null;
+        }
+        setConnecting(false);
+        if (linked) onLinked?.();
+      }
+    };
+
+    const onFocus = () => {
+      void check();
+    };
+
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (focusRef.current) window.removeEventListener("focus", focusRef.current);
+    intervalRef.current = setInterval(check, 1500);
+    focusRef.current = onFocus;
+    window.addEventListener("focus", onFocus);
+  };
+
   const connectSteam = () => {
+    if (!userUid) return;
     if (!userUid) return;
     playSound("select");
     setSteamConnecting(true);
@@ -109,8 +150,14 @@ export function useAccountConnections({
             steamFocusRef.current = onFocus;
             window.addEventListener("focus", onFocus);
           } else {
+            // Web (sem Electron): mesma espera do fluxo desktop — o loader
+            // fica visível enquanto o usuário conclui o login na outra aba.
             window.open(url, "_blank");
-            setSteamConnecting(false);
+            notify("Navegador aberto! Conecte sua conta Steam e volte ao app.", "info");
+            pollProfileLink("steam", (prof) => Boolean(prof?.steamId), () => {
+              notify("Steam conectada com sucesso! Sincronizando jogos...", "info");
+              void handleSyncSteam();
+            });
           }
         } catch {
           notify("Não foi possível abrir o navegador.", "error");
@@ -168,7 +215,13 @@ export function useAccountConnections({
             discordFocusRef.current = onFocus;
             window.addEventListener("focus", onFocus);
           } else {
+            // Web: aguarda como no desktop (antes o estado travava em true).
             window.open(url, "_blank");
+            notify(
+              "Navegador aberto! Conecte sua conta Discord e volte ao app.",
+              "info",
+            );
+            pollProfileLink("discord", (prof) => Boolean(prof?.discordId));
           }
         } catch (e) {
           notify(

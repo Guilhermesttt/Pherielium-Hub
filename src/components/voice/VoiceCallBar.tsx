@@ -12,6 +12,7 @@ import {
   Phone,
 } from "lucide-react";
 import type { UserProfile, VoiceCallSession, CallState } from "../../types/domain";
+import { OrbloomOrb, mapCallToOrbState } from "./OrbloomOrb";
 
 interface VoiceCallBarProps {
   session: VoiceCallSession | null;
@@ -105,8 +106,8 @@ export const VoiceCallBar: React.FC<VoiceCallBarProps> = ({
         exit={{ y: 50, opacity: 0 }}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}        className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-[9990] flex items-center gap-4 rounded-2xl border px-4 py-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl transition-colors duration-200 ${
           isReconnecting
-            ? "border-white/30 bg-[#08090C]"
-            : "border-white/[0.12] bg-[#08090C]"
+            ? "border-[#2A2A2A] bg-[#0F0F0F]/90"
+            : "border-[#161616] bg-[#0F0F0F]/90"
         }`}
       >
         {/* Connection Status & Friend / Speaker */}
@@ -115,17 +116,30 @@ export const VoiceCallBar: React.FC<VoiceCallBarProps> = ({
           className="flex items-center gap-3 cursor-pointer group select-none"
           title="Abrir tela de chamada"
         >
-          <div className="relative">
+          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center">
+            <OrbloomOrb
+              size={44}
+              quality="low"
+              orbState={mapCallToOrbState({
+                isRinging: isRingingOut,
+                isConnecting: isConnecting || isReconnecting,
+                isMuted,
+                isDeafened,
+                isSpeaking: isCurrentlySpeaking,
+                callActive: true,
+              })}
+              participantId={session.friendUid ?? session.chatId}
+              ambientMotion={false}
+              label={`Chamada com ${displayName}`}
+            />
             <div
-              className={`h-9 w-9 rounded-lg overflow-hidden border transition-all duration-200 ${
-                isReconnecting
-                  ? "border-white/60 animate-pulse"
+              className={`absolute h-6 w-6 rounded-full overflow-hidden border transition-all duration-200 ${
+                isReconnecting || isConnecting
+                  ? "border-white/40 opacity-80 animate-pulse"
                   : isRingingOut
                   ? "border-white/30 opacity-60"
-                  : isConnecting
-                  ? "border-white/40 opacity-80 animate-pulse"
                   : isCurrentlySpeaking
-                  ? "border-white ring-2 ring-white/40 shadow-[0_0_12px_rgba(255,255,255,0.4)] scale-105"
+                  ? "border-white/80 shadow-[0_0_12px_rgba(255,255,255,0.4)]"
                   : "border-white/10"
               }`}
             >
@@ -136,13 +150,13 @@ export const VoiceCallBar: React.FC<VoiceCallBarProps> = ({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-white/10 text-xs font-bold text-white border border-white/10">
+                <div className="flex h-full w-full items-center justify-center bg-black/60 text-[9px] font-bold text-white backdrop-blur-sm">
                   {displayName.slice(0, 2).toUpperCase()}
                 </div>
               )}
             </div>
             <div
-              className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-[#08090C] ${
+              className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-[#0F0F0F] ${
                 isReconnecting
                   ? "bg-white animate-ping"
                   : isRingingOut
@@ -196,7 +210,7 @@ export const VoiceCallBar: React.FC<VoiceCallBarProps> = ({
               )}
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-white group-hover:text-white/80 transition-colors truncate max-w-[130px]">
+              <span className="text-xs font-semibold text-[#D2D2D2] group-hover:text-white transition-colors truncate max-w-[130px]">
                 {displayName}
               </span>
               {isRemoteDeafened ? (
@@ -215,7 +229,7 @@ export const VoiceCallBar: React.FC<VoiceCallBarProps> = ({
                   <span className="w-0.5 h-1.5 bg-white rounded-full animate-pulse" />
                 </div>
               )}
-              <span className="text-xs font-mono text-white/50 shrink-0">
+              <span className="text-xs font-mono text-[#6C6C6C] shrink-0">
                 • {formatDuration(duration)}
               </span>
             </div>
@@ -223,7 +237,7 @@ export const VoiceCallBar: React.FC<VoiceCallBarProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="h-7 w-[1px] bg-white/10" />
+        <div className="h-7 w-[1px] bg-[#2A2A2A]" />
 
         {/* Call Controls */}
         <div className="flex items-center gap-1.5">

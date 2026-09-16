@@ -3714,7 +3714,7 @@ app.get("/auth/steam/callback", steamAuthLimiter, async (req, res) => {
       return null;
     });
     await updateLinkedAccountProfile(
-      pending.userUid || pending.firebaseUid,
+      pending.userUid,
       steamProfile || { steam_id: steamId },
     );
 
@@ -3742,7 +3742,7 @@ app.get("/auth/discord/callback", steamAuthLimiter, async (req, res) => {
   // State e one-time: depois que o callback valido chega, ele nao pode ser reutilizado.
   pendingDiscordStates.delete(state);
 
-  const linkedUserUid = String(pending.userUid || pending.firebaseUid || "").trim();
+  const linkedUserUid = String(pending.userUid || "").trim();
   if (!linkedUserUid) {
     console.error("[discord-oauth] callback sem UID Pherielium associado.");
     res.redirect(buildLauncherAuthCallback("discord", "invalid_state"));

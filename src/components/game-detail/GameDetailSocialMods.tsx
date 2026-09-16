@@ -192,7 +192,7 @@ export const GameDetailSocialMods: React.FC<GameDetailSocialModsProps> = React.m
           <h3 className="text-[11px] font-black tracking-[0.28em] text-white/35 uppercase mb-4">{copy.about}</h3>
           {isAboutLoading ? (
             <div className="w-full h-32 flex items-center justify-center">
-              <LoadingState label="Carregando detalhes..." variant="Orbit" />
+              <LoadingState label="Carregando detalhes..." variant="searching" />
             </div>
           ) : (
             <div

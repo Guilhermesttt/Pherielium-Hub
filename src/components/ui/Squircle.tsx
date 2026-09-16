@@ -1,7 +1,6 @@
 // components/ui/Squircle.tsx
 import { useLayoutEffect, useRef, useState, forwardRef } from "react";
 import type { ReactNode, CSSProperties, ButtonHTMLAttributes } from "react";
-import { getSvgPath } from "figma-squircle";
 
 interface SquircleProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     as?: "div" | "button";
@@ -27,8 +26,7 @@ export const Squircle = forwardRef<HTMLElement, SquircleProps>(
             const update = () => {
                 const { width, height } = el.getBoundingClientRect();
                 if (width === 0 || height === 0) return;
-                const path = getSvgPath({ width, height, cornerRadius, cornerSmoothing });
-                setClipPath(`path('${path}')`);
+                setClipPath(`path('M${cornerRadius} 0 H${width - cornerRadius} Q${width} 0 ${width} ${cornerRadius} V${height - cornerRadius} Q${width} ${height} ${width - cornerRadius} ${height} H${cornerRadius} Q0 ${height} 0 ${height - cornerRadius} V${cornerRadius} Q0 0 ${cornerRadius} 0 Z')`);
             };
 
             update();

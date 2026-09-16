@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { type LucideIcon, AlertCircle, RefreshCw } from "lucide-react";
+import { EmptyStateGraphic } from "./EmptyStateGraphic";
 
 export interface StandardEmptyStateProps {
   icon?: LucideIcon;
@@ -13,6 +14,8 @@ export interface StandardEmptyStateProps {
   actionDisabled?: boolean;
   actionLoading?: boolean;
   className?: string;
+  /** Ilustração 2D interativa (parallax de mouse) no lugar do ícone */
+  illustrated?: "library" | "friends";
 }
 
 export const StandardEmptyState: React.FC<StandardEmptyStateProps> = ({
@@ -26,18 +29,23 @@ export const StandardEmptyState: React.FC<StandardEmptyStateProps> = ({
   actionDisabled = false,
   actionLoading = false,
   className = "",
+  illustrated,
 }) => {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className={`w-full max-w-lg mx-auto py-8 px-6 rounded-2xl border border-white/[0.08] bg-[var(--color-surface)] flex flex-col items-center justify-center text-center max-h-[240px] ${className}`}
+      className={`w-full max-w-lg mx-auto py-8 px-6 rounded-2xl border border-white/[0.08] bg-[var(--color-surface)] flex flex-col items-center justify-center text-center ${illustrated ? "max-h-none" : "max-h-[240px]"} ${className}`}
     >
-      {Icon && (
-        <div className="w-9 h-9 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center mb-3 shrink-0 text-white/60">
-          <Icon className="w-4.5 h-4.5" />
-        </div>
+      {illustrated ? (
+        <EmptyStateGraphic variant={illustrated} icon={Icon} className="mb-3 h-32" />
+      ) : (
+        Icon && (
+          <div className="w-9 h-9 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center mb-3 shrink-0 text-white/60">
+            <Icon className="w-4.5 h-4.5" />
+          </div>
+        )
       )}
 
       <h3 className="text-[15px] font-display font-semibold text-white tracking-tight leading-tight mb-1">

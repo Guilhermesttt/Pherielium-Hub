@@ -144,6 +144,46 @@ interface LevelUpDetail {
   tierInfo?: PSNTierInfo;
 }
 
+/* =========================================================
+   SPARKLE BURST estilo mymind: disparo único de faíscas
+   radiais quando o emblema entra (12 faíscas, stagger,
+   easeOut, depois somem). Barato: 12 spans, sem repeat.
+   ========================================================= */
+
+const BURST_SPARKLES = Array.from({ length: 12 }, (_, i) => {
+  const angle = (i / 12) * Math.PI * 2;
+  return {
+    angle,
+    distance: 78 + ((i * 37) % 34),
+    size: 3 + ((i * 13) % 3),
+  };
+});
+
+const SparkleBurst: React.FC<{ color: string }> = ({ color }) => (
+  <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
+    {BURST_SPARKLES.map((spark, i) => (
+      <motion.span
+        key={i}
+        initial={{ opacity: 0, x: 0, y: 0, scale: 0.4 }}
+        animate={{
+          opacity: [0, 1, 0],
+          x: Math.cos(spark.angle) * spark.distance,
+          y: Math.sin(spark.angle) * spark.distance,
+          scale: [0.4, 1, 0.6],
+        }}
+        transition={{ delay: 0.32 + i * 0.02, duration: 0.85, ease: "easeOut" }}
+        className="absolute rounded-full"
+        style={{
+          width: spark.size,
+          height: spark.size,
+          background: `rgb(${color})`,
+          boxShadow: `0 0 8px rgb(${color})`,
+        }}
+      />
+    ))}
+  </div>
+);
+
 export const LevelUpModal: React.FC = () => {
   const [currentEvent, setCurrentEvent] = useState<LevelUpDetail | null>(null);
   const reduceMotion = useReducedMotion();
@@ -572,6 +612,10 @@ export const LevelUpModal: React.FC = () => {
 
               {/* Emblema hero */}
               <div className="relative mx-auto mt-5 flex h-[175px] w-[220px] items-center justify-center">
+                {/* Burst de faíscas estilo mymind: disparo único quando o emblema entra */}
+                {!reduceMotion && (
+                  <SparkleBurst key={`burst-${tierKey}`} color={visual.accentRgb} />
+                )}
                 {tierKey === "silver" && !reduceMotion && (
                   <>
                     <motion.div
@@ -705,15 +749,20 @@ export const LevelUpModal: React.FC = () => {
                     height={124}
                     initial={{
                       opacity: 0,
-                      scale: reduceMotion ? 1 : 0.78,
+                      scale: reduceMotion ? 1 : 0.4,
                       filter: reduceMotion ? "blur(0px)" : "blur(8px)",
                     }}
                     animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                    transition={{
-                      delay: reduceMotion ? 0 : 0.2,
-                      duration: reduceMotion ? 0 : 0.7,
-                      ease: [0.16, 1, 0.3, 1],
-                    }}
+                    transition={
+                      reduceMotion
+                        ? { duration: 0 }
+                        : {
+                            opacity: { delay: 0.2, duration: 0.3 },
+                            // Pop estilo mymind: spring com overshoot natural
+                            scale: { delay: 0.2, type: "spring", stiffness: 280, damping: 14 },
+                            filter: { delay: 0.2, duration: 0.4 },
+                          }
+                    }
                     className="h-[120px] w-[120px] object-contain pointer-events-none"
                     style={{
                       filter: `drop-shadow(0 18px 28px rgba(0,0,0,.9)) drop-shadow(0 0 16px rgba(${visual.accentRgb}, .35))`,

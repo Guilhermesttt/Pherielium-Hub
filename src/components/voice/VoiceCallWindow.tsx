@@ -52,10 +52,7 @@ import { ParticipantContextMenu } from "./ParticipantContextMenu";
 import { ChannelInviteModal } from "./ChannelInviteModal";
 import { CallPrivacyPanel } from "./CallPrivacyPanel";
 import { CreateChannelModal } from "./CreateChannelModal";
-import { CallTelemetryLeft, CallTelemetryRight } from "./CallTelemetryOverlay";
-import spaceBgVideo from "../../assets/Space-BG.webm";
-import friendCallingVideo from "../../assets/BG-Video-Calling.webm";
-import friendConnectedVideo from "../../assets/BG-Video-Friend.webm";
+import { OrbloomOrb, mapCallToOrbState } from "./OrbloomOrb";
 
 interface VoiceCallWindowProps {
   isOpen: boolean;
@@ -739,7 +736,7 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
     }
   };
 
-  if (!isOpen || !session) return null;
+  if (!session) return null;
 
   const AudioFader: React.FC<{
     label: string;
@@ -787,17 +784,24 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9995] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xl select-none">
+      {isOpen && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className="orbloom-page fixed inset-0 z-[9995] flex items-center justify-center p-3 sm:p-4 bg-[#0F0F0F]/95 backdrop-blur-xl select-none"
+      >
         <motion.div
           ref={containerRef}
           initial={{ scale: 0.94, opacity: 0, y: 15 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 10 }}
-          transition={{ type: "spring", stiffness: 380, damping: 28 }}
-          className="relative flex flex-col w-full max-w-6xl h-[88vh] overflow-hidden rounded-[22px] border border-white/10 bg-[#080808] shadow-[0_30px_90px_rgba(0,0,0,0.9)]"
+          exit={{ scale: 0.92, opacity: 0, y: 90 }}
+          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          className="orbloom-card relative flex flex-col w-full max-w-6xl h-[88vh] overflow-hidden rounded-[22px] border border-white/10 bg-[#161616] shadow-[0_30px_90px_rgba(0,0,0,0.9)]"
         >
           {/* Top Bar Header — h-14 consistent */}
-          <div className="flex items-center justify-between h-14 px-6 border-b border-white/[0.08] bg-[#0a0a0a] z-20">
+          <div className="flex items-center justify-between h-14 px-6 border-b border-white/[0.08] bg-[#0F0F0F] z-20">
             {/* Left Info: Friend & Duration & Focus Indicator & Category */}
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white shadow-[0_0_15px_rgba(255,255,255,0.1)] border border-white/15">
@@ -1301,25 +1305,8 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                       </div>
                     </div>
                   ) : (
-                    // Voice Card Stage (Focused on User's Voice Profile)
-                    <div className="relative flex flex-col items-center justify-center p-8 text-center space-y-6 w-full h-full overflow-hidden rounded-2xl">
-                      {!isRoomSession && (
-                        <video
-                          key={focusedFeed.isLocal ? "local-focus-bg" : (focusedFeed.isRinging || focusedFeed.isConnecting || callState === "ringing-out" || callState === "connecting") ? "calling-focus-bg" : "friend-focus-bg"}
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-45 transition-opacity duration-700"
-                          src={
-                            focusedFeed.isLocal
-                              ? spaceBgVideo
-                              : (focusedFeed.isRinging || focusedFeed.isConnecting || callState === "ringing-out" || callState === "connecting")
-                                ? friendCallingVideo
-                                : friendConnectedVideo
-                          }
-                        />
-                      )}
+                    // Voice Card Stage (Focused on User's Voice Profile) — fundo preto puro
+                    <div className="relative flex flex-col items-center justify-center p-8 text-center space-y-6 w-full h-full overflow-hidden rounded-2xl bg-black">
 
                       <div className="relative flex items-center justify-center">
                         {/* Animated Calling / Connecting Radar Rings in Stage */}
@@ -1338,21 +1325,40 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                           </>
                         )}
 
-                        {/* Big Glowing Speaking Ring */}
+                        {/* Orbloom voice orb — reage ao mic/stream e tinge por participante */}
+                        {!(focusedFeed.isRinging || focusedFeed.isConnecting) && (
+                          <OrbloomOrb
+                            size={210}
+                            orbState={mapCallToOrbState({
+                              isRinging: focusedFeed.isRinging,
+                              isConnecting: focusedFeed.isConnecting,
+                              isMuted: focusedFeed.isMuted,
+                              isDeafened: focusedFeed.isDeafened,
+                              isSpeaking: focusedFeed.isSpeaking,
+                              callActive: callState === "active",
+                            })}
+                            audioStream={focusedFeed.isLocal ? localStream : (focusedFeed.stream || remoteStream)}
+                            participantId={focusedFeed.id}
+                            ambientMotion={false}
+                            label={`Atividade de voz de ${focusedFeed.title}`}
+                          />
+                        )}
+
+                        {/* Avatar compacto sobre o orb (identidade preservada) */}
                         <div
-                          className={`relative h-36 w-36 rounded-full overflow-hidden border-4 transition-all duration-200 ${focusedFeed.isRinging
+                          className={`absolute h-16 w-16 rounded-full overflow-hidden border-2 transition-all duration-200 ${focusedFeed.isRinging
                             ? "border-amber-500/30 opacity-60 grayscale-[20%]"
                             : focusedFeed.isConnecting
-                              ? "border-sky-400/50 ring-4 ring-sky-400/25 shadow-[0_0_25px_rgba(56,189,248,0.25)] opacity-90 animate-pulse"
+                              ? "border-sky-400/50 opacity-90 animate-pulse"
                               : focusedFeed.isSpeaking
-                                ? "border-white ring-8 ring-white/30 shadow-[0_0_35px_rgba(255,255,255,0.35)] scale-[1.04] opacity-100"
+                                ? "border-white/80 shadow-[0_0_25px_rgba(255,255,255,0.35)] scale-105 opacity-100"
                                 : "border-white/15 opacity-100"
                             }`}
                         >
                           {focusedFeed.avatar ? (
                             <img src={focusedFeed.avatar} alt="" className="h-full w-full object-cover" />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center bg-white/10 text-4xl font-black text-white">
+                            <div className="flex h-full w-full items-center justify-center bg-black/60 text-xl font-black text-white backdrop-blur-sm">
                               {focusedFeed.title.slice(0, 2).toUpperCase()}
                             </div>
                           )}
@@ -1486,18 +1492,9 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                       </motion.div>
                     )}
 
-                    {activeFeeds.map((feed, idx) => {
+                    {activeFeeds.map((feed) => {
                       const hasCameraFill = feed.type === "voice" && Boolean(feed.cameraStream);
                       const isSpeaking = Boolean(feed.isSpeaking);
-
-                      // Neutral dark surface tints
-                      const cardBgTints = [
-                        "bg-[#0e0e0e]",
-                        "bg-[#121212]",
-                        "bg-[#101010]",
-                        "bg-[#141414]",
-                      ];
-                      const assignedBg = cardBgTints[idx % cardBgTints.length];
 
                       return (
                         <motion.div
@@ -1519,7 +1516,7 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                           onContextMenu={(e) => handleFeedContextMenu(e, feed)}
                           className={`group relative flex flex-col items-center justify-center rounded-[26px] border transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out transform-gpu will-change-transform w-full h-full min-h-[220px] overflow-hidden select-none ${feed.type === "video" || hasCameraFill
                             ? "bg-black/90 border-white/10 shadow-2xl p-0"
-                            : `${assignedBg} border-white/[0.08] hover:border-white/[0.18] shadow-xl p-6`
+                            : "bg-black border-white/[0.08] hover:border-white/[0.18] shadow-xl p-6"
                             } ${isSpeaking
                               ? "ring-[3px] ring-[#23a55a] border-[#23a55a] shadow-[0_0_30px_rgba(35,165,90,0.35)] scale-[1.01]"
                               : ""
@@ -1644,26 +1641,8 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                               </div>
                             )
                           ) : (
-                            // ── Voice-only card: Discord-style avatar with bottom-left pill badge ──
-                            <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[26px]">
-                              {/* Direct 1-on-1 Call Cosmic Background Video */}
-                              {!isRoomSession && (
-                                <video
-                                  key={feed.isLocal ? "local-bg" : (feed.isRinging || feed.isConnecting || callState === "ringing-out" || callState === "connecting") ? "calling-bg" : "friend-bg"}
-                                  autoPlay
-                                  loop
-                                  muted
-                                  playsInline
-                                  className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-45 transition-opacity duration-700"
-                                  src={
-                                    feed.isLocal
-                                      ? spaceBgVideo
-                                      : (feed.isRinging || feed.isConnecting || callState === "ringing-out" || callState === "connecting")
-                                        ? friendCallingVideo
-                                        : friendConnectedVideo
-                                  }
-                                />
-                              )}
+                            // ── Voice-only card: orb reativo sobre fundo preto puro ──
+                            <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[26px] bg-black">
 
                               {/* Animated Calling / Connecting Radar Rings */}
                               {(feed.isRinging || feed.isConnecting) && (
@@ -1681,24 +1660,43 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                                 </>
                               )}
 
-                              {/* Center Large Avatar */}
-                              <div
-                                className={`relative h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 rounded-full overflow-hidden border-[3px] transition-[transform,border-color,box-shadow,opacity] duration-200 ease-out transform-gpu will-change-transform ${feed.isRinging
-                                  ? "border-amber-500/30 opacity-60 grayscale-[20%]"
-                                  : feed.isConnecting
-                                    ? "border-sky-400/50 ring-4 ring-sky-400/25 shadow-[0_0_20px_rgba(56,189,248,0.25)] opacity-90 animate-pulse"
-                                    : isSpeaking
-                                      ? "border-[#23a55a] ring-4 ring-[#23a55a]/35 shadow-[0_0_25px_rgba(35,165,90,0.4)] scale-105 opacity-100"
-                                      : "border-white/10 opacity-100"
-                                  }`}
-                              >
-                                {feed.avatar ? (
-                                  <img src={feed.avatar} alt="" className="h-full w-full object-cover" />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center bg-white/10 text-2xl sm:text-3xl md:text-4xl font-black text-white border border-white/10">
-                                    {feed.title.slice(0, 2).toUpperCase()}
-                                  </div>
+                              {/* Orbloom orb + avatar compacto (reage ao mic/stream, cor por participante) */}
+                              <div className="relative flex h-32 w-32 sm:h-36 sm:w-36 items-center justify-center">
+                                {!(feed.isRinging || feed.isConnecting) && (
+                                  <OrbloomOrb
+                                    size={132}
+                                    orbState={mapCallToOrbState({
+                                      isRinging: feed.isRinging,
+                                      isConnecting: feed.isConnecting,
+                                      isMuted: feed.isMuted,
+                                      isDeafened: feed.isDeafened,
+                                      isSpeaking,
+                                      callActive: callState === "active",
+                                    })}
+                                    audioStream={feed.isLocal ? localStream : (feed.stream || remoteStream)}
+                                    participantId={feed.id}
+                                    ambientMotion={false}
+                                    label={`Atividade de voz de ${feed.title}`}
+                                  />
                                 )}
+                                <div
+                                  className={`absolute h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden border-2 transition-[transform,border-color,box-shadow,opacity] duration-200 ease-out ${feed.isRinging
+                                    ? "border-amber-500/30 opacity-60 grayscale-[20%]"
+                                    : feed.isConnecting
+                                      ? "border-sky-400/50 opacity-90 animate-pulse"
+                                      : isSpeaking
+                                        ? "border-white/80 shadow-[0_0_20px_rgba(255,255,255,0.35)] scale-105 opacity-100"
+                                        : "border-white/10 opacity-100"
+                                    }`}
+                                >
+                                  {feed.avatar ? (
+                                    <img src={feed.avatar} alt="" className="h-full w-full object-cover" />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center bg-black/60 text-xl font-black text-white backdrop-blur-sm">
+                                      {feed.title.slice(0, 2).toUpperCase()}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
 
                               {/* Discord-style Top-Left Name & Status Pill */}
@@ -1741,38 +1739,6 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
                                   ) : null}
                                 </div>
                               )}
-
-                              {/* Telemetry HUD Cards at the Bottom */}
-                              <div className="absolute bottom-3.5 inset-x-3.5 flex items-center justify-center z-10 pointer-events-none">
-                                {activeFeeds.length === 1 && feed.isLocal ? (
-                                  <div className="flex flex-wrap items-center justify-center gap-3 w-full">
-                                    <CallTelemetryLeft
-                                      duration={duration}
-                                      stream={localStream}
-                                      isSpeaking={isSpeakingLocal}
-                                      className="pointer-events-auto"
-                                    />
-                                    <CallTelemetryRight
-                                      stream={localStream}
-                                      isSpeaking={isSpeakingLocal}
-                                      className="pointer-events-auto"
-                                    />
-                                  </div>
-                                ) : feed.isLocal ? (
-                                  <CallTelemetryLeft
-                                    duration={duration}
-                                    stream={localStream}
-                                    isSpeaking={isSpeakingLocal}
-                                    className="pointer-events-auto"
-                                  />
-                                ) : (
-                                  <CallTelemetryRight
-                                    stream={feed.stream || remoteStream}
-                                    isSpeaking={feed.isSpeaking || isSpeakingRemote}
-                                    className="pointer-events-auto"
-                                  />
-                                )}
-                              </div>
 
                               {/* PTT Indicator (Top Right) */}
                               {feed.isLocal && inputMode === "push-to-talk" && (
@@ -2612,8 +2578,9 @@ export const VoiceCallWindow: React.FC<VoiceCallWindowProps> = ({
               )}
             </AnimatePresence>
           </motion.div>
-        )}
-      </div>
+          )}
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 };

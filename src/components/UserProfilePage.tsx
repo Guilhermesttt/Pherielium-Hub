@@ -687,25 +687,11 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 />
 
                 <div className="min-w-0 flex-1">
-                  {/* Nível 1: Nome do Jogador + Atalho para Editar */}
+                  {/* Nível 1: Nome do Jogador */}
                   <div className="flex items-center gap-3">
                     <h1 className={`${compactProfile ? "text-2xl" : "text-3xl sm:text-4xl"} font-black tracking-tight bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent leading-none truncate`}>
                       {displayName}
                     </h1>
-                    {editable && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditing(true);
-                          playSound?.("showModal");
-                        }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/10 bg-[#0B0B0B] text-xs font-semibold text-neutral-300 hover:text-white transition cursor-pointer"
-                        title="Editar perfil"
-                      >
-                        <Pencil className="h-3 w-3 text-neutral-400" />
-                        <span>Editar</span>
-                      </button>
-                    )}
                   </div>
 
                   {/* Nível 2: Patente Proprietária 3D com Animação de Substituição de Tier */}

@@ -2,9 +2,26 @@
 
 import * as React from 'react'
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
+import { motion, useReducedMotion } from 'framer-motion'
 import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+
+/* ── Vercel-style glide highlight ─────────────────────────────
+ * Um pill compartilhado (layoutId por menu) desliza com spring
+ * entre os itens com hover/foco. Opt-in por item via `glideId`.
+ * O highlight usa z-index negativo: pinta sobre o fundo do menu
+ * e abaixo do texto, sem exigir wrappers nos filhos. */
+
+const GLIDE_SPRING = { type: 'spring', stiffness: 700, damping: 40 } as const;
+
+interface GlideContextValue {
+  menuId: string;
+  hoveredId: string | null;
+  setHoveredId: (id: string | null) => void;
+}
+
+const GlideContext = React.createContext<GlideContextValue | null>(null);
 
 function DropdownMenu({
   ...props
@@ -36,17 +53,26 @@ function DropdownMenuContent({
   sideOffset = 4,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+  const menuId = React.useId();
+  const [hoveredId, setHoveredId] = React.useState<string | null>(null);
+  const glideValue = React.useMemo(
+    () => ({ menuId, hoveredId, setHoveredId }),
+    [menuId, hoveredId],
+  );
   return (
     <DropdownMenuPrimitive.Portal>
-      <DropdownMenuPrimitive.Content
-        data-slot="dropdown-menu-content"
-        sideOffset={sideOffset}
+      <GlideContext.Provider value={glideValue}>
+        <DropdownMenuPrimitive.Content
+          data-slot="dropdown-menu-content"
+          sideOffset={sideOffset}
+          onMouseLeave={() => setHoveredId(null)}
         className={cn(
-          'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md',
+          'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:duration-200 data-[state=closed]:duration-150 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2           data-[side=bottom]:slide-out-to-top-2 data-[side=left]:slide-out-to-right-2 data-[side=right]:slide-out-to-left-2 data-[side=top]:slide-out-to-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md isolate',
           className,
         )}
         {...props}
-      />
+        />
+      </GlideContext.Provider>
     </DropdownMenuPrimitive.Portal>
   )
 }
@@ -63,22 +89,65 @@ function DropdownMenuItem({
   className,
   inset,
   variant = 'default',
+  glideId,
+  children,
+  onMouseEnter,
+  onMouseLeave,
+  onFocus,
+  onBlur,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
   inset?: boolean
   variant?: 'default' | 'destructive'
+  /** Opt-in ao glide highlight (id único dentro do menu). */
+  glideId?: string
 }) {
+  const glide = React.useContext(GlideContext);
+  const reduceMotion = useReducedMotion();
+  const showGlide = Boolean(glide && glideId && glide.hoveredId === glideId);
+
   return (
     <DropdownMenuPrimitive.Item
       data-slot="dropdown-menu-item"
       data-inset={inset}
       data-variant={variant}
+      onMouseEnter={(e) => {
+        if (glideId) glide?.setHoveredId(glideId);
+        onMouseEnter?.(e);
+      }}
+      onMouseLeave={(e) => {
+        if (glideId && glide?.hoveredId === glideId) glide.setHoveredId(null);
+        onMouseLeave?.(e);
+      }}
+      onFocus={(e) => {
+        if (glideId) glide?.setHoveredId(glideId);
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        if (glideId && glide?.hoveredId === glideId) glide.setHoveredId(null);
+        onBlur?.(e);
+      }}
       className={cn(
         "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
-    />
+    >
+      {children}
+      {showGlide &&
+        (reduceMotion ? (
+          <span aria-hidden className="absolute inset-0 -z-10 rounded-[inherit] bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.09)]" />
+        ) : (
+          <motion.span
+            aria-hidden
+            layoutId={glide ? `dd-glide-${glide.menuId}` : undefined}
+            initial={{ opacity: 0, scale: 0.88 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={GLIDE_SPRING}
+            className="absolute inset-0 -z-10 rounded-[inherit] bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.09)]"
+          />
+        ))}
+    </DropdownMenuPrimitive.Item>
   )
 }
 
@@ -229,10 +298,10 @@ function DropdownMenuSubContent({
   return (
     <DropdownMenuPrimitive.SubContent
       data-slot="dropdown-menu-sub-content"
-      className={cn(
-        'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg',
-        className,
-      )}
+        className={cn(
+          'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:duration-200 data-[state=closed]:duration-150 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[side=bottom]:slide-out-to-top-2 data-[side=left]:slide-out-to-right-2 data-[side=right]:slide-out-to-left-2 data-[side=top]:slide-out-to-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg',
+          className,
+        )}
       {...props}
     />
   )

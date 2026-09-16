@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ChevronDown, Check } from "lucide-react";
+import { useLowPerf } from "../PerformanceComponents";
 
 export interface SelectOption {
   value: string;
@@ -30,7 +31,11 @@ export const GhostSelect: React.FC<GhostSelectProps> = ({
   disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [hovered, setHovered] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const low = useLowPerf();
+  const reduceMotion = useReducedMotion();
+  const glideOff = low || reduceMotion;
 
   const selectedOption = options.find((opt) => opt.value === value);
 
@@ -90,9 +95,13 @@ export const GhostSelect: React.FC<GhostSelectProps> = ({
             transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
             className={`absolute left-0 right-0 z-[200] mt-1 overflow-hidden rounded-2xl border border-white/10 p-1 shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] transform-origin-top glass-panel ${menuClassName}`}
           >
-            <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20 p-1 flex flex-col gap-0.5">
+            <div
+              className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20 p-1 flex flex-col gap-0.5"
+              onMouseLeave={() => setHovered(null)}
+            >
               {options.map((option) => {
                 const isSelected = option.value === value;
+                const glideActive = !glideOff && (hovered ?? value) === option.value;
                 return (
                   <button
                     key={option.value}
@@ -101,12 +110,29 @@ export const GhostSelect: React.FC<GhostSelectProps> = ({
                       onChange(option.value);
                       setIsOpen(false);
                     }}
+                    onMouseEnter={() => setHovered(option.value)}
+                    onFocus={() => setHovered(option.value)}
+                    onBlur={() => setHovered((prev) => (prev === option.value ? null : prev))}
                     className={`relative flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition-all outline-none text-left ${
-                      isSelected
-                        ? "bg-white/10 text-white font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-                        : "text-white/70 hover:bg-white/[0.06] hover:text-white"
+                      glideOff
+                        ? isSelected
+                          ? "bg-white/10 text-white font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                          : "text-white/70 hover:bg-white/[0.06] hover:text-white"
+                        : isSelected
+                          ? "text-white font-medium"
+                          : "text-white/70 hover:text-white hover:bg-white/[0.08]"
                     }`}
                   >
+                    {glideActive && (
+                      <motion.span
+                        aria-hidden
+                        layoutId="ghost-select-glide"
+                        initial={{ opacity: 0, scale: 0.92 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 700, damping: 40 }}
+                        className="absolute inset-0 rounded-xl bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.09)]"
+                      />
+                    )}
                     <div className="flex items-center gap-2 truncate z-10">
                       {option.icon}
                       <span className="truncate">{option.label}</span>

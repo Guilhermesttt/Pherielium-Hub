@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ExternalLink, LogOut, CheckCircle2, KeyRound, AlertCircle } from "lucide-react";
 import type { SoundEffectType } from "../../hooks/useSoundEffects";
-import { LoadingState } from "../ui/loading-state";
+import { LinearProgress } from "../ui/LinearProgress";
 import { fetchEpicStatus, validateEpicSession } from "../../services/epic";
 import { PHERIELIUM_LOGO_PATH } from "../../constants/assets";
 
@@ -29,6 +29,9 @@ export const EpicConnectModal: React.FC<EpicConnectModalProps> = ({
   const [sid, setSid] = useState("");
   const [loading, setLoading] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  // Web (sem Electron): após abrir o navegador, segue aguardando o código
+  // para o loader continuar visível até o usuário colar/submeter.
+  const [waitingBrowser, setWaitingBrowser] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentAccount, setCurrentAccount] = useState<{
     authenticated: boolean;
@@ -42,6 +45,9 @@ export const EpicConnectModal: React.FC<EpicConnectModalProps> = ({
     if (isOpen) {
       setError(null);
       setSid("");
+      setLoading(false);
+      setDisconnecting(false);
+      setWaitingBrowser(false);
       setNeedsReauth(null);
       // Run both checks in parallel. fetchEpicStatus reflects Legendary's view;
       // validateEpicSession reflects the encrypted vault + auto-refresh path.
@@ -76,13 +82,15 @@ export const EpicConnectModal: React.FC<EpicConnectModalProps> = ({
     operationState &&
     (operationState.status === "syncing" || operationState.status === "connecting" || operationState.status === "disconnecting"),
   );
-  const isBusy = loading || disconnecting || isOperationBusy;
+  const isBusy = loading || disconnecting || waitingBrowser || isOperationBusy;
   const busyLabel =
     operationState && isOperationBusy && "phase" in operationState
       ? getPlatformPhaseLabel(operationState.phase, "pt-BR")
       : disconnecting
-        ? "Desconectando..."
-        : "Autenticando...";
+        ? "Desconectando…"
+        : waitingBrowser
+          ? "Aguardando login no navegador..."
+          : "Autenticando...";
 
   const handleDisconnectCurrent = async () => {
     if (isBusy) return;
@@ -122,6 +130,8 @@ export const EpicConnectModal: React.FC<EpicConnectModalProps> = ({
         }
       } else {
         handleOpenAuthUrl();
+        // Web: mantém o loader até o usuário colar o código abaixo.
+        setWaitingBrowser(true);
       }
     } catch (err: any) {
       setError(err?.message || "Falha ao autenticar na Epic Games.");
@@ -153,9 +163,12 @@ export const EpicConnectModal: React.FC<EpicConnectModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanCode = extractAuthorizationCode(sid);
-    if (!cleanCode || isBusy) return;
+    // waitingBrowser conta como busy p/ travar outros botões, mas o submit
+    // do código precisa passar — ele encerra a espera.
+    if (!cleanCode || (isBusy && !waitingBrowser)) return;
 
     setLoading(true);
+    setWaitingBrowser(false);
     setError(null);
     playSound("select");
 
@@ -199,10 +212,10 @@ export const EpicConnectModal: React.FC<EpicConnectModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="glass-panel fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg border border-white/[0.08] rounded-3xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_30px_100px_rgba(0,0,0,0.55)] z-50 overflow-hidden font-sans"
+            className="glass-panel fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg border border-white/8 rounded-3xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_30px_100px_rgba(0,0,0,0.55)] z-50 overflow-hidden font-sans"
           >
             <div className="p-6">
-              <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
+              <div className="flex items-center justify-between pb-4 border-b border-white/8">
                 <div className="flex items-center gap-3">
                   <img src={PHERIELIUM_LOGO_PATH} alt="Phelierium" className="w-8 h-8 rounded-lg" />
                   <h2 className="text-lg font-bold text-white">Conectar Epic Games</h2>
@@ -217,8 +230,26 @@ export const EpicConnectModal: React.FC<EpicConnectModalProps> = ({
               </div>
 
               <div className="mt-6 space-y-5">
+                {/* Barra de progresso Linear-style durante auth/sync */}
+                <AnimatePresence initial={false}>
+                  {isBusy && (
+                    <motion.div
+                      key="epic-busy-progress"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-1.5 pb-1">
+                        <LinearProgress label={busyLabel} />
+                        <p className="text-[11px] font-semibold text-[#6C6C6C]">{busyLabel}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 {currentAccount?.authenticated && (
-                  <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.08]">
+                  <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/4 border border-white/8">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
                         <CheckCircle2 size={16} />
@@ -254,7 +285,7 @@ export const EpicConnectModal: React.FC<EpicConnectModalProps> = ({
                 )}
 
                 {/* Opção 1: Login Rápido Automático (Recomendado) */}
-                <div className="p-4 rounded-3xl bg-white/[0.03] border border-white/[0.06] space-y-3">
+                <div className="p-4 rounded-3xl bg-white/3 border border-white/6 space-y-3">
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-white flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -271,12 +302,12 @@ export const EpicConnectModal: React.FC<EpicConnectModalProps> = ({
                     className="w-full py-2.5 px-4 bg-white hover:bg-neutral-200 text-black rounded-2xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    {loading ? "Conectando..." : "Entrar com a Epic Games"}
+                    {waitingBrowser ? "Aguardando navegador..." : loading ? "Conectando…" : "Entrar com a Epic Games"}
                   </button>
                 </div>
 
                 {/* Opção 2: Manual via Navegador */}
-                <div className="p-4 rounded-3xl bg-white/[0.01] border border-white/[0.04] space-y-3">
+                <div className="p-4 rounded-3xl bg-white/10 border border-white/4 space-y-3">
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-white/70">
                       Entrada Manual (Código ou JSON)
@@ -291,7 +322,7 @@ export const EpicConnectModal: React.FC<EpicConnectModalProps> = ({
                       type="button"
                       onClick={handleOpenAuthUrl}
                       disabled={isBusy}
-                      className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white text-xs font-medium rounded-xl border border-white/[0.06] transition-colors cursor-pointer"
+                      className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-white/4 hover:bg-white/8 text-white/70 hover:text-white text-xs font-medium rounded-xl border border-white/6 transition-colors cursor-pointer"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       Abrir no Navegador Externo

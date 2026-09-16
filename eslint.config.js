@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', '.firebase', 'ui-ux-pro-max-skill']),
+  globalIgnores(['dist', 'coverage', 'ui-ux-pro-max-skill']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

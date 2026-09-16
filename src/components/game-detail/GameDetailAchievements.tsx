@@ -3,6 +3,7 @@ import { Trophy, Search, AlertCircle, RotateCw, X, Lock } from "lucide-react";
 import type { SteamAchievement } from "../../services/steam";
 import type { AchievementFilter, GameDetailCopy } from "../../types/gameDetail";
 import type { SoundEffectType } from "../../hooks/useSoundEffects";
+import { handleCursorGlow } from "../ui/cursor-glow";
 import {
   buildGameTierMap,
   extractAndProcessPlatinum,
@@ -151,7 +152,8 @@ const PlatinumCard: React.FC<{
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border p-4 transition-all duration-300"
+      onMouseMove={handleCursorGlow}
+      className="cursor-glow relative overflow-hidden rounded-2xl border p-4 transition-all duration-300"
       style={{
         background: isUnlocked
           ? "linear-gradient(135deg, rgba(56,189,248,0.10) 0%, rgba(2,132,199,0.05) 100%)"
@@ -282,7 +284,8 @@ const AchievementCard: React.FC<{
       tabIndex={0}
       role="article"
       aria-label={isAchieved ? `${unlockedLabel}: ${achievement.name}` : `${lockedLabel}: ${achievement.name}`}
-      className="group flex items-center gap-4 rounded-2xl border p-4 transition-all duration-200 hover:translate-x-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+      onMouseMove={handleCursorGlow}
+      className="cursor-glow group relative flex items-center gap-4 overflow-hidden rounded-2xl border p-4 transition-all duration-200 hover:translate-x-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
       style={{
         background: isAchieved ? tierCfg.bg : "rgba(255,255,255,0.01)",
         borderColor: isAchieved ? tierCfg.border : "rgba(255,255,255,0.05)",

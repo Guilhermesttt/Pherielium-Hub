@@ -62,7 +62,7 @@ const DesktopAuth: React.FC = () => {
 
         {status === "loading" && (
           <div className="mt-6">
-            <LoadingState label="Validando autenticação Google..." variant="Orbit" />
+            <LoadingState label="Validando autenticação Google..." variant="connecting" />
           </div>
         )}
 

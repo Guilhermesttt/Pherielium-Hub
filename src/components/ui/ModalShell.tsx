@@ -161,9 +161,10 @@ const ModalShell: React.FC<ModalShellProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: shouldReduceEffects ? 0.01 : 0.25, ease: "easeOut" }}
             onClick={() => onClose()}
             className={cn(
-              "absolute inset-0 bg-[#030405]/88 backdrop-blur-sm",
+              "absolute inset-0 bg-[#0F0F0F]/88 backdrop-blur-sm",
               backdropClassName
             )}
           />
@@ -175,10 +176,22 @@ const ModalShell: React.FC<ModalShellProps> = ({
             aria-modal="true"
             aria-label={ariaLabel || title || "Janela de diálogo"}
             tabIndex={-1}
-            initial={shouldReduceEffects ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 20 }}
-            animate={shouldReduceEffects ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
-            exit={shouldReduceEffects ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: shouldReduceEffects ? 0.01 : 0.22, ease: [0.22, 1, 0.36, 1] }}
+            initial={
+              shouldReduceEffects
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.94, y: 24, filter: "blur(6px)" }
+            }
+            animate={
+              shouldReduceEffects
+                ? { opacity: 1 }
+                : { opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }
+            }
+            exit={
+              shouldReduceEffects
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.95, y: 16, filter: "blur(6px)" }
+            }
+            transition={{ duration: shouldReduceEffects ? 0.01 : 0.28, ease: [0.16, 1, 0.3, 1] }}
             className={cn(
               "relative max-h-[calc(100dvh-2rem)] w-full overflow-hidden outline-none md:max-h-[calc(100dvh-4rem)]",
               maxWidthClassName,

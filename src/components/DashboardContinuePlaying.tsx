@@ -89,27 +89,49 @@ const ContinueCard: React.FC<{
       ? dominantColor.hex
       : null;
 
+  // A barra horizontal segue a cor dominante do jogo (color-mix mantém
+  // tudo escuro: 26% da cor sobre a base + borda tingida a 35%).
+  const cardBackground = accentColor
+    ? `linear-gradient(145deg, color-mix(in srgb, ${accentColor} 26%, #242424) 0%, #0A0A0A 100%)`
+    : "linear-gradient(145deg, #242424 0%, #0A0A0A 100%)";
+  const cardBorderColor = accentColor
+    ? `color-mix(in srgb, ${accentColor} 35%, rgba(255, 255, 255, 0.08))`
+    : "rgba(255, 255, 255, 0.08)";
+
+  // Glow no card todo, com coordenadas da superfície visual (a barra
+  // horizontal): o handler resolve o alvo, então pairar sobre texto
+  // ou capa atualiza o spotlight no lugar certo, sem saltos.
+  const handleCardGlow = (e: React.MouseEvent<HTMLElement>) => {
+    const surface =
+      e.currentTarget.querySelector<HTMLElement>("[data-glow-surface]") ?? e.currentTarget;
+    const rect = surface.getBoundingClientRect();
+    surface.style.setProperty("--cg-x", `${e.clientX - rect.left}px`);
+    surface.style.setProperty("--cg-y", `${e.clientY - rect.top}px`);
+  };
+
   return (
     <motion.article
       initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: 15 }}
       animate={{ opacity: 1, x: 0 }}
+      whileHover={prefersReducedMotion ? undefined : { x: 4 }}
       whileTap={{ scale: 0.98 }}
       transition={enterTransition}
       onClick={onPlay}
+      onMouseMove={handleCardGlow}
       onPointerEnter={() => playSound?.("hover")}
       className="group relative w-[400px] shrink-0 cursor-pointer"
       style={{ height: COVER_HEIGHT }}
       aria-label={`Continuar jogando ${game.title}`}
     >
-      {/* Card background — sits BELOW the cover's overhang, own overflow-hidden
-          only clips the gradient, never the cover (which is a sibling, not a child) */}
+      {/* Card background — cor do jogo + spotlight segue o cursor (Luma-style) */}
       <div
-        className="absolute inset-x-0 bottom-0 overflow-hidden border border-[rgb(var(--color-border))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+        data-glow-surface
+        className="cursor-glow absolute inset-x-0 bottom-0 overflow-hidden border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
         style={{
           height: CARD_HEIGHT,
-          background: "linear-gradient(145deg, #242424 0%, #0A0A0A 100%)",
+          background: cardBackground,
           borderRadius: 32, /* Squircle */
-          borderColor: "rgba(255, 255, 255, 0.08)",
+          borderColor: cardBorderColor,
         }}
       />
 
@@ -126,7 +148,12 @@ const ContinueCard: React.FC<{
           <span className="h-1 w-1 shrink-0 rounded-full bg-white/20" />
           <span className="flex shrink-0 items-center gap-1">{platform.label}</span>
           <span className="h-1 w-1 shrink-0 rounded-full bg-white/20" />
-          <span className="shrink-0 text-[rgb(var(--launcher-accent))]">Último Jogo</span>
+          <span
+            className="shrink-0 text-[rgb(var(--launcher-accent))]"
+            style={accentColor ? { color: accentColor } : undefined}
+          >
+            Último Jogo
+          </span>
         </p>
       </div>
 

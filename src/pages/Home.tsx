@@ -25,6 +25,7 @@ import { fetchEpicStatus } from "../services/epic";
 import GameRow from "../components/GameRow";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import LoadingState from "../components/ui/loading-state";
+import { LinearProgress } from "../components/ui/LinearProgress";
 import { HomeOverviewPanels } from "../components/HomeOverviewPanels";
 import DashboardContinuePlaying from "../components/DashboardContinuePlaying";
 import LibraryFilterModal, { type LibraryFilters } from "../components/LibraryFilterModal";
@@ -2153,10 +2154,10 @@ const Home: React.FC = () => {
                   initial={false}
                   animate={{
                     width: searchOpen || searchTerm ? 224 : 36,
-                    borderColor: searchOpen || searchTerm ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.08)",
+                    borderColor: searchOpen || searchTerm ? "#2A2A2A" : "#161616",
                   }}
                   transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
-                  className="relative flex items-center h-9 rounded-full bg-[#333333] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] border border-transparent backdrop-blur-md"
+                  className="relative flex items-center h-9 rounded-full bg-[#0F0F0F] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] border backdrop-blur-md"
                 >
                   <button
                     onClick={() => {
@@ -2170,7 +2171,7 @@ const Home: React.FC = () => {
                       }`}
                     aria-label="Abrir pesquisa"
                   >
-                    <Search className={`w-3.5 h-3.5 transition-colors ${searchOpen || searchTerm ? "text-white/40" : "text-white/80 group-hover:text-text-main"}`} />
+                    <Search className={`w-3.5 h-3.5 transition-colors ${searchOpen || searchTerm ? "text-[#6C6C6C]" : "text-[#6C6C6C] group-hover:text-white"}`} />
                   </button>
                   <input
                     ref={searchInputRef}
@@ -2184,7 +2185,7 @@ const Home: React.FC = () => {
                       if (!searchTerm) setSearchOpen(false);
                     }}
                     placeholder={t("searchPlaceholder") || "Pesquisar jogo... (S)"}
-                    className={`absolute left-0 top-0 h-full w-full pl-9 pr-8 text-xs text-white placeholder:text-white/30 bg-transparent outline-none transition-opacity duration-300 ${searchOpen || searchTerm ? "opacity-100" : "opacity-0 pointer-events-none"
+                    className={`absolute left-0 top-0 h-full w-full pl-9 pr-8 text-xs text-[#D2D2D2] placeholder:text-[#6C6C6C] bg-transparent outline-none transition-opacity duration-300 ${searchOpen || searchTerm ? "opacity-100" : "opacity-0 pointer-events-none"
                       }`}
                   />
                   {searchTerm && (
@@ -2199,7 +2200,7 @@ const Home: React.FC = () => {
                       }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-all z-10"
                     >
-                      <X className="w-3 h-3 text-white/40 hover:text-text-main" />
+                      <X className="w-3 h-3 text-[#6C6C6C] hover:text-white" />
                     </button>
                   )}
                 </motion.div>
@@ -2210,8 +2211,8 @@ const Home: React.FC = () => {
                     playSound("select");
                   }}
                   className={`flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-all ${libraryFilters.launchers.length > 0 || libraryFilters.favoritesOnly || libraryFilters.withAchievements
-                    ? "border-white/20 bg-[#333333] text-white"
-                    : "bg-[#333333] border border-white/[0.1] shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150 text-white/40 hover:bg-white/[0.07] hover:text-text-main"
+                    ? "border-[#2A2A2A] bg-[#161616] text-white"
+                    : "bg-[#0F0F0F] border-[#161616] shadow-[0_8px_32px_rgba(0,0,0,0.6)] text-[#6C6C6C] hover:bg-[#161616] hover:text-white"
                     }`}
                 >
                   <Filter className="h-3.5 w-3.5" />
@@ -2222,13 +2223,17 @@ const Home: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Borda via casca sólida: o clip-path do Squircle recortaria uma
+                border CSS, então o anel de 1px é o próprio fundo do Squircle externo */}
             <Squircle
               cornerRadius={18}
               cornerSmoothing={0.65}
-              className="flex items-center gap-1 p-2 rounded-2xl bg-[#333333]"
-              style={{
-                boxShadow: "0 16px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
-              }}
+              className="p-px rounded-2xl bg-[#161616]"
+            >
+            <Squircle
+              cornerRadius={17}
+              cornerSmoothing={0.65}
+              className="flex items-center gap-1 p-2 rounded-2xl bg-[#0F0F0F]/80"
             >
               <Squircle
                 as="button"
@@ -2241,10 +2246,10 @@ const Home: React.FC = () => {
                   playSound("showModal");
                 }}
                 onMouseEnter={() => playSound("hover")}
-                className="cursor-pointer flex items-center gap-2 px-3.5 py-1.5 rounded-lg transition-all duration-200 hover:scale-105 hover:bg-white/10 active:scale-95 group"
+                className="cursor-pointer flex items-center gap-2 px-3.5 py-1.5 rounded-lg transition-all duration-200 hover:scale-105 hover:bg-[#161616] active:scale-95 group"
               >
-                <Plus className="w-4 h-4 text-[#D3D3D3] group-hover:text-white transition-colors" />
-                <span className="text-xs font-semibold text-[#D3D3D3] group-hover:text-white transition-colors">
+                <Plus className="w-4 h-4 text-[#6C6C6C] group-hover:text-white transition-colors" />
+                <span className="text-xs font-semibold text-[#6C6C6C] group-hover:text-white transition-colors">
                   {t("new")}
                 </span>
               </Squircle>
@@ -2253,7 +2258,7 @@ const Home: React.FC = () => {
                 className="w-px h-5 self-center mx-1.5"
                 style={{
                   background:
-                    "linear-gradient(to bottom, transparent, rgba(211,211,211,0.18) 25%, rgba(211,211,211,0.18) 75%, transparent)",
+                    "linear-gradient(to bottom, transparent, rgba(108,108,108,0.35) 25%, rgba(108,108,108,0.35) 75%, transparent)",
                 }}
               />
 
@@ -2268,18 +2273,21 @@ const Home: React.FC = () => {
                   onClick={handleSyncSteam}
                   onMouseEnter={() => playSound("hover")}
                   disabled={steamSyncing}
-                  className="cursor-pointer relative flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.06] active:scale-95 disabled:opacity-80 group/steam"
+                  className="cursor-pointer relative flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-[#161616] active:scale-95 disabled:opacity-80 group/steam"
                   title="Sincronizar jogos da Steam"
                 >
                   {steamSyncing ? (
-                    <LoadingState label={t("syncing") || "Sincronizando..."} variant="Dots" size="sm" showTimer={false} />
+                    <span className="flex items-center gap-2 py-1">
+                      <LinearProgress className="w-14" label={t("syncing") || "Sincronizando..."} />
+                      <span className="text-xs font-medium text-[#D2D2D2]">{t("syncing") || "Sincronizando..."}</span>
+                    </span>
                   ) : (
                     <>
                       <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.75)] group-hover/steam:scale-110 transition-all" />
-                      <span className="text-xs font-medium text-[#D3D3D3] group-hover/steam:text-white transition-colors">
+                      <span className="text-xs font-medium text-[#6C6C6C] group-hover/steam:text-white transition-colors">
                         Steam
                       </span>
-                      <RefreshCw className="w-3 h-3 text-[#D3D3D3]/60 group-hover/steam:text-white transition-colors" />
+                      <RefreshCw className="w-3 h-3 text-[#6C6C6C]/60 group-hover/steam:text-white transition-colors" />
                     </>
                   )}
                 </Squircle>
@@ -2293,14 +2301,17 @@ const Home: React.FC = () => {
                   onClick={connectSteam}
                   onMouseEnter={() => playSound("hover")}
                   disabled={steamConnecting}
-                  className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.06] active:scale-95 disabled:opacity-70 group"
+                  className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-[#161616] active:scale-95 disabled:opacity-70 group"
                 >
                   {steamConnecting ? (
-                    <LoadingState label={t("connecting") || "Conectando..."} variant="Dots" size="sm" showTimer={false} />
+                    <span className="flex items-center gap-2 py-1">
+                      <LinearProgress className="w-14" label={t("connecting") || "Conectando..."} />
+                      <span className="text-xs font-medium text-[#D2D2D2]">{t("connecting") || "Conectando..."}</span>
+                    </span>
                   ) : (
                     <>
-                      <div className="w-2 h-2 rounded-full bg-[#D3D3D3]/40" />
-                      <span className="text-xs font-medium text-[#D3D3D3] group-hover:text-white transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-[#6C6C6C]/60" />
+                      <span className="text-xs font-medium text-[#6C6C6C] group-hover:text-white transition-colors">
                         {t("connectSteam")}
                       </span>
                     </>
@@ -2312,7 +2323,7 @@ const Home: React.FC = () => {
                 className="w-px h-5 self-center mx-1.5"
                 style={{
                   background:
-                    "linear-gradient(to bottom, transparent, rgba(211,211,211,0.18) 25%, rgba(211,211,211,0.18) 75%, transparent)",
+                    "linear-gradient(to bottom, transparent, rgba(108,108,108,0.35) 25%, rgba(108,108,108,0.35) 75%, transparent)",
                 }}
               />
 
@@ -2330,18 +2341,21 @@ const Home: React.FC = () => {
                   }}
                   onMouseEnter={() => playSound("hover")}
                   disabled={epicSyncing}
-                  className="cursor-pointer relative flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.06] active:scale-95 disabled:opacity-80 group/epic"
+                  className="cursor-pointer relative flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-[#161616] active:scale-95 disabled:opacity-80 group/epic"
                   title="Sincronizar jogos da Epic Games"
                 >
                   {epicSyncing ? (
-                    <LoadingState label={t("syncing") || "Sincronizando..."} variant="Dots" size="sm" showTimer={false} />
+                    <span className="flex items-center gap-2 py-1">
+                      <LinearProgress className="w-14" label={t("syncing") || "Sincronizando..."} />
+                      <span className="text-xs font-medium text-[#D2D2D2]">{t("syncing") || "Sincronizando..."}</span>
+                    </span>
                   ) : (
                     <>
                       <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.75)] group-hover/epic:scale-110 transition-all" />
-                      <span className="text-xs font-medium text-[#D3D3D3] group-hover/epic:text-white transition-colors">
+                      <span className="text-xs font-medium text-[#6C6C6C] group-hover/epic:text-white transition-colors">
                         Epic
                       </span>
-                      <RefreshCw className="w-3 h-3 text-[#D3D3D3]/60 group-hover/epic:text-white transition-colors" />
+                      <RefreshCw className="w-3 h-3 text-[#6C6C6C]/60 group-hover/epic:text-white transition-colors" />
                     </>
                   )}
                 </Squircle>
@@ -2355,20 +2369,24 @@ const Home: React.FC = () => {
                   onClick={() => setEpicConnectModalOpen(true)}
                   onMouseEnter={() => playSound("hover")}
                   disabled={epicConnecting}
-                  className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-white/[0.08] active:scale-95 disabled:opacity-70 group"
+                  className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 hover:bg-[#161616] active:scale-95 disabled:opacity-70 group"
                 >
                   {epicConnecting ? (
-                    <LoadingState label={t("connecting") || "Conectando..."} variant="Dots" size="sm" showTimer={false} />
+                    <span className="flex items-center gap-2 py-1">
+                      <LinearProgress className="w-14" label={t("connecting") || "Conectando..."} />
+                      <span className="text-xs font-medium text-[#D2D2D2]">{t("connecting") || "Conectando..."}</span>
+                    </span>
                   ) : (
                     <>
-                      <div className="w-2 h-2 rounded-full bg-[#D3D3D3]/40" />
-                      <span className="text-xs font-medium text-[#D3D3D3] group-hover:text-white transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-[#6C6C6C]/60" />
+                      <span className="text-xs font-medium text-[#6C6C6C] group-hover:text-white transition-colors">
                         {t("connectEpic") || "Conectar Epic"}
                       </span>
                     </>
                   )}
                 </Squircle>
               )}
+              </Squircle>
             </Squircle>
             <ProfileDropdown
               userDisplay={userDisplay}
@@ -2518,7 +2536,7 @@ const Home: React.FC = () => {
               ) : activeCategory === "FEED" ? (
                 <React.Suspense fallback={
                   <div className="flex flex-1 items-center justify-center">
-                    <LoadingState label="Carregando Radar Gamer" variant="Drive" />
+                    <LoadingState label="Carregando Radar Gamer" variant="searching" />
                   </div>
                 }>
                   <GamingRadarPage />
@@ -2526,7 +2544,7 @@ const Home: React.FC = () => {
               ) : activeCategory === "MODS" ? (
                 <React.Suspense fallback={
                   <div className="flex flex-1 items-center justify-center">
-                    <LoadingState label="Carregando Gerenciador de Mods" variant="Drive" />
+                    <LoadingState label="Carregando Gerenciador de Mods" variant="shaping" />
                   </div>
                 }>
                   <ModsPage uid={user?.uid || "local"} games={games} />
@@ -2534,7 +2552,7 @@ const Home: React.FC = () => {
               ) : activeCategory === "PROFILE" ? (
                 <React.Suspense fallback={
                   <div className="flex flex-1 items-center justify-center">
-                    <LoadingState label="Carregando Perfil" variant="Drive" />
+                    <LoadingState label="Carregando Perfil" variant="breathing" />
                   </div>
                 }>
                   <UserProfilePage
@@ -2551,7 +2569,7 @@ const Home: React.FC = () => {
               ) : activeCategory === "TROPHIES" ? (
                 <React.Suspense fallback={
                   <div className="flex flex-1 items-center justify-center">
-                    <LoadingState label="Carregando Troféus" variant="Drive" />
+                    <LoadingState label="Carregando Troféus" variant="solving" />
                   </div>
                 }>
                   <TrophiesPage
@@ -2942,7 +2960,7 @@ const Home: React.FC = () => {
           {friendProfileModal && (
             <React.Suspense fallback={
               <div className="flex h-full items-center justify-center p-10">
-                <LoadingState label="Carregando Perfil" variant="Drive" />
+                <LoadingState label="Carregando Perfil" variant="breathing" />
               </div>
             }>
               <UserProfilePage

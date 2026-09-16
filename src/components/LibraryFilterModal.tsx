@@ -95,8 +95,6 @@ const LibraryFilterModal: React.FC<LibraryFilterModalProps> = ({
     setFilters(defaultFilters);
   };
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
       {isOpen && (

@@ -530,7 +530,7 @@ const ChatMessageList: React.FC<{
   <div className="chat-scrollbar flex-1 space-y-2 overflow-y-auto px-7 py-6 pr-4 md:px-9">
     {isLoading ? (
       <div className="flex flex-1 min-h-[260px] flex-col items-center justify-center space-y-3 py-16 text-center">
-        <LoadingState label="Carregando conversa..." variant="Drive" size="md" showTimer={false} />
+        <LoadingState label="Carregando conversa..." variant="searching" size="md" showTimer={false} />
       </div>
     ) : messages.length === 0 ? (
       <div className="flex flex-col items-center justify-center space-y-2 pb-8 text-center text-white/20">
@@ -916,7 +916,7 @@ export const ChatModal: React.FC<ChatModalProps> = React.memo(
       return () => window.clearTimeout(idleTimer);
     }, [friendUid, inputText, isOpen]);
 
-    if (!isOpen || !friend) return null;
+    if (!friend) return null;
 
     const handleSendMessageSubmit = async (e: React.FormEvent) => {
       e.preventDefault();

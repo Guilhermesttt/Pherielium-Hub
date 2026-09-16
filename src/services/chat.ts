@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import type { ChatMessage } from "../types/domain";
-import { apiUrl } from "./api";
+import { apiUrl, getUsableSession } from "./api";
 import { sendFastReadReceipt, sendFastU2UMessage, subscribeToGlobalEventBus } from "./realtimeEventBus";
 
 const HISTORY_LIMIT = 50;
@@ -310,7 +310,7 @@ export const sendChatMessage = async (
     "attachmentName" | "attachmentUrl" | "attachmentType" | "attachmentSize" | "attachmentPath"
   >,
 ): Promise<ChatMessage> => {
-  const session = (await supabase.auth.getSession()).data.session;
+  const session = await getUsableSession();
   const senderId = session?.user?.id;
   const receiverId = String(receiverUid || "").trim();
   const text = String(rawText || "").trim();
@@ -369,7 +369,7 @@ export const sendChatImage = async (
   file: File,
   caption = "",
 ): Promise<ChatMessage> => {
-  const session = (await supabase.auth.getSession()).data.session;
+  const session = await getUsableSession();
   const senderId = session?.user?.id;
   if (!senderId) throw new Error("Sessao expirada. Entre novamente.");
   validateChatImage(file);
@@ -395,7 +395,7 @@ const typingThrottleMap = new Map<string, { lastSentTime: number; isCurrentlyTyp
 
 const sendTypingPayload = async (friendUid: string, typing: boolean) => {
   try {
-    const session = (await supabase.auth.getSession()).data.session;
+    const session = await getUsableSession();
     if (!session?.user) return;
     const uid = session.user.id;
     const chatId = await ensureChatSession(uid, friendUid);

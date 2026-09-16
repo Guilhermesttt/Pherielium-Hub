@@ -1,6 +1,6 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { PVideoBackground, PGlow, useLowPerf } from "./PerformanceComponents";
+import { PVideoBackground, useLowPerf } from "./PerformanceComponents";
 import bgVideo from "../assets/karavanbraam_pindown.io.webm";
 
 interface DynamicBackgroundProps {
@@ -17,41 +17,55 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ backgroundImage, 
     <div
       className="fixed inset-0 z-0 overflow-hidden pointer-events-none isolate"
       style={{
-        background: "var(--background)",
+        background: "var(--color-bg-main, #0F0F0F)",
         transform: "translateZ(0)",
       }}
     >
       {/* Video de fundo nitido com baixa opacidade e aceleracao GPU */}
       <div className="absolute inset-0 transform-gpu will-change-transform">
         <PVideoBackground
-          src={bgVideo}
+          src={videoUrl || bgVideo}
           className="absolute inset-0 w-full h-full object-cover"
           opacity={0.38}
         />
       </div>
 
-      {/* Imagem de fundo do jogo com efeito blur atmosferico */}
+      {/* Imagem hero do jogo — tratamento cinematografico (scale + fade + blur atmosferico).
+          Repousa em scale 1.06 para o blur nunca expor as bordas. */}
       <AnimatePresence mode="popLayout">
         {backgroundImage ? (
-          <motion.img
-            key={backgroundImage}
-            src={backgroundImage}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: noFx ? 0.25 : 0.45 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: noFx ? 0.1 : 0.55,
-              ease: "easeOut"
-            }}
-            style={{ transform: "translate3d(0,0,0)", backfaceVisibility: "hidden" }}
-            className={`absolute inset-0 w-full h-full object-cover will-change-transform transform-gpu ${noFx ? "scale-[1.02]" : "blur-[36px] scale-[1.08]"}`}
-          />
+          noFx ? (
+            <img
+              key={backgroundImage}
+              src={backgroundImage}
+              alt=""
+              loading="eager"
+              decoding="async"
+              className="absolute inset-0 w-full h-full scale-[1.02] object-cover opacity-25"
+            />
+          ) : (
+            <motion.img
+              key={backgroundImage}
+              initial={{ scale: 1.1, opacity: 0 }}
+              animate={{ scale: 1.06, opacity: 0.65 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              src={backgroundImage}
+              alt=""
+              loading="eager"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover blur-[24px] will-change-transform"
+            />
+          )
         ) : null}
       </AnimatePresence>
 
-      {/* Base gradients using CSS variable for unified dark background */}
-      <div className="absolute inset-0 opacity-60" style={{ background: "linear-gradient(to top, var(--background) 0%, color-mix(in srgb, var(--background) 35%, transparent) 55%, transparent 100%)" }} />
-      <div className="absolute inset-0 opacity-45" style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--background) 45%, transparent) 0%, transparent 55%)" }} />
+      {/* Overlays cinematicos full-bleed (cobrem a tela toda, inclusive atras da sidebar) */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-transparent" />
+
+      {/* Vinheta lateral para leitura do conteudo */}
+      <div className="absolute inset-0 opacity-45" style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--color-bg-main, #0F0F0F) 45%, transparent) 0%, transparent 55%)" }} />
 
       {/* Edge vignette for screen-in-a-dark-room feel */}
       <div
@@ -61,19 +75,14 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ backgroundImage, 
         }}
       />
 
-      <PGlow
-        className="absolute inset-0 w-full h-full"
-        style={{
-          background: "radial-gradient(circle at 76% 18%, rgb(var(--launcher-accent) / 0.20), transparent 45%), radial-gradient(circle at 18% 82%, rgb(var(--launcher-accent) / 0.28), transparent 50%)",
-          borderRadius: 0,
-        }}
-        size="100%"
-        opacity={1}
-        color="transparent"
-      />
-
       {!low && (
-        <div className="absolute inset-0 opacity-[0.015] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]" />
+        <div
+          className="absolute inset-0 opacity-[0.02] pointer-events-none"
+          style={{
+            backgroundImage: "radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 0)",
+            backgroundSize: "24px 24px",
+          }}
+        />
       )}
     </div>
   );

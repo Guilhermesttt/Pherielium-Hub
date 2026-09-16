@@ -3,6 +3,8 @@ import { CheckCircle2, ChevronLeft, ChevronRight, Check, Plus, Link2, RefreshCw 
 import { motion, AnimatePresence } from "framer-motion";
 import type { SoundEffectType } from "../../hooks/useSoundEffects";
 import { PHERIELIUM_LOGO_PATH } from "../../constants/assets";
+import { EmptyStateGraphic } from "../ui/EmptyStateGraphic";
+import { LinearProgress } from "../ui/LinearProgress";
 
 export interface EmptyStateProps {
   searchTerm: string;
@@ -93,16 +95,18 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
         transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
         className="glass-panel w-full max-w-md rounded-2xl p-8 text-center border border-white/[0.08] shadow-2xl shadow-black/50"
       >
-        <div
-          className="w-12 h-12 mx-auto mb-4 rounded-xl bg-white/[0.05] border border-white/[0.1] flex items-center justify-center shadow-inner"
-        >
-          <img
-            src={PHERIELIUM_LOGO_PATH}
-            alt="Pherielium"
-            className="w-6 h-6 object-contain opacity-75"
-            draggable={false}
-          />
-        </div>
+        {!searchTerm ? (
+          <EmptyStateGraphic variant="library" className="mb-2 h-32" />
+        ) : (
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-white/[0.05] border border-white/[0.1] flex items-center justify-center shadow-inner">
+            <img
+              src={PHERIELIUM_LOGO_PATH}
+              alt="Pherielium"
+              className="w-6 h-6 object-contain opacity-75"
+              draggable={false}
+            />
+          </div>
+        )}
 
         <h3 className="mb-1.5 text-lg font-display font-semibold tracking-tight text-white">
           {title}
@@ -121,8 +125,17 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
                   disabled={isSyncingSteam}
                   className="cursor-pointer h-10 rounded-xl px-4 text-xs font-body font-semibold bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-50"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSteam ? "animate-spin" : ""}`} />
-                  {isSyncingSteam ? "Sincronizando..." : "Sincronizar Steam"}
+                  {isSyncingSteam ? (
+                    <span className="flex items-center gap-2">
+                      <LinearProgress className="w-16" label="Sincronizando Steam" />
+                      <span>Sincronizando...</span>
+                    </span>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Sincronizar Steam
+                    </>
+                  )}
                 </button>
               ) : (
                 <button
@@ -132,11 +145,16 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
                   className="cursor-pointer h-10 rounded-xl px-4 text-xs font-body font-semibold bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-60"
                 >
                   {isConnectingSteam ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span className="flex items-center gap-2">
+                      <LinearProgress className="w-16" label="Conectando Steam" />
+                      <span>Conectando...</span>
+                    </span>
                   ) : (
-                    <Link2 className="w-3.5 h-3.5" />
+                    <>
+                      <Link2 className="w-3.5 h-3.5" />
+                      Conectar Steam
+                    </>
                   )}
-                  {isConnectingSteam ? "Conectando..." : "Conectar Steam"}
                 </button>
               )
             ) : activeCategory === "EPIC" ? (
@@ -147,8 +165,17 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
                   disabled={isSyncingEpic}
                   className="cursor-pointer h-10 rounded-xl px-4 text-xs font-body font-semibold bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-50"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingEpic ? "animate-spin" : ""}`} />
-                  {isSyncingEpic ? "Sincronizando..." : "Sincronizar Epic"}
+                  {isSyncingEpic ? (
+                    <span className="flex items-center gap-2">
+                      <LinearProgress className="w-16" label="Sincronizando Epic Games" />
+                      <span>Sincronizando...</span>
+                    </span>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Sincronizar Epic
+                    </>
+                  )}
                 </button>
               ) : (
                 <button
@@ -158,11 +185,16 @@ export const EmptyState: React.FC<EmptyStateProps> = React.memo(
                   className="cursor-pointer h-10 rounded-xl px-4 text-xs font-body font-semibold bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white transition-all duration-160 flex items-center gap-2 disabled:opacity-60"
                 >
                   {isConnectingEpic ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span className="flex items-center gap-2">
+                      <LinearProgress className="w-16" label="Conectando Epic Games" />
+                      <span>Conectando...</span>
+                    </span>
                   ) : (
-                    <Link2 className="w-3.5 h-3.5" />
+                    <>
+                      <Link2 className="w-3.5 h-3.5" />
+                      Conectar Epic
+                    </>
                   )}
-                  {isConnectingEpic ? "Conectando..." : "Conectar Epic"}
                 </button>
               )
             ) : null}

@@ -56,17 +56,17 @@ const MainVideoBackground: React.FC = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 -z-50 overflow-hidden pointer-events-none bg-[#050507]">
-      <div className="absolute inset-0 flex items-center justify-center">
+    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#050507]">
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
         <video
           ref={videoRef}
           autoPlay
           loop
           muted
           playsInline
-          className="absolute h-[100vw] w-[100vh] max-w-none object-cover opacity-75 transition-opacity duration-1000"
+          className="absolute left-1/2 top-1/2 h-[100vw] w-[100vh] max-w-none object-cover opacity-75 transition-opacity duration-1000"
           style={{
-            transform: "rotate(90deg)",
+            transform: "translate(-50%, -50%) rotate(90deg)",
           }}
         >
           <source src={bgVideo} type="video/mp4" />

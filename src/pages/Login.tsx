@@ -433,7 +433,7 @@ const LoginContent: React.FC = () => {
         <SmokeyBackground backdropBlurAmount="lg" color="#333333" className="opacity-95" />
         <div className="relative z-10 flex flex-col items-center gap-6 p-8 md:p-10 rounded-[32px] border border-white/[0.08] bg-[#08090C]/80 backdrop-blur-2xl shadow-2xl">
           <img src={pherieliumLogo} alt="Pherielium" className="w-16 h-16 object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.4)] animate-pulse" />
-          <LoadingState label="Verificando sessão..." variant="Orbit" />
+          <LoadingState label="Verificando sessão..." variant="breathing" />
         </div>
       </div>
     );
@@ -684,7 +684,7 @@ const LoginContent: React.FC = () => {
                 {isLoading ? (
                   <LoadingState
                     label={mode === "login" ? "Entrando..." : "Criando conta..."}
-                    variant="Drive"
+                    variant="connecting"
                     dark
                     size="sm"
                   />
@@ -712,7 +712,7 @@ const LoginContent: React.FC = () => {
                 className="w-full flex items-center justify-center gap-2.5 py-3 px-4 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/20 text-white/85 hover:text-white rounded-2xl text-xs font-body font-medium transition-all duration-200 disabled:opacity-50 cursor-pointer shadow-sm hover:scale-[1.01] active:scale-[0.99]"
               >
                 {isGoogleLoading ? (
-                  <LoadingState label="Conectando Google..." variant="Orbit" size="sm" />
+                  <LoadingState label="Conectando Google..." variant="connecting" size="sm" />
                 ) : (
                   <>
                     <GoogleIcon />

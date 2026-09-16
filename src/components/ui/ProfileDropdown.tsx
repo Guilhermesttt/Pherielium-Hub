@@ -164,9 +164,10 @@ export function ProfileDropdown({
           <DropdownMenuGroup className="p-1">
             {onOpenProfile && (
               <DropdownMenuItem
+                glideId="profile"
                 onClick={onOpenProfile}
                 onPointerEnter={() => playSound("hover")}
-                className="flex cursor-pointer items-center gap-3 rounded-xl p-3 text-xs font-semibold text-white/70 transition-colors focus:bg-white/10 focus:text-white"
+                className="flex cursor-pointer items-center gap-3 rounded-xl p-3 text-xs font-semibold text-white/70 transition-colors hover:bg-white/[0.08] focus:bg-white/10 focus:text-white"
               >
                 <User className="h-4 w-4" />
                 {copy.profile}
@@ -174,9 +175,10 @@ export function ProfileDropdown({
             )}
             {onOpenSettings && (
               <DropdownMenuItem
+                glideId="settings"
                 onClick={onOpenSettings}
                 onPointerEnter={() => playSound("hover")}
-                className="flex cursor-pointer items-center gap-3 rounded-xl p-3 text-xs font-semibold text-white/70 transition-colors focus:bg-white/10 focus:text-white"
+                className="flex cursor-pointer items-center gap-3 rounded-xl p-3 text-xs font-semibold text-white/70 transition-colors hover:bg-white/[0.08] focus:bg-white/10 focus:text-white"
               >
                 <Settings className="h-4 w-4" />
                 {copy.settings}
@@ -186,9 +188,10 @@ export function ProfileDropdown({
           <DropdownMenuSeparator className="bg-white/10" />
           <div className="p-1">
             <DropdownMenuItem
+              glideId="logout"
               onClick={onLogout}
               onPointerEnter={() => playSound("hover")}
-              className="flex cursor-pointer items-center gap-3 rounded-xl p-3 text-xs font-bold text-red-400 transition-colors focus:bg-red-500/15 focus:text-red-300"
+              className="flex cursor-pointer items-center gap-3 rounded-xl p-3 text-xs font-bold text-red-400 transition-colors hover:bg-white/[0.08] focus:bg-red-500/15 focus:text-red-300"
             >
               <LogOut className="h-4 w-4" />
               {copy.logout}
