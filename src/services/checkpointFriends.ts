@@ -12,13 +12,11 @@ let cachedAccessToken: string | null = null;
 
 export const getCachedAccessToken = () => cachedAccessToken;
 
-if (supabase?.auth?.getSession) {
+if (supabase?.auth) {
   void getUsableSession().then((session) => {
     cachedAccessToken = session?.access_token ?? null;
   }).catch(() => {});
-}
 
-if (supabase?.auth?.onAuthStateChange) {
   supabase.auth.onAuthStateChange((_event, session) => {
     cachedAccessToken = session?.access_token ?? null;
   });
