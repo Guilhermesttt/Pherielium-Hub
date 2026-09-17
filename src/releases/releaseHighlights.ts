@@ -17,7 +17,7 @@ export const LATEST_RELEASE: ReleaseHighlights = {
   title: "Confirmações claras & novo ícone",
   description:
     "Modais de confirmação com ícones animados por contexto, Whats New redesenhado e o novo ícone do Pherielium na área de trabalho e no instalador.",
-  releaseUrl: "https://github.com/Guilhermesttt/Checkpoint---Launcher/releases/tag/v3.2.7",
+  releaseUrl: "https://github.com/Guilhermesttt/Pherielium-Hub/releases/tag/v3.2.7",
   highlights: [
     {
       id: "ui",
