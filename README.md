@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src/assets/Pherielium_logo.png" alt="Pherielium Logo" width="160" />
+<img src="src/assets/Pherielium_Desktop_icon.png" alt="Pherielium Logo" width="160" />
 
 # PHERIELIUM
 
