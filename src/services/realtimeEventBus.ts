@@ -29,10 +29,72 @@ const globalEventHandlers = new Set<U2UEventHandlers>();
 const activeInboxChannels = new Map<string, any>();
 const sentMessageIds = new Set<string>();
 
+let presenceAudienceUids = new Set<string>();
+let presenceSelfUid: string | null = null;
+
+const PRESENCE_FANOUT_CHUNK = 20;
+
 // Refcount + idle close management for per-user inbox channels created on-demand.
 const channelRefCounts = new Map<string, number>();
 const channelIdleTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const INBOX_CHANNEL_IDLE_MS = 30_000; // close channels after 30s idle
+
+/**
+ * Restrict presence delivery to an explicit friend audience (plus self).
+ * Replaces the previous audience set with cleaned UIDs.
+ */
+export const setPresenceAudience = (friendUids: string[]) => {
+  presenceAudienceUids = new Set(
+    friendUids
+      .map((uid) => String(uid || "").trim())
+      .filter(Boolean),
+  );
+};
+
+/**
+ * True for self, or for UIDs in the friend audience.
+ * When the audience is empty, strangers are ignored (self still allowed).
+ */
+export const isPresenceAudienceMember = (uid: string): boolean => {
+  if (!uid) return false;
+  if (presenceSelfUid && uid === presenceSelfUid) return true;
+  return presenceAudienceUids.has(uid);
+};
+
+/** Snapshot of the current friend audience UIDs (for optional send-side fan-out). */
+export const getPresenceAudienceUids = (): string[] => Array.from(presenceAudienceUids);
+
+const deliverPresenceStatusUpdate = (presence: PresencePayload) => {
+  if (!presence?.uid || !isPresenceAudienceMember(presence.uid)) return;
+  cancelPendingLeave(presence.uid);
+  globalEventHandlers.forEach((h) => h.onStatusUpdate?.(presence));
+};
+
+const sendPresenceToFriendInbox = async (receiverUid: string, presence: PresencePayload) => {
+  const channelName = `user_inbox_${receiverUid}`;
+  let targetChannel = activeInboxChannels.get(channelName);
+
+  if (!targetChannel) {
+    targetChannel = supabase.channel(channelName);
+    activeInboxChannels.set(channelName, targetChannel);
+    channelRefCounts.set(channelName, 0);
+    try {
+      targetChannel.subscribe((s: string) => { });
+    } catch { }
+  }
+
+  try {
+    await targetChannel.send({
+      type: "broadcast",
+      event: "u2u:status",
+      payload: presence,
+    });
+  } catch { }
+
+  if ((channelRefCounts.get(channelName) || 0) <= 0) {
+    scheduleChannelIdleClose(channelName, targetChannel);
+  }
+};
 
 function scheduleChannelIdleClose(channelName: string, channelObj: any) {
   if (channelIdleTimers.has(channelName)) return;
@@ -77,6 +139,9 @@ export const subscribeToGlobalEventBus = (
   handlers: U2UEventHandlers,
 ) => {
   globalEventHandlers.add(handlers);
+  if (myUid) {
+    presenceSelfUid = myUid;
+  }
 
   if (!inboxChannel && myUid) {
     const channelName = `user_inbox_${myUid}`;
@@ -98,8 +163,7 @@ export const subscribeToGlobalEventBus = (
       })
       .on("broadcast", { event: "u2u:status" }, (e: any) => {
         if (e.payload && typeof e.payload === "object") {
-          const presence = e.payload as PresencePayload;
-          globalEventHandlers.forEach((h) => h.onStatusUpdate?.(presence));
+          deliverPresenceStatusUpdate(e.payload as PresencePayload);
         }
       })
       .on("broadcast", { event: "u2u:typing" }, (e: any) => {
@@ -153,11 +217,7 @@ export const subscribeToGlobalEventBus = (
     presenceChannel
       .on("broadcast", { event: "presence:status_update" }, (e: any) => {
         if (e.payload && typeof e.payload === "object") {
-          const presence = e.payload as PresencePayload;
-          if (presence?.uid) {
-            cancelPendingLeave(presence.uid);
-          }
-          globalEventHandlers.forEach((h) => h.onStatusUpdate?.(presence));
+          deliverPresenceStatusUpdate(e.payload as PresencePayload);
         }
       })
       .on("presence", { event: "sync" }, () => {
@@ -166,8 +226,7 @@ export const subscribeToGlobalEventBus = (
           if (Array.isArray(presences)) {
             presences.forEach((p: any) => {
               if (p.presence && p.presence.uid) {
-                cancelPendingLeave(p.presence.uid);
-                globalEventHandlers.forEach((h) => h.onStatusUpdate?.(p.presence));
+                deliverPresenceStatusUpdate(p.presence);
               }
             });
           }
@@ -177,8 +236,7 @@ export const subscribeToGlobalEventBus = (
         if (Array.isArray(newPresences)) {
           newPresences.forEach((p: any) => {
             if (p.presence && p.presence.uid) {
-              cancelPendingLeave(p.presence.uid);
-              globalEventHandlers.forEach((h) => h.onStatusUpdate?.(p.presence));
+              deliverPresenceStatusUpdate(p.presence);
             }
           });
         }
@@ -188,18 +246,15 @@ export const subscribeToGlobalEventBus = (
         presences.forEach((p: any) => {
           const uid = p?.presence?.uid || p?.uid || (key && key !== "guest" ? key : null);
           if (uid) {
-            cancelPendingLeave(uid);
             // Notifica imediatamente em tempo real sem atraso
-            globalEventHandlers.forEach((h) =>
-              h.onStatusUpdate?.({
-                uid,
-                displayName: p?.presence?.displayName || p?.displayName || "Jogador",
-                photoURL: p?.presence?.photoURL || p?.photoURL || null,
-                status: "offline",
-                playing: null,
-                updatedAt: Date.now(),
-              }),
-            );
+            deliverPresenceStatusUpdate({
+              uid,
+              displayName: p?.presence?.displayName || p?.displayName || "Jogador",
+              photoURL: p?.presence?.photoURL || p?.photoURL || null,
+              status: "offline",
+              playing: null,
+              updatedAt: Date.now(),
+            });
           }
         });
       });
@@ -235,25 +290,53 @@ export const subscribeToGlobalEventBus = (
 };
 
 /**
- * Emite uma mudança de status / jogo em tempo real via WebSocket para todos os amigos conectados
+ * Emite uma mudança de status / jogo em tempo real via WebSocket para amigos conectados.
+ * Prefers per-friend inbox fan-out; skips global presence:status_update when an audience is known.
  */
-export const broadcastPresenceStatus = async (presence: PresencePayload) => {
+export const broadcastPresenceStatus = async (
+  presence: PresencePayload,
+  friendUids?: string[],
+) => {
   try {
     if (!presenceChannel) {
-      presenceChannel = supabase.channel("checkpoint_presence_bus");
+      presenceChannel = supabase.channel("checkpoint_presence_bus", {
+        config: {
+          presence: {
+            key: presence.uid || "guest",
+          },
+        },
+      });
       try {
         presenceChannel.subscribe((s: string) => { });
       } catch { }
     }
 
-    // 1. Broadcast instantâneo para canais inscritos
-    await presenceChannel.send({
-      type: "broadcast",
-      event: "presence:status_update",
-      payload: presence,
-    });
+    const audience =
+      friendUids !== undefined
+        ? friendUids.map((uid) => String(uid || "").trim()).filter(Boolean)
+        : Array.from(presenceAudienceUids);
+    const hasAudience = friendUids !== undefined || presenceAudienceUids.size > 0;
 
-    // 2. Track/Untrack no estado Presence do canal
+    // 1. Fan-out to each friend's personal inbox (capped concurrency)
+    if (audience.length > 0) {
+      for (let i = 0; i < audience.length; i += PRESENCE_FANOUT_CHUNK) {
+        const chunk = audience.slice(i, i + PRESENCE_FANOUT_CHUNK);
+        await Promise.allSettled(
+          chunk.map((uid) => sendPresenceToFriendInbox(uid, presence)),
+        );
+      }
+    }
+
+    // 2. Global broadcast only when no friend audience is available (legacy fallback)
+    if (!hasAudience) {
+      await presenceChannel.send({
+        type: "broadcast",
+        event: "presence:status_update",
+        payload: presence,
+      });
+    }
+
+    // 3. Track/Untrack no estado Presence do canal (join/leave semantics)
     if (presence.status === "offline") {
       try {
         await presenceChannel.untrack();

@@ -29,13 +29,15 @@ const ensureFreshFile = (filePath) => {
 const sharp = require("sharp");
 
 const regenerateWindowsIcon = async () => {
-  const sourcePng = path.join(projectRoot, "assets", "icon.png");
+  const sourcePng = path.join(projectRoot, "src", "assets", "Pherielium_Desktop_icon.png");
+  const assetsPng = path.join(projectRoot, "assets", "icon.png");
   const targetIco = path.join(projectRoot, "assets", "icon.ico");
   try {
     const squarePngBuffer = await sharp(sourcePng)
-      .resize(512, 512, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .resize(1024, 1024, { fit: "cover", position: "centre" })
       .png()
       .toBuffer();
+    fs.writeFileSync(assetsPng, squarePngBuffer);
     const icoBuffer = await pngToIco.default(squarePngBuffer);
     fs.writeFileSync(targetIco, icoBuffer);
     console.log(`[build-portable] regenerated ${path.relative(projectRoot, targetIco)}`);

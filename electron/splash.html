@@ -282,7 +282,7 @@
       const audio = document.getElementById("splashAudio");
       if (audio) {
         audio.currentTime = 0;
-        audio.volume = 1;
+        audio.volume = 0.35;
         audio.play().catch((err) => {
           console.warn("[splash] Audio play error:", err);
         });

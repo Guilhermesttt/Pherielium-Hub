@@ -13,31 +13,36 @@ export interface ReleaseHighlights {
 }
 
 export const LATEST_RELEASE: ReleaseHighlights = {
-  version: "3.2.6",
-  title: "Design Apple & Segurança Aprimorada",
-  description: "Redesign completo seguindo diretrizes da Apple (Squircles G2, Molas Framer Motion, cursores imersivos) e refatoração crítica de segurança no backend (Autenticação SSR robusta e validação de middleware).",
-  releaseUrl: "https://github.com/Guilhermesttt/Checkpoint---Launcher/releases/tag/v3.2.6",
+  version: "3.2.7",
+  title: "Confirmações claras & novo ícone",
+  description:
+    "Modais de confirmação com ícones animados por contexto, Whats New redesenhado e o novo ícone do Pherielium na área de trabalho e no instalador.",
+  releaseUrl: "https://github.com/Guilhermesttt/Checkpoint---Launcher/releases/tag/v3.2.7",
   highlights: [
     {
       id: "ui",
-      title: "Geometria Orgânica & Física de Molas",
-      description: "Novos modais e botões com curvas contínuas Squircles G2. Animações puramente baseadas em física de molas (sem tempos fixos) para uma experiência fluida e moderna.",
-    },
-    {
-      id: "security",
-      title: "Auditoria de Segurança & SSR Auth",
-      description: "Migração para pacotes Supabase SSR para autenticação robusta em servidor. Novos middlewares de validação de dados com Zod e tratamento centralizado de erros.",
+      title: "Mensagens de confirmação claras",
+      description:
+        "Ícones animados para remover jogo, sair da conta, desfazer amizade e desconectar plataformas — intenção óbvia antes de confirmar.",
     },
     {
       id: "stability",
-      title: "Cursor Imersivo & Performance",
-      description: "Novo cursor dinâmico que reage ao conteúdo da tela de forma acelerada por hardware, garantindo renderização suave a 120fps.",
+      title: "Novo ícone do hub",
+      description:
+        "Identidade visual atualizada no atalho da área de trabalho, na janela do app e no instalador Windows.",
+    },
+    {
+      id: "voice",
+      title: "Polimento da experiência social",
+      description:
+        "Ajustes de voz, chat e fluxo de amigos para uma navegação mais fluida no dia a dia.",
     },
   ],
 };
 
 const releasesByVersion = new Map([
   [LATEST_RELEASE.version, LATEST_RELEASE],
+  ["3.2.6", LATEST_RELEASE],
   ["3.2.5", LATEST_RELEASE],
   ["3.2.4", {
     version: "3.2.4",
@@ -53,4 +58,3 @@ const releasesByVersion = new Map([
 
 export const getReleaseHighlights = (version: string) =>
   releasesByVersion.get(String(version || "").trim()) ?? LATEST_RELEASE;
-

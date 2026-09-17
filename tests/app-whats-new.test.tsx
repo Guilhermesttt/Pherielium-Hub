@@ -13,7 +13,15 @@ vi.mock("../src/components/GameBootIntro", () => ({
 vi.mock("../src/components/AsyncLoader", () => ({ default: () => <div>Carregando</div> }));
 vi.mock("../src/auth/AuthProvider", () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => children,
-  useAuth: () => ({ user: { uid: "user-1" }, loading: false }),
+  useAuth: () => ({
+    user: { uid: "user-1" },
+    loading: false,
+    authIssue: null,
+    sessionStatus: "ok",
+    signOutUser: async () => {},
+    clearAuthIssue: () => {},
+    refreshProfile: async () => null,
+  }),
 }));
 vi.mock("../src/components/NotificationCenter", () => ({
   NotificationProvider: ({ children }: { children: React.ReactNode }) => children,

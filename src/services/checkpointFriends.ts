@@ -1,15 +1,20 @@
 import { supabase } from "./supabase";
 import type { Game, UserProfile } from "../types/domain";
-import { apiUrl } from "./api";
-import { broadcastPresenceStatus } from "./realtimeEventBus";
+import { apiUrl, getUsableSession } from "./api";
+import { broadcastPresenceStatus, getPresenceAudienceUids } from "./realtimeEventBus";
+
+const friendAudienceForBroadcast = (): string[] | undefined => {
+  const uids = getPresenceAudienceUids();
+  return uids.length > 0 ? uids : undefined;
+};
 
 let cachedAccessToken: string | null = null;
 
 export const getCachedAccessToken = () => cachedAccessToken;
 
 if (supabase?.auth?.getSession) {
-  void supabase.auth.getSession().then(({ data }) => {
-    cachedAccessToken = data?.session?.access_token ?? null;
+  void getUsableSession().then((session) => {
+    cachedAccessToken = session?.access_token ?? null;
   }).catch(() => {});
 }
 
@@ -20,7 +25,7 @@ if (supabase?.auth?.onAuthStateChange) {
 }
 
 const getAuthHeaders = async () => {
-  const session = (await supabase.auth.getSession()).data.session;
+  const session = await getUsableSession();
   if (session?.access_token) {
     cachedAccessToken = session.access_token;
   }
@@ -104,7 +109,7 @@ export const updateCheckpointPresence = async (
   customDisplayName?: string,
   customPhotoURL?: string | null,
 ) => {
-  const session = (await supabase.auth.getSession()).data.session;
+  const session = await getUsableSession();
   if (!session?.user) {
     throw new Error("Sessao expirada. Entre novamente.");
   }
@@ -126,7 +131,7 @@ export const updateCheckpointPresence = async (
     status,
     playing: currentGameTitle || null,
     updatedAt: Date.now(),
-  }).catch(() => {});
+  }, friendAudienceForBroadcast()).catch(() => {});
 
   const response = await fetch(apiUrl("/api/presence"), {
     method: "POST",
@@ -158,8 +163,8 @@ export const markCheckpointOfflineSync = (
       updatedAt: Date.now(),
     };
 
-    // 1. Notificação instantânea via WebSocket para todos os amigos conectados
-    void broadcastPresenceStatus(presencePayload).catch(() => {});
+    // 1. Notificação instantânea via WebSocket para amigos conectados
+    void broadcastPresenceStatus(presencePayload, friendAudienceForBroadcast()).catch(() => {});
 
     // 2. Persistência HTTP com keepalive para o backend registrar offline mesmo fechando o processo
     const token = cachedAccessToken;
@@ -220,7 +225,7 @@ export const markCheckpointOfflineAsync = async (
   const body = JSON.stringify({ status: "offline", currentGameTitle: null, token });
 
   await Promise.allSettled([
-    broadcastPresenceStatus(presencePayload),
+    broadcastPresenceStatus(presencePayload, friendAudienceForBroadcast()),
     fetch(url, {
       method: "POST",
       headers: {

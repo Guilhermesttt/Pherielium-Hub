@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useMotionValue, useMotionTemplate } from "framer-motion";
 import { Gamepad2, ArrowRight } from "lucide-react";
 import type { Game } from "../types/domain";
 import { formatPlayedHours, getGamePlayedHours } from "../utils/playtime";
@@ -101,12 +101,13 @@ const ContinueCard: React.FC<{
   // Glow no card todo, com coordenadas da superfície visual (a barra
   // horizontal): o handler resolve o alvo, então pairar sobre texto
   // ou capa atualiza o spotlight no lugar certo, sem saltos.
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
   const handleCardGlow = (e: React.MouseEvent<HTMLElement>) => {
-    const surface =
-      e.currentTarget.querySelector<HTMLElement>("[data-glow-surface]") ?? e.currentTarget;
-    const rect = surface.getBoundingClientRect();
-    surface.style.setProperty("--cg-x", `${e.clientX - rect.left}px`);
-    surface.style.setProperty("--cg-y", `${e.clientY - rect.top}px`);
+    const rect = e.currentTarget.getBoundingClientRect();
+    mouseX.set(e.clientX - rect.left);
+    mouseY.set(e.clientY - rect.top);
   };
 
   return (
@@ -123,24 +124,36 @@ const ContinueCard: React.FC<{
       style={{ height: COVER_HEIGHT }}
       aria-label={`Continuar jogando ${game.title}`}
     >
-      {/* Card background — cor do jogo + spotlight segue o cursor (Luma-style) */}
-      <div
-        data-glow-surface
-        className="cursor-glow absolute inset-x-0 bottom-0 overflow-hidden border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+      {/* Card background — cor do jogo + spotlight segue o cursor */}
+      <motion.div
+        className="absolute inset-x-0 bottom-0 overflow-hidden border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
         style={{
           height: CARD_HEIGHT,
           background: cardBackground,
           borderRadius: 32, /* Squircle */
           borderColor: cardBorderColor,
         }}
-      />
+      >
+        <motion.div
+          className="pointer-events-none absolute -inset-px rounded-[32px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          style={{
+            background: useMotionTemplate`
+              radial-gradient(
+                400px circle at ${mouseX}px ${mouseY}px,
+                rgba(255,255,255,0.1),
+                transparent 80%
+              )
+            `,
+          }}
+        />
+      </motion.div>
 
       {/* Text — reserved offset guarantees it never sits under the cover and never truncates */}
       <div
         className="absolute bottom-0 right-4 flex flex-col justify-center gap-1.5"
         style={{ height: CARD_HEIGHT, left: TEXT_OFFSET }}
       >
-        <h3 className="truncate text-[17px] font-semibold leading-tight tracking-tight text-white/90 drop-shadow-sm transition-colors group-hover:text-white">
+        <h3 className="truncate text-[22px] font-bold leading-tight tracking-tight text-white/90 drop-shadow-sm transition-colors group-hover:text-white">
           {game.title}
         </h3>
         <p className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[12px] font-medium text-white/50">

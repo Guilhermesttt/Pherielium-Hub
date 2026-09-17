@@ -68,31 +68,6 @@ export const HomeOverviewPanels = React.memo(function HomeOverviewPanels({
           </div>
         </motion.div>
       )}
-
-      {topActivities.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, x: 20, filter: "blur(6px)" }}
-          animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-          whileHover={{ scale: 1.02, backgroundColor: "rgba(38, 38, 42, 0.85)" }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: "spring", bounce: 0.2, duration: 0.4, delay: 0.08 }}
-          className="pointer-events-auto group w-72 rounded-[28px] border border-white/[0.08] bg-[#1C1C1E]/75 p-3.5 shadow-[0_24px_48px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12)] flex items-center gap-3.5 cursor-pointer"
-          style={{ backdropFilter: "blur(40px) saturate(180%)", WebkitBackdropFilter: "blur(40px) saturate(180%)" }}
-        >
-          {/* Inner Icon: R_inner (14px) = R_outer (28px) - Padding (14px) */}
-          <div className="w-11 h-11 rounded-[14px] bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-            <Flame className="h-5 w-5 text-amber-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="block text-[10px] font-semibold tracking-widest text-amber-300/60 uppercase font-body">
-              Atividade recente
-            </span>
-            <p className="text-[13px] font-semibold text-white/95 truncate font-body">
-              {topActivities[0].title}
-            </p>
-          </div>
-        </motion.div>
-      )}
     </aside>
   );
 });

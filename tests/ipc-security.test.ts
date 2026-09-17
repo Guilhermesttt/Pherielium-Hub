@@ -7,7 +7,7 @@ const {
   createSecureIpcRegistrar,
   getIpcSenderUrl,
   isTrustedIpcEvent,
-} = require("../electron/ipc-security.cjs");
+} = require("../electron/core/ipc-security.cjs");
 
 const allowed = (url: string) => new URL(url).origin === "https://checkpoint.example";
 

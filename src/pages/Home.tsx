@@ -48,7 +48,6 @@ import { useNotification } from "../components/NotificationCenter";
 import ModalShell from "../components/ui/ModalShell";
 import { ProfileDropdown } from "../components/ui/ProfileDropdown";
 import { ShinyButton } from "../components/ui/shiny-button";
-import { InteractiveBreadcrumb } from "../components/home/InteractiveBreadcrumb";
 import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "../services/supabase";
 // Correção 1: Importando Game, UserProfile e SocialFriend no mesmo lugar
@@ -131,8 +130,7 @@ import { calculatePlayerLevel, aggregateTrophyCounts } from "../utils/trophyTier
 import { getHubAggregateCounts, getUserUnifiedLevel } from "../utils/hubTrophies";
 import { progressionEventBus } from "../services/progressionEvents";
 import { completeUserQuest } from "../services/userQuests";
-import InputHints from "../components/ui/InputHints";
-import { resolveLibraryLoadingState, shouldShowLibraryFooter } from "../utils/libraryLoading";
+import { resolveLibraryLoadingState } from "../utils/libraryLoading";
 
 const AddGameModal = React.lazy(() => import("../components/AddGameModal"));
 const GameDetailPanel = React.lazy(() => import("../components/GameDetailPanel"));
@@ -230,7 +228,8 @@ const Home: React.FC = () => {
   const { user, userProfile, signOutUser, refreshProfile } = useAuth();
   const { notify } = useNotification();
   const gamepad = useGamepad();
-  const voiceCall = useVoiceCallContext();
+  const voiceCallContext = useVoiceCallContext();
+  const voiceCall = voiceCallContext;
   const [games, setGames] = useState<Game[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [activeCategory, setActiveCategory] = useState("ALL");
@@ -289,7 +288,6 @@ const Home: React.FC = () => {
   const [epicAuthConnected, setEpicAuthConnected] = useState(false);
   const [epicDisplayName, setEpicDisplayName] = useState("");
   const [isExitingSession, setIsExitingSession] = useState(false);
-  const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -405,7 +403,7 @@ const Home: React.FC = () => {
     };
   }, []);
 
-  const lastWheelTime = useRef<number>(0);
+  const gameRailWheelTimeRef = useRef(0);
   const previousSteamIdRef = useRef<string | undefined>(undefined);
   const previousDiscordIdRef = useRef<string | undefined>(undefined);
   const previousEpicAuthRef = useRef(false);
@@ -430,7 +428,6 @@ const Home: React.FC = () => {
     setVisualTheme,
     minimizeToTrayOnClose,
     restoreLastScreen,
-    confirmBeforeExit,
     preferencesHydrated,
     t,
   } = usePreferences();
@@ -464,12 +461,13 @@ const Home: React.FC = () => {
     if (!preferencesHydrated) return;
     void window.electronAPI?.setWindowBehavior?.({
       minimizeToTray: minimizeToTrayOnClose,
-      confirmBeforeExit,
+      confirmBeforeExit: false,
     }).catch(console.error);
-  }, [confirmBeforeExit, minimizeToTrayOnClose, preferencesHydrated]);
+  }, [minimizeToTrayOnClose, preferencesHydrated]);
 
   useEffect(() => window.electronAPI?.onExitConfirmationRequested?.(() => {
-    setExitConfirmationOpen(true);
+    // Sai direto — sem o modal "Sair do Phelierium".
+    void window.electronAPI?.confirmAppQuit?.();
   }), []);
   const { playSound } = useSoundEffects(
     effectsVolume / 100,
@@ -643,7 +641,6 @@ const Home: React.FC = () => {
     setIsAddFriendModalOpen,
   });
 
-  const voiceCallContext = useVoiceCallContext();
   const { startCall, startTestCall } = voiceCallContext;
 
   const [overlayAchievements, setOverlayAchievements] = useState<{
@@ -775,13 +772,40 @@ const Home: React.FC = () => {
     void migrateLocalLibrary();
   }, [refreshLibrary, user?.uid, userProfile?.gamesMigratedAt]);
 
+  // Throttle do sync publico: evita POSTs em rajada a cada tecla/render.
+  // O syncPublicLibrarySummary ja e no-op quando nada mudou (dirty=false +
+  // fingerprint igual), mas o efeito abaixo dispara a cada mudanca de `games`.
+  // Guardamos ultimo disparo + backoff apos falha para nao spammar o console.
+  const publicSyncInFlightRef = useRef(false);
+  const publicSyncLastAttemptRef = useRef(0);
+  const publicSyncBackoffUntilRef = useRef(0);
   useEffect(() => {
     if (!user?.uid || isLoading || !localLibraryReady) return;
     const timer = window.setTimeout(() => {
-      void syncPublicLibrarySummary(user.uid, userProfile).catch((error) => {
-        console.error("Falha ao sincronizar resumo publico da biblioteca:", error);
-      });
-    }, 1_000);
+      const now = Date.now();
+      if (publicSyncInFlightRef.current) return;
+      if (now < publicSyncBackoffUntilRef.current) return;
+      // Debounce: ignora disparos com menos de 10s desde a ultima tentativa.
+      if (now - publicSyncLastAttemptRef.current < 10_000) return;
+      publicSyncInFlightRef.current = true;
+      publicSyncLastAttemptRef.current = now;
+      void syncPublicLibrarySummary(user.uid, userProfile)
+        .catch((error) => {
+          // Backoff de 60s apos falha + warn (nao error) para nao poluir o console.
+          publicSyncBackoffUntilRef.current = Date.now() + 60_000;
+          const msg = error instanceof Error ? error.message : String(error);
+          if (msg.includes("42P10") || msg.includes("ON CONFLICT")) {
+            console.warn(
+              "Resumo público pendente: banco sem constraint única (rode `supabase db push`). Tentando de novo em 60s.",
+            );
+          } else {
+            console.warn("Falha ao sincronizar resumo publico da biblioteca:", error);
+          }
+        })
+        .finally(() => {
+          publicSyncInFlightRef.current = false;
+        });
+    }, 2_000);
     return () => window.clearTimeout(timer);
   }, [games, isLoading, localLibraryReady, user?.uid, userProfile]);
 
@@ -822,7 +846,7 @@ const Home: React.FC = () => {
     };
 
     heartbeat();
-    const interval = window.setInterval(heartbeat, 25_000);
+    const interval = window.setInterval(heartbeat, 60_000);
     return () => window.clearInterval(interval);
   }, [currentPresenceGame, user?.uid, userProfile?.displayName, userProfile?.photoURL]);
 
@@ -1069,7 +1093,6 @@ const Home: React.FC = () => {
     Boolean(pendingDeleteGame) ||
     isAddFriendModalOpen ||
     signOutModalOpen ||
-    exitConfirmationOpen ||
     disconnectSteamModalOpen ||
     disconnectDiscordModalOpen ||
     epicConnectModalOpen;
@@ -1149,11 +1172,6 @@ const Home: React.FC = () => {
       playSound("back");
       return;
     }
-    if (exitConfirmationOpen) {
-      setExitConfirmationOpen(false);
-      playSound("back");
-      return;
-    }
     if (disconnectSteamModalOpen) {
       setDisconnectSteamModalOpen(false);
       playSound("back");
@@ -1203,7 +1221,6 @@ const Home: React.FC = () => {
     disconnectSteamModalOpen,
     disconnectEpicModalOpen,
     epicConnectModalOpen,
-    exitConfirmationOpen,
     friendProfileModal,
     isAddFriendModalOpen,
     pendingDeleteGame,
@@ -1487,36 +1504,33 @@ const Home: React.FC = () => {
       }
     };
 
-    const handleWheel = (e: WheelEvent) => {
-      const now = Date.now();
-      if (now - lastWheelTime.current < 120) return;
-
-      if (Math.abs(e.deltaX) > 15 || Math.abs(e.deltaY) > 15) {
-        lastWheelTime.current = now;
-        if (e.deltaY > 0 || e.deltaX > 0) {
-          setSelectedIndex((p) => {
-            const next = Math.min(p + 1, displayGames.length - 1);
-            if (next !== p) playSound("navigate");
-            return next;
-          });
-        } else {
-          setSelectedIndex((p) => {
-            const prev = Math.max(p - 1, 0);
-            if (prev !== p) playSound("navigate");
-            return prev;
-          });
-        }
-      }
-    };
-
     window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("wheel", handleWheel, { passive: true });
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("wheel", handleWheel);
     };
   }, [isAnyModalOpen, displayGames, selectedIndex, openDetails, playSound, searchOpen]);
+
+  const handleGameRailWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    if (isAnyModalOpen || searchOpen || displayGames.length === 0) return;
+
+    const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX)
+      ? event.deltaY
+      : event.deltaX;
+    if (Math.abs(delta) <= 15) return;
+
+    const now = performance.now();
+    if (now - gameRailWheelTimeRef.current < 120) return;
+    gameRailWheelTimeRef.current = now;
+
+    setSelectedIndex((current) => {
+      const next = delta > 0
+        ? Math.min(current + 1, displayGames.length - 1)
+        : Math.max(current - 1, 0);
+      if (next !== current) playSound("navigate");
+      return next;
+    });
+  }, [displayGames.length, isAnyModalOpen, playSound, searchOpen]);
 
   // Correção 3: Construção do perfil local caso não seja amigo do Checkpoint
   const handleViewFriendProfile = async (friend: SocialFriend) => {
@@ -2080,7 +2094,7 @@ const Home: React.FC = () => {
           currentGame?.cardImage ||
           ""
         }
-        videoUrl={currentGame?.trailerUrl}
+        videoUrl={activeCategory === "ALL" && !isAnyModalOpen ? currentGame?.trailerUrl : undefined}
         reducedEffects={isAnyModalOpen}
       />
 
@@ -2092,26 +2106,22 @@ const Home: React.FC = () => {
 
       {/* Widgets flutuantes (Pulso, Amigos) com animação sincronizada ao jogo */}
       {activeCategory === "ALL" && !isLoading && (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`widgets-${currentGame?.id}`}
-            initial={{ opacity: 0, filter: "blur(8px)" }}
-            animate={{ opacity: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, filter: "blur(4px)" }}
-            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <HomeOverviewPanels
-              continuePlaying={continuePlayingGames}
-              favoriteGames={favoriteShowcaseGames}
-              friendsPlaying={friendsPlayingNow}
-              recentActivity={recentOverviewActivity}
-              onOpenGame={openDetails}
-              onOpenFriends={() => selectCategory("FRIENDS")}
-              onOpenFriendChat={openFriendChatFromOverview}
-              t={t}
-            />
-          </motion.div>
-        </AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <HomeOverviewPanels
+            continuePlaying={continuePlayingGames}
+            favoriteGames={favoriteShowcaseGames}
+            friendsPlaying={friendsPlayingNow}
+            recentActivity={recentOverviewActivity}
+            onOpenGame={openDetails}
+            onOpenFriends={() => selectCategory("FRIENDS")}
+            onOpenFriendChat={openFriendChatFromOverview}
+            t={t}
+          />
+        </motion.div>
       )}
 
 
@@ -2132,12 +2142,10 @@ const Home: React.FC = () => {
       />
 
       <div
-        className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden transition-[margin-left] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+        className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden transition-[margin-left] duration-400ms ease-[cubic-bezier(0.16,1,0.3,1)]"
         style={{
           marginLeft: isSidebarExpanded ? 328 : 104,
           contain: "layout paint style",
-          willChange: "transform",
-          transform: "translate3d(0,0,0)",
         }}
       >
         <motion.div
@@ -2447,11 +2455,13 @@ const Home: React.FC = () => {
                   onMusicVolumeChange={setMusicVolume}
                   onSoundThemeChange={(next: any) => {
                     setSoundTheme(next);
-                    playSound("select");
+                    // Volume reduzido: o clique de troca de tema soava
+                    // desproporcionalmente alto comparado aos outros feedbacks da UI.
+                    playSound("select", 0.45);
                   }}
                   onVisualThemeChange={(next: any) => {
                     setVisualTheme(next);
-                    playSound("select");
+                    playSound("select", 0.45);
                   }}
                   onPreviewSound={() => playSound("select")}
                   onTestNotificationSound={() => playSound("notification")}
@@ -2680,25 +2690,22 @@ const Home: React.FC = () => {
                   )}
 
                   <motion.div
-                    className="px-10 pb-4 shrink-0 transform-gpu will-change-transform"
+                    className="px-10 pb-4 shrink-0 transform-gpu"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.35, delay: 0.08, ease: [0.32, 0.72, 0, 1] }}
                   >
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={`hero-${currentGame?.id}`}
-                        initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                        exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
-                        transition={{ duration: 0.26, ease: [0.32, 0.72, 0, 1] }}
-                        className="flex flex-col transform-gpu mt-4"
-                      >
+                    <motion.div
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.26, ease: [0.32, 0.72, 0, 1] }}
+                      className="flex flex-col transform-gpu mt-4"
+                    >
                         <div className="flex items-center justify-between gap-8 w-full mb-3">
                           <h1
-                            className="tracking-tight font-display font-black text-3xl md:text-5xl bg-gradient-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent leading-[1.08] drop-shadow-[0_8px_32px_rgba(0,0,0,0.85)] line-clamp-1"
+                            className="tracking-tight font-display font-black text-3xl md:text-6xl bg-linear-to-b from-[#FFFFFF] to-[#8A8A8A] bg-clip-text text-transparent leading-[1.08] drop-shadow-[0_8px_32px_rgba(0,0,0,0.85)] line-clamp-1"
                             style={{
-                              maxWidth: "74vw",
+                              maxWidth: "84vw",
                             }}
                           >
                             {currentGame?.title}
@@ -2707,7 +2714,7 @@ const Home: React.FC = () => {
                             <ShinyButton
                               onClick={() => currentGame && openDetails(currentGame)}
                               onMouseEnter={() => playSound("hover")}
-                              className="!shrink-0 !flex !items-center gap-2.5 shadow-[0_4px_24px_rgba(255,255,255,0.15)] !px-8 !py-4 !text-[15px] cursor-pointer"
+                              className="shrink-0! flex! items-center! gap-2.5 shadow-[0_4px_24px_rgba(255,255,255,0.15)] px-8 py-4 text-[15px] cursor-pointer"
                             >
                               <svg
                                 viewBox="0 0 24 24"
@@ -2722,49 +2729,49 @@ const Home: React.FC = () => {
 
                         <div className="flex items-center gap-2.5 flex-wrap font-body mb-8">
                           {(currentGame?.launcherType === "steam" || currentGame?.source === "steam") ? (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/3 border border-white/10 px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
                               <SteamBrandIcon className="w-3.5 h-3.5 text-white" /> Steam
                             </span>
                           ) : (currentGame?.launcherType === "epic" || currentGame?.source === "epic") ? (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/3 border border-white/10 px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
                               <EpicBrandIcon className="w-3.5 h-3.5 text-white" /> Epic Games
                             </span>
                           ) : currentGame?.launcherType === "ea" ? (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/3 border border-white/10 px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
                               <EaBrandIcon className="w-3.5 h-3.5 text-white" /> EA App
                             </span>
                           ) : currentGame?.launcherType === "ubisoft" ? (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/3 border border-white/10 px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
                               <UbisoftBrandIcon className="w-3.5 h-3.5 text-white" /> Ubisoft
                             </span>
                           ) : currentGame?.launcherType === "gog" ? (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/3 border border-white/10 px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
                               <GogBrandIcon className="w-3.5 h-3.5 text-white" /> GOG
                             </span>
                           ) : currentGame?.launcherType === "xbox" ? (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/3 border border-white/10 px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
                               <XboxBrandIcon className="w-3.5 h-3.5 text-white" /> Xbox
                             </span>
                           ) : currentGame?.launcherType === "riot" ? (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/3 border border-white/10 px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
                               <RiotBrandIcon className="w-3.5 h-3.5 text-white" /> Riot Games
                             </span>
                           ) : currentGame?.launcherType === "battlenet" ? (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/3 border border-white/10 px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
                               <BattlenetBrandIcon className="w-3.5 h-3.5 text-white" /> Battle.net
                             </span>
                           ) : currentGame?.launcherType === "rockstar" ? (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/3 border border-white/10 px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
                               <RockstarBrandIcon className="w-3.5 h-3.5 text-white" /> Rockstar
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.03] border border-white/[0.1] px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/3 border border-white/10 px-3 py-1 text-xs font-semibold text-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
                               <Gamepad2 className="w-3.5 h-3.5 text-white" /> Executável Local
                             </span>
                           )}
 
                           {currentGame && (
-                            <span className="flex items-center gap-1.5 rounded-lg bg-white/[0.02] border border-white/[0.08] px-3 py-1 text-xs font-medium text-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
+                            <span className="flex items-center gap-1.5 rounded-lg bg-white/2 border border-white/8 px-3 py-1 text-xs font-medium text-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-3xl saturate-150">
                               {formatPlayedHours(getGamePlayedHours(currentGame))}h jogadas
                             </span>
                           )}
@@ -2775,11 +2782,13 @@ const Home: React.FC = () => {
                             </span>
                           )}
                         </div>
-                      </motion.div>
-                    </AnimatePresence>
+                    </motion.div>
                   </motion.div>
 
-                  <div className="shrink-0 pb-8 hub-scroll will-change-transform transform-gpu">
+                  <div
+                    className="shrink-0 pb-8 hub-scroll transform-gpu"
+                    onWheel={handleGameRailWheel}
+                  >
 
                     <AnimatePresence mode="wait" initial={false}>
                       <motion.div
@@ -2804,59 +2813,6 @@ const Home: React.FC = () => {
             </motion.div>
           </AnimatePresence>
         </div>
-
-        {
-          shouldShowLibraryFooter(activeCategory) && <div
-            className="fixed bottom-0 z-30 flex items-center justify-between px-8 py-3.5 pointer-events-none transition-[left] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-            style={{
-              left: isSidebarExpanded ? 328 : 104,
-              right: 0,
-              background:
-                "linear-gradient(to top, var(--background) 0%, transparent 100%)",
-            }}
-          >
-            <p
-              className="text-[10px] font-semibold uppercase tracking-[0.2em] font-body"
-              style={{ color: "rgba(255,255,255,0.45)" }}
-            >
-              {displayGames.length} {displayGames.length === 1 ? "jogo" : "jogos"}
-            </p>
-            <InputHints hints={activeInputType === "gamepad" ? (
-              activeCategory === "FRIENDS" ? [
-                { button: "L1_R1", label: "Trocar Aba" },
-                { button: "DPAD", label: "Selecionar" },
-                { button: "SQUARE", label: "Chat" },
-                { button: "TRIANGLE", label: "Ligar" },
-                { button: "O", label: "Voltar" }
-              ] : activeCategory === "SETTINGS" ? [
-                { button: "L1_R1", label: "Trocar Aba" },
-                { button: "DPAD", label: "Navegar" },
-                { button: "X", label: "Selecionar" },
-                { button: "O", label: "Voltar" }
-              ] : activeCategory === "TROPHIES" ? [
-                { button: "L1_R1", label: "Filtrar" },
-                { button: "DPAD", label: "Navegar" },
-                { button: "X", label: "Abrir Jogo" },
-                { button: "O", label: "Voltar" }
-              ] : activeCategory === "MODS" ? [
-                { button: "DPAD", label: "Navegar" },
-                { button: "X", label: "Gerenciar" },
-                { button: "O", label: "Voltar" }
-              ] : [
-                { button: "DPAD", label: "Navegar" },
-                { button: "X", label: "Abrir" },
-                { button: "TRIANGLE", label: "Novo Jogo" },
-                { button: "L2_R2", label: "Categorias" },
-                { button: "SHARE", label: "Amigos" },
-                { button: "OPTIONS", label: "Ajustes" }
-              ]
-            ) : [
-              { button: "DPAD", label: "Navegar" },
-              { button: "X", label: "Abrir" },
-              { button: "CONTEXT", label: "Opções" }
-            ]} />
-          </div>
-        }
       </div>
 
       <React.Suspense fallback={null}>
@@ -2955,7 +2911,7 @@ const Home: React.FC = () => {
       >
         <div
           data-friend-profile-surface
-          className="flex h-full flex-col overflow-hidden rounded-[32px] border border-white/10 bg-[#050507] shadow-2xl"
+          className="flex h-full flex-col overflow-hidden rounded-4xl border border-white/10 bg-[#050507] shadow-2xl"
         >
           {friendProfileModal && (
             <React.Suspense fallback={
@@ -2996,10 +2952,10 @@ const Home: React.FC = () => {
         title="Remover jogo"
         description={
           pendingDeleteGame
-            ? `Tem certeza que deseja remover "${pendingDeleteGame.title}" da sua biblioteca?`
+            ? `Você vai remover "${pendingDeleteGame.title}" da sua biblioteca.`
             : ""
         }
-        confirmLabel="Remover"
+        confirmLabel="Sim, remover"
         variant="delete"
         onClose={() => setPendingDeleteGame(null)}
         onConfirm={async () => {
@@ -3025,7 +2981,7 @@ const Home: React.FC = () => {
         variant="logout"
         title={t("signOutTitle")}
         description={t("signOutDescription")}
-        confirmLabel={t("signOutConfirm")}
+        confirmLabel="Sim, sair"
         onClose={() => setSignOutModalOpen(false)}
         onConfirm={async () => {
           setSignOutModalOpen(false);
@@ -3035,24 +2991,11 @@ const Home: React.FC = () => {
       />
 
       <ConfirmationModal
-        isOpen={exitConfirmationOpen}
-        title="Sair do Phelierium"
-        description="O launcher e os recursos em segundo plano serão encerrados."
-        confirmLabel="Sair do aplicativo"
-        onClose={() => setExitConfirmationOpen(false)}
-        onConfirm={() => {
-          setExitConfirmationOpen(false);
-          void window.electronAPI?.confirmAppQuit?.();
-        }}
-        playSound={playSound}
-      />
-
-      <ConfirmationModal
         isOpen={disconnectSteamModalOpen}
         variant="disconnect"
         title={t("disconnectSteamTitle")}
         description={t("disconnectSteamDescription")}
-        confirmLabel={t("confirm")}
+        confirmLabel="Sim, desconectar"
         onClose={() => setDisconnectSteamModalOpen(false)}
         onConfirm={async () => {
           setDisconnectSteamModalOpen(false);
@@ -3068,7 +3011,7 @@ const Home: React.FC = () => {
         variant="disconnect"
         title={t("disconnectDiscordTitle")}
         description={t("disconnectDiscordDescription")}
-        confirmLabel={t("confirm")}
+        confirmLabel="Sim, desconectar"
         onClose={() => setDisconnectDiscordModalOpen(false)}
         onConfirm={async () => {
           setDisconnectDiscordModalOpen(false);
@@ -3084,7 +3027,7 @@ const Home: React.FC = () => {
         variant="disconnect"
         title={t("disconnectEpicTitle")}
         description={t("disconnectEpicDescription")}
-        confirmLabel={t("confirm")}
+        confirmLabel="Sim, desconectar"
         onClose={() => setDisconnectEpicModalOpen(false)}
         onConfirm={async () => {
           setDisconnectEpicModalOpen(false);
@@ -3098,13 +3041,14 @@ const Home: React.FC = () => {
 
       <ConfirmationModal
         isOpen={pendingFriendRemoval !== null}
+        variant="unfriend"
         title="Desfazer amizade"
         description={
           pendingFriendRemoval
-            ? `Voce quer remover ${pendingFriendRemoval.name} da sua lista de amigos?`
+            ? `Você vai remover ${pendingFriendRemoval.name} da sua lista de amigos.`
             : ""
         }
-        confirmLabel="Remover"
+        confirmLabel="Sim, remover"
         onClose={() => setPendingFriendRemoval(null)}
         onConfirm={async () => {
           const friend = pendingFriendRemoval;
@@ -3129,7 +3073,7 @@ const Home: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[210] flex flex-col items-center justify-center overflow-hidden bg-[#030405]"
+            className="fixed inset-0 z-210 flex flex-col items-center justify-center overflow-hidden bg-[#030405]"
           >
             {/* Onda de luz expandindo */}
             <motion.div
@@ -3143,12 +3087,12 @@ const Home: React.FC = () => {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-              className="absolute w-80 h-80 md:w-96 md:h-96 rounded-full border border-white/[0.08]"
+              className="absolute w-80 h-80 md:w-96 md:h-96 rounded-full border border-white/8"
             />
             <motion.div
               animate={{ rotate: -360 }}
               transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
-              className="absolute w-64 h-64 md:w-80 md:h-80 rounded-full border border-white/[0.06] border-dashed"
+              className="absolute w-64 h-64 md:w-80 md:h-80 rounded-full border border-white/6 border-dashed"
             />
 
             {/* Núcleo com Logo */}
@@ -3228,12 +3172,12 @@ const Home: React.FC = () => {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 40, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 320, damping: 24 }}
-            className="fixed bottom-6 right-6 z-[9999] pointer-events-auto"
+            className="fixed bottom-6 right-6 z-9999 pointer-events-auto"
             onMouseEnter={() => { if (levelUpTimerRef.current) window.clearTimeout(levelUpTimerRef.current); }}
             onMouseLeave={() => { levelUpTimerRef.current = window.setTimeout(() => setShowLevelUp(false), 2500) as any; }}
           >
             <div
-              className="relative w-[360px] overflow-hidden rounded-2xl border bg-black/90 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
+              className="relative w-90 overflow-hidden rounded-2xl border bg-black/90 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
               style={{
                 borderColor: (levelUpData as any)?.tierInfo?.hexColor ? `${(levelUpData as any).tierInfo.hexColor}40` : "rgba(255,255,255,0.12)",
                 boxShadow: `0 0 30px ${(levelUpData as any)?.tierInfo?.hexColor ?? "#fbbf24"}25, 0 20px 60px rgba(0,0,0,0.6)`,
@@ -3241,7 +3185,7 @@ const Home: React.FC = () => {
             >
               {/* glow topo */}
               <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full blur-3xl opacity-20" style={{ background: (levelUpData as any)?.tierInfo?.hexColor ?? "#fbbf24" }} />
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-linear-to-br from-white/6 to-transparent pointer-events-none" />
               {/* barra de progresso fina no topo */}
               {typeof (levelUpData as any)?.progress === "number" && (
                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/5">
@@ -3257,7 +3201,7 @@ const Home: React.FC = () => {
                       <Trophy className="h-7 w-7" style={{ color: (levelUpData as any)?.tierInfo?.hexColor ?? "#fbbf24" }} fill="currentColor" />
                     )}
                   </motion.div>
-                  <div className="absolute -bottom-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full border border-black bg-white px-1 text-[10px] font-black text-black">Lv{(levelUpData as any)?.prevLevel ?? ""}→{levelUpData.level}</div>
+                  <div className="absolute -bottom-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full border border-black bg-white px-1 text-[10px] font-black text-black">Lv{(levelUpData as any)?.prevLevel ?? ""}→{levelUpData.level}</div>
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
@@ -3302,7 +3246,7 @@ const Home: React.FC = () => {
               playSound("select");
               setIsQuestsModalOpen(true);
             }}
-            className="fixed bottom-6 right-6 z-[120] flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#0D0E15]/90 hover:bg-[#161824] border border-amber-500/40 hover:border-amber-500/80 shadow-[0_10px_30px_rgba(0,0,0,0.7),0_0_20px_rgba(245,158,11,0.2)] text-white text-xs font-bold transition-all duration-200 backdrop-blur-xl group hover:scale-105 cursor-pointer"
+            className="fixed bottom-6 right-6 z-120 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#0D0E15]/90 hover:bg-[#161824] border border-amber-500/40 hover:border-amber-500/80 shadow-[0_10px_30px_rgba(0,0,0,0.7),0_0_20px_rgba(245,158,11,0.2)] text-white text-xs font-bold transition-all duration-200 backdrop-blur-xl group hover:scale-105 cursor-pointer"
             title="Abrir Guia de Missões"
           >
             <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-amber-400 group-hover:bg-amber-500/30">

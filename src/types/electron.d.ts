@@ -313,7 +313,15 @@ declare global {
       }>>;
       isExecutableRunning: (executablePath: string) => Promise<boolean>;
       detectRunningGames: (executablePaths: string[]) => Promise<string[]>;
-      startGoogleBrowserAuth: () => Promise<{ state: string }>;
+      startGoogleBrowserAuth: () => Promise<{ state: string; pollSecret: string }>;
+      pollGoogleBrowserAuth?: (state: string, pollSecret: string) => Promise<{
+        status: string;
+        error?: string;
+        accessToken?: string;
+        refreshToken?: string;
+        email?: string;
+        uid?: string;
+      }>;
       onAccountAuthCallback: (
         callback: (payload: { steamStatus?: string; discordStatus?: string }) => void,
       ) => () => void;

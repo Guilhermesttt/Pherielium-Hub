@@ -26,36 +26,16 @@ const SVG_PATH_2 =
 //    on once the shape is static (isComplete), so the filter is recomputed
 //    against a shape that isn't also changing.
 //
-// 2. 65 cube divs + 50 star divs each carrying an individual `boxShadow` blur
-//    is expensive to paint/composite at that count. Blur radius was cut down
-//    and `willChange` was added so the browser promotes them to their own
-//    compositor layer once, instead of re-deciding every frame.
+// 2. Starfield de dezenas de divs animadas foi trocado por Mainbackground.mp4
+//    (um único layer de vídeo GPU) — bem mais barato que N animações CSS.
 //
-// 3. The whole tree re-rendered on every state tick (isComplete, isLevitating,
-//    isExiting, showSkipHint) because everything lived in one component. The
-//    starfield/cubes/shockwaves/logo/title are now memoized sub-components
-//    that only re-render when their own props actually change.
+// 3. Cubes/shockwaves/logo/title são subcomponentes memoizados e desmontam
+//    quando não são mais necessários.
 //
-// 4. Cubes/stars are unmounted (not just hidden) once they're no longer
-//    needed, so their compositor layers are actually freed instead of sitting
-//    around invisible.
+// 4. prefers-reduced-motion: pula o swarm de cubes.
 //
-// 5. Respect prefers-reduced-motion: skip the starfield/cube swarm entirely
-//    for people who asked the OS for less motion — also a nice perf win for
-//    lower-end machines since it's the priciest part of the intro.
-//
-// 6. Audio fade-out used a 35ms setInterval driving `.volume`; swapped for a
-//    single requestAnimationFrame ramp, which is smoother and cheaper.
+// 5. Audio fade-out via requestAnimationFrame (mais barato que setInterval).
 // ---------------------------------------------------------------------------
-
-type StarData = {
-  id: number;
-  size: number;
-  left: string;
-  top: string;
-  duration: number;
-  delay: string;
-};
 
 type CubeData = {
   id: number;
@@ -84,40 +64,6 @@ function fadeOutAudio(audio: HTMLAudioElement, durationMs = 350) {
   };
   requestAnimationFrame(step);
 }
-
-// --- Starfield -------------------------------------------------------------
-
-const Starfield = React.memo(function Starfield({
-  stars,
-  active,
-}: {
-  stars: StarData[];
-  active: boolean;
-}) {
-  if (!active) return null;
-  return (
-    <div
-      className="absolute inset-0 pointer-events-none overflow-hidden"
-      style={{ perspective: 1000, zIndex: 2 }}
-    >
-      {stars.map((star) => (
-        <div
-          key={star.id}
-          className="absolute bg-white rounded-full pointer-events-none"
-          style={{
-            width: star.size,
-            height: star.size,
-            left: star.left,
-            top: star.top,
-            animation: `consoleWarp ${star.duration}s linear infinite`,
-            animationDelay: star.delay,
-            willChange: "transform, opacity",
-          }}
-        />
-      ))}
-    </div>
-  );
-});
 
 // --- Converging data cubes ---------------------------------------------------
 
@@ -220,6 +166,7 @@ const LogoMark = React.memo(function LogoMark({
           <motion.linearGradient
             id={gradientId}
             gradientUnits="userSpaceOnUse"
+            initial={{ x1: "0", y1: "0", x2: "0", y2: "0" }}
             animate={{
               x1: ["0", "2034"],
               x2: ["0", "1017"],
@@ -421,7 +368,7 @@ const SkipHint = React.memo(function SkipHint({
           <button
             type="button"
             onClick={onSkip}
-            className="group flex items-center gap-2.5 px-4 py-2 rounded-[10px] border border-white/20 bg-white/[0.04] hover:bg-white/10 hover:border-white/40 transition-all duration-200 cursor-pointer backdrop-blur-md active:scale-95"
+            className="group flex items-center gap-2.5 px-4 py-2 rounded-[10px] border border-white/20 bg-white/4 hover:bg-white/10 hover:border-white/40 transition-all duration-200 cursor-pointer backdrop-blur-md active:scale-95"
           >
             <span className="text-[11px] font-mono tracking-[0.16em] uppercase text-white/70 group-hover:text-white transition-colors">
               Pular Introdução
@@ -455,21 +402,7 @@ const GameBootIntro: React.FC<GameBootIntroProps> = ({ onFinish }) => {
   );
 
   // Fewer particles on reduced-motion / keeps the swarm cheap either way.
-  const starCount = prefersReducedMotion ? 0 : 40;
   const cubeCount = prefersReducedMotion ? 0 : 48;
-
-  const stars = useMemo<StarData[]>(
-    () =>
-      Array.from({ length: starCount }, (_, i) => ({
-        id: i,
-        size: Math.random() * 2.5 + 1.2,
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        duration: Math.random() * 2 + 2.5,
-        delay: `${Math.random() * 3}s`,
-      })),
-    [starCount]
-  );
 
   const cubes = useMemo<CubeData[]>(
     () =>
@@ -534,7 +467,7 @@ const GameBootIntro: React.FC<GameBootIntroProps> = ({ onFinish }) => {
   useEffect(() => {
     const audio = new Audio(bootAudioSrc);
     audio.preload = "auto";
-    audio.volume = 1;
+    audio.volume = 0.35;
     audioRef.current = audio;
 
     audio.play().catch((err) => {
@@ -577,7 +510,7 @@ const GameBootIntro: React.FC<GameBootIntroProps> = ({ onFinish }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[500] flex flex-col items-center justify-center overflow-hidden select-none cursor-default"
+      className="fixed inset-0 z-500 flex flex-col items-center justify-center overflow-hidden select-none cursor-default"
       style={{
         backgroundColor: isExiting ? "rgba(2, 2, 5, 0)" : "#020205",
         transition: "background-color 0.8s cubic-bezier(0.65, 0, 0.25, 1)",
@@ -585,33 +518,28 @@ const GameBootIntro: React.FC<GameBootIntroProps> = ({ onFinish }) => {
       role="presentation"
       onClick={handleFinish}
     >
-      {/* Inline keyframe for stars perspective warp */}
-      <style>{`
-        @keyframes consoleWarp {
-          0% { transform: translateZ(-900px) scale(0.1); opacity: 0; }
-          50% { opacity: 0.9; }
-          100% { transform: translateZ(450px) scale(2.2); opacity: 0; }
-        }
-      `}</style>
-
-      {/* Background Video with reduced opacity - fades away on exit to reveal Home underneath */}
+      {/* Fundo via Mainbackground.mp4 (GPU) — substitui o starfield de partículas */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none overflow-hidden"
         style={{ opacity: isExiting ? 0 : 1, transition: "opacity 0.65s cubic-bezier(0.65, 0, 0.25, 1)" }}
       >
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          disablePictureInPicture
-          src={bgVideo}
-          className="absolute inset-0 w-full h-full object-cover opacity-35 pointer-events-none"
-        />
+        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            disablePictureInPicture
+            className="absolute left-1/2 top-1/2 h-[100vw] w-[100vh] max-w-none object-cover opacity-55 pointer-events-none"
+            style={{ transform: "translate(-50%, -50%) rotate(90deg)" }}
+          >
+            <source src={bgVideo} type="video/mp4" />
+          </video>
+        </div>
 
         {/* Ambient Dark Overlay & Radial Vignette */}
-        <div className="absolute inset-0 bg-black/60 pointer-events-none" />
+        <div className="absolute inset-0 bg-black/55 pointer-events-none" />
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -621,9 +549,7 @@ const GameBootIntro: React.FC<GameBootIntroProps> = ({ onFinish }) => {
         />
       </div>
 
-      {/* Starfield + converging cubes are unmounted (not just hidden) once done,
-          so their compositor layers are freed instead of idling. */}
-      <Starfield stars={stars} active={!isExiting} />
+      {/* Cubes desmontam após o climax; o vídeo cobre o fundo o tempo todo. */}
       <DataCubes cubes={cubes} active={!isComplete} />
       <Shockwaves show={isComplete} />
 

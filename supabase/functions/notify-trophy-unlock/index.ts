@@ -8,9 +8,10 @@
 //   RESEND_FROM        - required, e.g. "Phelierium <noreply@phelierium.app>"
 //   APP_BASE_URL       - optional, defaults to https://checkpointlauncher.com
 //   DRY_RUN            - optional "1" to skip the actual Resend call (tests)
+//   CRON_SECRET        - optional dedicated secret for cron callers
+//   SUPABASE_SERVICE_ROLE_KEY - required; also accepted as Bearer auth
 //
-// Auth: the function is invoked by cron / db webhook with the service role.
-// We do not parse the JWT to identify the caller.
+// Auth: only service-role or CRON_SECRET Bearer tokens are accepted.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
@@ -48,6 +49,32 @@ function getEnv(name: string, fallback?: string): string {
   throw new Error(`Missing required env var: ${name}`);
 }
 
+function timingSafeEqualString(a: string, b: string): boolean {
+  if (a.length !== b.length || a.length === 0) return false;
+  const enc = new TextEncoder();
+  const left = enc.encode(a);
+  const right = enc.encode(b);
+  let mismatch = 0;
+  for (let i = 0; i < left.length; i += 1) {
+    mismatch |= left[i] ^ right[i];
+  }
+  return mismatch === 0;
+}
+
+function isAuthorizedCaller(req: Request): boolean {
+  const authHeader = req.headers.get("Authorization") || "";
+  const match = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
+  const token = (match?.[1] || "").trim();
+  if (!token) return false;
+
+  const serviceRoleKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "").trim();
+  const cronSecret = (Deno.env.get("CRON_SECRET") || "").trim();
+
+  if (serviceRoleKey && timingSafeEqualString(token, serviceRoleKey)) return true;
+  if (cronSecret && timingSafeEqualString(token, cronSecret)) return true;
+  return false;
+}
+
 const supabaseUrl = getEnv("SUPABASE_URL");
 const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
 const apiKey = getEnv("RESEND_API_KEY");
@@ -66,6 +93,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "method not allowed" }), {
       status: 405,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  if (!isAuthorizedCaller(req)) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
       headers: { "content-type": "application/json" },
     });
   }

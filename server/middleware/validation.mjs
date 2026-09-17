@@ -7,14 +7,15 @@ import { z } from "zod";
 export const validateBody = (schema) => {
   return (req, res, next) => {
     try {
-      req.body = schema.parse(req.body);
+      req.body = schema.parse(req.body ?? {});
       next();
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error?.name === "ZodError" || error instanceof z.ZodError) {
+        const issues = Array.isArray(error.issues) ? error.issues : (error.errors || []);
         return res.status(400).json({
           error: "Validação falhou",
-          details: error.errors.map((err) => ({
-            field: err.path.join("."),
+          details: issues.map((err) => ({
+            field: Array.isArray(err.path) ? err.path.join(".") : String(err.path || ""),
             message: err.message,
           })),
         });
@@ -84,17 +85,27 @@ export const chatMessageSchema = z.object({
 });
 
 /**
- * Schema para criação de sala de voz
+ * Schema para criação de sala de voz (alinhado a /api/voice/rooms)
  */
 export const voiceRoomSchema = z.object({
-  name: z.string().min(1, "Nome da sala é obrigatório").max(50, "Nome muito longo"),
-  category: z.enum(["general", "gaming", "voice-chat", "custom"]),
-  isPrivate: z.boolean().default(false),
-  password: z.string().min(4).max(20).optional(),
-  icon: z.string().url().optional(),
-  avatarUrl: z.string().url().optional(),
+  name: z.string().min(1, "Nome da sala é obrigatório").max(80, "Nome muito longo"),
+  category: z.enum(["resenha_games", "gameplay_foco", "estudos_foco", "casual_chat"]).optional(),
+  isPrivate: z.boolean().optional().default(false),
+  password: z.union([z.string().max(64), z.literal("")]).optional(),
+  maxParticipants: z.number().int().min(2).max(4).optional(),
+  icon: z.string().max(32).optional(),
+  avatarUrl: z.union([z.string().url(), z.literal(""), z.undefined()]).optional(),
   themeColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-});
+}).passthrough();
+
+/**
+ * Schema para join de sala de voz
+ */
+export const voiceRoomJoinSchema = z.object({
+  password: z.union([z.string().max(64), z.literal("")]).optional(),
+  displayName: z.string().max(80).optional(),
+  avatarUrl: z.union([z.string().url(), z.literal(""), z.undefined()]).optional(),
+}).passthrough();
 
 /**
  * Schema para solicitação de amizade
@@ -118,11 +129,19 @@ export const profileUpdateSchema = z.object({
 });
 
 /**
- * Schema para atualização de presença
+ * Schema para atualização de presença (/api/presence)
  */
 export const presenceSchema = z.object({
-  status: z.enum(["online", "playing", "offline"]),
-  playing: z.string().max(255).optional(),
+  status: z.enum(["online", "playing", "offline"]).optional(),
+  currentGameTitle: z.string().max(120).optional(),
+  playing: z.string().max(255).optional().nullable(),
+}).passthrough();
+
+/**
+ * Schema para rotas de amizade que recebem { uid }
+ */
+export const friendUidBodySchema = z.object({
+  uid: z.string().uuid("UID inválido"),
 });
 
 /**
@@ -146,9 +165,10 @@ export const steamSearchSchema = z.object({
  */
 export const livekitTokenSchema = z.object({
   roomName: z.string().min(1).max(100),
-  participantName: z.string().min(1).max(50),
-  metadata: z.string().max(500).optional(),
-});
+  identity: z.string().min(1).max(80).optional(),
+  name: z.string().min(1).max(80).optional(),
+  metadata: z.any().optional(),
+}).passthrough();
 
 /**
  * Schema para atividade social

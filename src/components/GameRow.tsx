@@ -48,14 +48,14 @@ const GameCardSlot = React.memo(
     );
 
     if (!isWithinWindow) {
+      // Placeholder de virtualização: com listas grandes, dezenas/centenas destes
+      // ficam montados fora da janela visível. `backdrop-filter` é uma das
+      // propriedades mais caras do compositor (custa mesmo fora de tela em muitos
+      // motores), então o placeholder usa apenas uma cor sólida — visualmente
+      // quase idêntico já que ele só aparece de relance durante o scroll rápido.
       return (
         <div
-          className="shrink-0 w-[178px] h-[264px] rounded-[24px] pointer-events-none border border-white/[0.08]"
-          style={{
-            background: "rgba(28, 28, 30, 0.4)",
-            backdropFilter: "blur(20px) saturate(180%)",
-            WebkitBackdropFilter: "blur(20px) saturate(180%)",
-          }}
+          className="shrink-0 w-44.5 h-66 rounded-3xl pointer-events-none border border-white/8 bg-black/70"
           aria-hidden="true"
         />
       );
@@ -64,6 +64,7 @@ const GameCardSlot = React.memo(
     return (
       <div className="shrink-0">
         <ContextMenu
+          gameTitle={game.title}
           onAction={handleMenuAction}
           isFavorite={game.isFavorite}
           playSound={playSound}
@@ -186,20 +187,17 @@ const GameRow: React.FC<GameRowProps> = ({
           const isActive = i === canonicalIndex;
           return (
             <motion.button
-              type="button"
-              key={i}
-              aria-label={`Ir para jogo ${i + 1}`}
-              className="h-[3px] rounded-full cursor-pointer origin-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
-              animate={{
-                scaleX: isActive ? 1 : 0.22,
-                opacity: isActive ? 1 : 0.35,
-                backgroundColor: isActive ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.7)",
-              }}
-              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-              style={{ width: 28 }}
-              onClick={() => {
-                onSelect(i);
-              }}
+            type="button"
+            key={i}
+            aria-label={`Ir para jogo ${i + 1}`}
+            className="h-0.75 rounded-full cursor-pointer origin-center bg-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
+            animate={{
+              scaleX: isActive ? 1 : 0.22,
+              opacity: isActive ? 0.95 : 0.35,
+            }}
+            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+            style={{ width: 28 }}
+            onClick={() => onSelect(i)}
             />
           );
         })}

@@ -11,7 +11,7 @@ export { ChatModal } from "./ChatModal";
 export type { ChatModalProps } from "./ChatModal";
 
 export { ConfirmationModal } from "./ConfirmationModal";
-export type { ConfirmationModalProps } from "./ConfirmationModal";
+export type { ConfirmationModalProps, ConfirmationVariant } from "./ConfirmationModal";
 
 export { EmptyState, EmptyLibraryOnboarding } from "./EmptyLibraryOnboarding";
 export type { EmptyStateProps, EmptyLibraryOnboardingProps } from "./EmptyLibraryOnboarding";

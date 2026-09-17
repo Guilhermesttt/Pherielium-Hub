@@ -1,21 +1,11 @@
-import { apiUrl } from "./api";
+import { apiUrl, getAuthHeaders as getApiAuthHeaders } from "./api";
 import { supabase } from "./supabase";
 import type { PublicVoiceRoom, VoiceRoom, RoomCategory, VoiceRoomParticipant } from "../types/voice-governance";
 
 let roomsChannel: any = null;
 let currentTrackedRoom: PublicVoiceRoom | null = null;
 
-const getAuthHeaders = async (): Promise<Record<string, string>> => {
-  const session = (await supabase.auth.getSession()).data.session;
-  const token = session?.access_token;
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  return headers;
-};
+const getAuthHeaders = (): Promise<Record<string, string>> => getApiAuthHeaders(true);
 
 /**
  * Cria uma nova sala persistente no backend
@@ -44,7 +34,7 @@ export const createVoiceRoom = async (config: {
       icon: config.icon || "🎮",
       avatarUrl: config.avatarUrl,
       themeColor: config.themeColor || "#8B5CF6",
-      maxParticipants: config.maxParticipants || 4,
+      maxParticipants: config.maxParticipants || 16,
     }),
   });
 
@@ -187,7 +177,6 @@ export const joinVoiceRoom = async (
   roomId: string,
   options?: {
     password?: string;
-    fromInvite?: boolean;
     displayName?: string;
     avatarUrl?: string;
   },
@@ -198,7 +187,6 @@ export const joinVoiceRoom = async (
     headers,
     body: JSON.stringify({
       password: options?.password || "",
-      fromInvite: Boolean(options?.fromInvite),
       displayName: options?.displayName,
       avatarUrl: options?.avatarUrl,
     }),

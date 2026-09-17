@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { ProfileVisibility } from "../types/domain";
+import { getUsableSession } from "./api";
 
 export const normalizeProfileVisibility = (value: unknown): ProfileVisibility => {
   if (value === "public" || value === "private") return value;
@@ -10,7 +11,7 @@ export const saveProfileVisibility = async (
   requestedVisibility: ProfileVisibility,
 ): Promise<ProfileVisibility> => {
   const visibility = normalizeProfileVisibility(requestedVisibility);
-  const session = (await supabase.auth.getSession()).data.session;
+  const session = await getUsableSession();
   if (!session?.user) {
     throw new Error("Faça login novamente para alterar a privacidade.");
   }

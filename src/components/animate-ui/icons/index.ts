@@ -19,5 +19,8 @@ export * from './laptop';
 export * from './hammer';
 export * from './message-square';
 export * from './user-plus';
+export * from './user-minus';
 export * from './fingerprint';
 export * from './lock-keyhole';
+export * from './trash-2';
+export * from './unlink';

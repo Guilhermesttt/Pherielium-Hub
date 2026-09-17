@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { supabase } from "../services/supabase";
-import { apiUrl, refreshSupabaseSessionOnce } from "../services/api";
+import { apiUrl, getUsableSession, refreshSupabaseSessionOnce } from "../services/api";
 import { cleanupAllChannels } from "../services/voiceCall";
 import { markCheckpointOfflineSync } from "../services/checkpointFriends";
 import type { UserProfile } from "../types/domain";
@@ -12,15 +12,21 @@ export interface AuthUser {
   photoURL?: string | null;
 }
 
+export type AuthIssue = null | "session_expired" | "profile_stale";
+export type SessionStatus = "ok" | "degraded" | "expired";
+
 interface AuthContextValue {
   user: AuthUser | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  authIssue: AuthIssue;
+  sessionStatus: SessionStatus;
   signInWithGoogle: () => Promise<void>;
   signUpWithEmail: (email: string, pass: string) => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   signOutUser: () => Promise<void>;
   refreshProfile: () => Promise<any>;
+  clearAuthIssue: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -67,6 +73,19 @@ const toProfile = (uid: string, data?: Record<string, any>): UserProfile => {
   };
 };
 
+
+const isJwtAuthError = (error: { code?: string; message?: string } | null | undefined) => {
+  if (!error) return false;
+  return error.code === "PGRST301" || /jwt|expired|token|unauthoriz/i.test(error.message || "");
+};
+
+const isClientOnline = () => typeof navigator === "undefined" || navigator.onLine;
+
+const toSessionStatus = (issue: AuthIssue): SessionStatus => {
+  if (issue === "session_expired") return "expired";
+  if (issue === "profile_stale") return "degraded";
+  return "ok";
+};
 
 const wait = (ms: number) => new Promise<void>((resolve) => {
   globalThis.setTimeout(resolve, ms);
@@ -245,11 +264,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authIssue, setAuthIssue] = useState<AuthIssue>(null);
   const userProfileRef = useRef<UserProfile | null>(null);
 
   const commitUserProfile = useCallback((profile: UserProfile | null) => {
     userProfileRef.current = profile;
     setUserProfile(profile);
+  }, []);
+
+  const clearAuthIssue = useCallback(() => {
+    setAuthIssue(null);
   }, []);
 
   // Mantem o ref coerente inclusive para atualizacoes feitas por outros handlers.
@@ -288,13 +312,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     };
 
-    const useLastKnownProfile = () => {
+    const useLastKnownProfile = (issue: AuthIssue = "profile_stale") => {
+      if (issue) {
+        setAuthIssue(issue);
+      }
       const effectiveProfile = mergeTransientProfile(
         buildCachedFallback(),
         userProfileRef.current,
       );
       commitUserProfile(effectiveProfile);
       return effectiveProfile;
+    };
+
+    const classifyAuthFailure = async (): Promise<AuthIssue> => {
+      const online = isClientOnline();
+      if (!online) {
+        return "profile_stale";
+      }
+
+      const usable = await getUsableSession();
+      if (!usable) {
+        return "session_expired";
+      }
+
+      return "profile_stale";
     };
 
     try {
@@ -306,7 +347,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Se o PostgREST indicar JWT expirado/invalido, tenta UM refresh compartilhado
       // e repete a leitura uma unica vez.
-      if (error && (error.code === "PGRST301" || /jwt|expired|token|unauthoriz/i.test(error.message || ""))) {
+      if (error && isJwtAuthError(error)) {
         const refreshedSession = await refreshSupabaseSessionOnce();
         if (refreshedSession) {
           const retryRes = await supabase
@@ -316,14 +357,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .maybeSingle();
           data = retryRes.data;
           error = retryRes.error;
+        } else {
+          const issue = await classifyAuthFailure();
+          console.warn("[Auth] JWT invalido e refresh falhou; marcando", issue);
+          return useLastKnownProfile(issue);
         }
       }
 
       if (error || !data) {
         if (error) {
           console.warn("[Auth] Perfil indisponivel; usando ultimo estado conhecido:", error.message);
+          const issue = isJwtAuthError(error)
+            ? await classifyAuthFailure()
+            : "profile_stale";
+          return useLastKnownProfile(issue);
         }
-        return useLastKnownProfile();
+
+        // Linha ausente ainda nao significa sessao degradada — usa cache local.
+        const effectiveProfile = mergeTransientProfile(
+          buildCachedFallback(),
+          userProfileRef.current,
+        );
+        commitUserProfile(effectiveProfile);
+        return effectiveProfile;
       }
 
       try {
@@ -350,11 +406,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Uma resposta valida do banco e autoritativa. Se steam_id/discord_id vier null,
       // a desconexao e real e NAO deve ser sobrescrita pelo cache anterior.
+      setAuthIssue(null);
       commitUserProfile(prof);
       return prof;
     } catch (err) {
       console.error("[Auth] Falha ao carregar perfil do Supabase Postgres:", err);
-      return useLastKnownProfile();
+      const issue = await classifyAuthFailure();
+      return useLastKnownProfile(issue);
     }
   }, [commitUserProfile]);
 
@@ -367,7 +425,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (window.electronAPI) {
       const res = await (window.electronAPI as any).startGoogleBrowserAuth();
       const state = res?.state;
-      if (!state) throw new Error("Falha ao iniciar autenticação Google.");
+      const pollSecret = res?.pollSecret;
+      if (!state || !pollSecret) throw new Error("Falha ao iniciar autenticação Google.");
 
       const deadline = Date.now() + 120_000;
 
@@ -378,11 +437,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         try {
           if (typeof (window.electronAPI as any).pollGoogleBrowserAuth === "function") {
-            data = await (window.electronAPI as any).pollGoogleBrowserAuth(state);
+            data = await (window.electronAPI as any).pollGoogleBrowserAuth(state, pollSecret);
           } else {
             const statusRes = await fetch(
-              apiUrl(`/auth/desktop/google/status?state=${encodeURIComponent(state)}`),
+              apiUrl(
+                `/auth/desktop/google/status?state=${encodeURIComponent(state)}&pollSecret=${encodeURIComponent(pollSecret)}`,
+              ),
             );
+
+            if (statusRes.status === 401) {
+              throw new Error("Sessão de login Google inválida. Tente novamente.");
+            }
 
             if (!statusRes.ok) {
               throw new Error(`Falha ao consultar login Google (HTTP ${statusRes.status}).`);
@@ -484,6 +549,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     cleanupAllChannels();
     setUser(null);
     commitUserProfile(null);
+    setAuthIssue(null);
   }, [user, userProfile, commitUserProfile]);
 
   useEffect(() => {
@@ -550,7 +616,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (refreshed) {
             session = refreshed;
           } else {
-            console.warn("[Auth] Refresh inicial indisponivel; mantendo sessao local conhecida.");
+            const remainingMs = session.expires_at
+              ? session.expires_at * 1000 - Date.now()
+              : 0;
+            if (remainingMs <= 0 && isClientOnline()) {
+              console.warn("[Auth] Sessao inicial expirada e refresh falhou.");
+              setAuthIssue("session_expired");
+            } else {
+              console.warn("[Auth] Refresh inicial indisponivel; mantendo sessao local conhecida.");
+              if (isClientOnline()) {
+                setAuthIssue("profile_stale");
+              }
+            }
           }
         }
 
@@ -576,6 +653,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (event === "SIGNED_OUT") {
         setUser(null);
         commitUserProfile(null);
+        setAuthIssue(null);
         window.clearTimeout(safetyTimeoutId);
         setLoading(false);
         return;
@@ -658,21 +736,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!user?.uid) return;
 
+    const refreshIfSessionUsable = async () => {
+      const online = isClientOnline();
+      if (!online) return;
+
+      const session = await getUsableSession();
+      if (!session) {
+        setAuthIssue("session_expired");
+        return;
+      }
+
+      void refreshProfile();
+    };
+
     const interval = window.setInterval(() => {
-      const online = typeof navigator === "undefined" || navigator.onLine;
-      if (document.hasFocus() && online) {
-        void refreshProfile();
+      if (document.hasFocus() && isClientOnline()) {
+        void refreshIfSessionUsable();
       }
     }, 60_000);
 
     const onFocus = () => {
-      void refreshProfile();
+      void refreshIfSessionUsable();
     };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void refreshIfSessionUsable();
+      }
+    };
+    const onOnline = () => {
+      void refreshIfSessionUsable();
+    };
+
     window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("online", onOnline);
 
     return () => {
       window.clearInterval(interval);
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("online", onOnline);
     };
   }, [user?.uid, refreshProfile]);
 
@@ -717,18 +820,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  const sessionStatus = toSessionStatus(authIssue);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       userProfile,
       loading,
+      authIssue,
+      sessionStatus,
       signInWithGoogle,
       signUpWithEmail,
       signInWithEmail,
       signOutUser,
       refreshProfile,
+      clearAuthIssue,
     }),
-    [user, userProfile, loading, signInWithGoogle, signUpWithEmail, signInWithEmail, signOutUser, refreshProfile],
+    [
+      user,
+      userProfile,
+      loading,
+      authIssue,
+      sessionStatus,
+      signInWithGoogle,
+      signUpWithEmail,
+      signInWithEmail,
+      signOutUser,
+      refreshProfile,
+      clearAuthIssue,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -746,11 +866,14 @@ export const useAuth = (): AuthContextValue => {
       user: null,
       userProfile: null,
       loading: false,
+      authIssue: null,
+      sessionStatus: "ok",
       signInWithGoogle: async () => { },
       signUpWithEmail: async () => { },
       signInWithEmail: async () => { },
       signOutUser: async () => { },
       refreshProfile: async () => null,
+      clearAuthIssue: () => { },
     };
   }
   return ctx;

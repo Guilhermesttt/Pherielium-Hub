@@ -5,7 +5,6 @@ process.on("uncaughtException", (error) => {
 
 process.on("unhandledRejection", (reason) => {
   console.error("[server bootstrap] unhandledRejection", reason);
-  process.exit(1);
 });
 
 (async () => {

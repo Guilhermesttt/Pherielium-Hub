@@ -28,7 +28,7 @@ import { CreateChannelModal, renderVoiceRoomIcon } from "./CreateChannelModal";
 interface VoiceRoomsTabProps {
   userProfile: UserProfile | null;
   currentRoomId?: string | null;
-  onJoinRoom: (roomId: string, password?: string, fromInvite?: boolean) => Promise<void>;
+  onJoinRoom: (roomId: string, password?: string) => Promise<void>;
   onCreateRoom: (config: CallRoomConfig) => Promise<void>;
   onOpenActiveWindow?: () => void;
   onSimulateIncomingCall?: () => void;
@@ -151,7 +151,7 @@ export const VoiceRoomsTab: React.FC<VoiceRoomsTabProps> = ({
   return (
     <div className="space-y-6 select-none">
       {/* Header with Stats & Actions */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 rounded-3xl border border-white/[0.08] bg-white/[0.03] p-5 md:p-6 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 rounded-3xl border border-white/8 bg-white/3 p-5 md:p-6 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white border border-white/15 shadow-inner">
             <Radio className="h-6 w-6 text-white" />
@@ -209,7 +209,7 @@ export const VoiceRoomsTab: React.FC<VoiceRoomsTabProps> = ({
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between p-4.5 rounded-2xl border border-white/15 bg-white/[0.04] backdrop-blur-2xl shadow-xl"
+          className="flex items-center justify-between p-4.5 rounded-2xl border border-white/15 bg-white/4 backdrop-blur-2xl shadow-xl"
         >
           <div className="flex items-center gap-3.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white border border-white/15">
@@ -246,7 +246,7 @@ export const VoiceRoomsTab: React.FC<VoiceRoomsTabProps> = ({
             placeholder="Pesquisar canais de voz por nome..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 rounded-xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl text-xs font-semibold text-white placeholder-white/40 focus:outline-none focus:border-white/30 focus:bg-white/8 transition"
+            className="w-full h-10 pl-10 pr-4 rounded-xl bg-white/4 border border-white/8 backdrop-blur-xl text-xs font-semibold text-white placeholder-white/40 focus:outline-none focus:border-white/30 focus:bg-white/8 transition"
           />
         </div>
 
@@ -302,8 +302,8 @@ export const VoiceRoomsTab: React.FC<VoiceRoomsTabProps> = ({
                   key={room.id}
                   className={`group relative flex flex-col justify-between p-4.5 rounded-2xl border transition-all duration-200 backdrop-blur-xl ${
                     isCurrent
-                      ? "bg-white/[0.08] border-white/40 shadow-xl"
-                      : "bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.08] hover:border-white/20 shadow-[0_15px_35px_rgba(0,0,0,0.3)]"
+                      ? "bg-white/8 border-white/40 shadow-xl"
+                      : "bg-white/3 hover:bg-white/6 border-white/8 hover:border-white/20 shadow-[0_15px_35px_rgba(0,0,0,0.3)]"
                   }`}
                 >
                   <div className="space-y-2.5">
@@ -434,10 +434,10 @@ export const VoiceRoomsTab: React.FC<VoiceRoomsTabProps> = ({
                 key={room.id}
                 className={`flex flex-col justify-between p-4.5 rounded-2xl border transition-all duration-200 backdrop-blur-xl ${
                   isCurrent
-                    ? "bg-white/[0.08] border-white/40 shadow-xl"
+                    ? "bg-white/8 border-white/40 shadow-xl"
                     : isFull
-                    ? "bg-white/[0.01] border-white/5 opacity-70"
-                    : "bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.08] hover:border-white/20 shadow-[0_15px_35px_rgba(0,0,0,0.3)]"
+                    ? "bg-white/1 border-white/5 opacity-70"
+                    : "bg-white/3 hover:bg-white/6 border-white/8 hover:border-white/20 shadow-[0_15px_35px_rgba(0,0,0,0.3)]"
                 }`}
               >
                 <div className="space-y-2.5">
@@ -562,7 +562,7 @@ export const VoiceRoomsTab: React.FC<VoiceRoomsTabProps> = ({
       {/* Modal de Senha para Salas Protegidas */}
       {passwordModalRoom && (
         <AnimatePresence>
-          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl select-none">
+          <div className="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl select-none">
             <div className="absolute inset-0" onClick={() => setPasswordModalRoom(null)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.94 }}

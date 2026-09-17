@@ -18,6 +18,8 @@ interface ModalShellProps {
   reducedEffects?: boolean;
   ariaLabel?: string;
   gamepadPriority?: number;
+  /** Duração do fechamento em ms — deve bater com a transição CSS de saída. */
+  closeDurationMs?: number;
 }
 
 const focusableSelector = [
@@ -42,6 +44,7 @@ const ModalShell: React.FC<ModalShellProps> = ({
   reducedEffects = false,
   gamepadPriority = 100,
   ariaLabel,
+  closeDurationMs = 220,
 }) => {
   const contentRef = React.useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = React.useRef<HTMLElement | null>(null);
@@ -49,6 +52,34 @@ const ModalShell: React.FC<ModalShellProps> = ({
   const prefersReducedMotion = useReducedMotion();
   const shouldReduceEffects = reducedEffects || prefersReducedMotion;
   onCloseRef.current = onClose;
+
+  const [renderState, setRenderState] = React.useState<"closed" | "opening" | "open" | "closing">(isOpen ? "open" : "closed");
+
+  React.useEffect(() => {
+    let timer: number;
+    let raf1: number;
+    let raf2: number;
+
+    if (isOpen) {
+      setRenderState("opening");
+      raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => {
+          setRenderState("open");
+        });
+      });
+    } else {
+      setRenderState("closing");
+      timer = window.setTimeout(() => {
+        setRenderState("closed");
+      }, shouldReduceEffects ? 0 : closeDurationMs);
+    }
+
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [isOpen, closeDurationMs, shouldReduceEffects]);
 
   const getFocusableElements = React.useCallback(() => {
     const root = contentRef.current;
@@ -144,65 +175,47 @@ const ModalShell: React.FC<ModalShellProps> = ({
   }, [getFocusableElements, isOpen, moveLinearFocus]);
 
   if (typeof document === "undefined") return null;
+  if (renderState === "closed") return null;
 
   return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <div
-          key="modal-shell"
-          className={cn(
-            "fixed inset-0 flex items-center justify-center p-4 md:p-8",
-            zIndexClassName,
-            containerClassName,
-          )}
-        >
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: shouldReduceEffects ? 0.01 : 0.25, ease: "easeOut" }}
-            onClick={() => onClose()}
-            className={cn(
-              "absolute inset-0 bg-[#0F0F0F]/88 backdrop-blur-sm",
-              backdropClassName
-            )}
-          />
-
-          {/* Modal Content */}
-          <motion.div
-            ref={contentRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label={ariaLabel || title || "Janela de diálogo"}
-            tabIndex={-1}
-            initial={
-              shouldReduceEffects
-                ? { opacity: 0 }
-                : { opacity: 0, scale: 0.94, y: 24, filter: "blur(6px)" }
-            }
-            animate={
-              shouldReduceEffects
-                ? { opacity: 1 }
-                : { opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }
-            }
-            exit={
-              shouldReduceEffects
-                ? { opacity: 0 }
-                : { opacity: 0, scale: 0.95, y: 16, filter: "blur(6px)" }
-            }
-            transition={{ duration: shouldReduceEffects ? 0.01 : 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className={cn(
-              "relative max-h-[calc(100dvh-2rem)] w-full overflow-hidden outline-none md:max-h-[calc(100dvh-4rem)]",
-              maxWidthClassName,
-              className
-            )}
-          >
-            {children}
-          </motion.div>
-        </div>
+    <div
+      key="modal-shell"
+      className={cn(
+        "fixed inset-0 flex items-center justify-center p-4 md:p-8",
+        zIndexClassName,
+        containerClassName,
       )}
-    </AnimatePresence>,
+    >
+      {/* Backdrop */}
+      <div
+        onClick={() => onClose()}
+        className={cn(
+          "absolute inset-0 bg-[#0F0F0F]/88 backdrop-blur-sm transition-opacity",
+          shouldReduceEffects ? "duration-0" : "duration-320ms ease-[cubic-bezier(0.22,1,0.36,1)]",
+          renderState === "open" ? "opacity-100" : "opacity-0",
+          backdropClassName
+        )}
+      />
+
+      {/* Modal Content */}
+      <div
+        ref={contentRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={ariaLabel || title || "Janela de diálogo"}
+        tabIndex={-1}
+        className={cn(
+          "t-modal relative max-h-[calc(100dvh-2rem)] w-full overflow-hidden outline-none md:max-h-[calc(100dvh-4rem)]",
+          shouldReduceEffects ? "transition-none!" : "",
+          renderState === "open" ? "is-open" : "",
+          renderState === "closing" ? "is-closing" : "",
+          maxWidthClassName,
+          className
+        )}
+      >
+        {children}
+      </div>
+    </div>,
     document.body
   );
 };

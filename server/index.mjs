@@ -13,6 +13,15 @@ import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "url";
 import { getGamingNews } from "./gaming-news.mjs";
 import { AccessToken } from "livekit-server-sdk";
+import {
+  validateBody,
+  voiceRoomSchema,
+  voiceRoomJoinSchema,
+  livekitTokenSchema,
+  presenceSchema,
+  friendUidBodySchema,
+} from "./middleware/validation.mjs";
+import { errorHandler } from "./middleware/error-handler.mjs";
 
 export const app = express();
 
@@ -248,8 +257,8 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: "25mb" }));
-app.use(express.urlencoded({ extended: true, limit: "25mb" }));
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 app.use((err, _req, res, next) => {
   if (err && (err.type === "entity.too.large" || err instanceof SyntaxError)) {
     return res.status(err.status || 413).json({ error: err.message || "Payload da requisição muito grande." });
@@ -280,11 +289,12 @@ const CACHE_TTL = 1000 * 60 * 60; // 1 hora
 const STEAM_PRESENCE_CACHE_TTL = 10 * 1000;
 const STEAM_OWNED_GAMES_CACHE_TTL = 10 * 60 * 1000;
 const STEAM_API_TIMEOUT_MS = 8 * 1000;
-const ACHIEVEMENT_SUMMARY_REQUEST_BUDGET_MS = 45 * 1000;
+const OUTBOUND_FETCH_TIMEOUT_MS = 8_000;
+const ACHIEVEMENT_SUMMARY_REQUEST_BUDGET_MS = 25 * 1000;
 const MAX_ACHIEVEMENT_CACHE_ENTRIES = 5000;
 const MAX_STEAM_OWNED_GAMES_CACHE_ENTRIES = 200;
-const MAX_ACHIEVEMENT_SUMMARY_APP_IDS = 250;
-const FRIEND_PROFILE_GAME_LIMIT = 500;
+const MAX_ACHIEVEMENT_SUMMARY_APP_IDS = 100;
+const FRIEND_PROFILE_GAME_LIMIT = 48;
 const ACTIVITY_AUDIENCE_REVOKE_BATCH_SIZE = 400;
 const STEAM_AUTH_STATE_TTL = 1000 * 60 * 10; // 10 minutos
 const DISCORD_AUTH_STATE_TTL = 1000 * 60 * 10; // 10 minutos
@@ -333,16 +343,45 @@ const setBoundedCacheEntry = (cache, key, value, maxEntries = MAX_ACHIEVEMENT_CA
 const isSteamTimeoutError = (error) =>
   error?.name === "AbortError" || error?.name === "TimeoutError";
 
+const steamCircuit = { failures: 0, openUntil: 0, threshold: 5, cooldownMs: 30_000 };
+
+const assertSteamCircuitClosed = () => {
+  if (Date.now() < steamCircuit.openUntil) {
+    const error = new Error("Circuito Steam temporariamente aberto após falhas consecutivas.");
+    error.statusCode = 503;
+    throw error;
+  }
+};
+
+const noteSteamSuccess = () => {
+  steamCircuit.failures = 0;
+};
+
+const noteSteamFailure = () => {
+  steamCircuit.failures += 1;
+  if (steamCircuit.failures >= steamCircuit.threshold) {
+    steamCircuit.openUntil = Date.now() + steamCircuit.cooldownMs;
+    steamCircuit.failures = 0;
+  }
+};
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = OUTBOUND_FETCH_TIMEOUT_MS) => {
+  return fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
+};
+
 const fetchSteamWithTimeout = async (url, options = {}, timeoutMs = STEAM_API_TIMEOUT_MS) => {
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    Math.max(1, Math.min(STEAM_API_TIMEOUT_MS, Number(timeoutMs) || STEAM_API_TIMEOUT_MS)),
-  );
+  assertSteamCircuitClosed();
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
+    const response = await fetchWithTimeout(
+      url,
+      options,
+      Math.max(1, Math.min(STEAM_API_TIMEOUT_MS, Number(timeoutMs) || STEAM_API_TIMEOUT_MS)),
+    );
+    noteSteamSuccess();
+    return response;
+  } catch (error) {
+    noteSteamFailure();
+    throw error;
   }
 };
 
@@ -860,7 +899,7 @@ const requestDiscordToken = async (code) => {
   body.set("code", code);
   body.set("redirect_uri", buildDiscordRedirectUri());
 
-  const response = await fetch(discordTokenEndpoint, {
+  const response = await fetchWithTimeout(discordTokenEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
@@ -882,7 +921,7 @@ const discordDisplayName = (discordUser) =>
 
 const fetchDiscordFriends = async (accessToken, tokenType = "Bearer") => {
   try {
-    const response = await fetch(discordRelationshipsEndpoint, {
+    const response = await fetchWithTimeout(discordRelationshipsEndpoint, {
       headers: { Authorization: `${tokenType} ${accessToken}` },
     });
     if (!response.ok) return [];
@@ -1027,7 +1066,7 @@ const extractEpicCustomAttributes = (customAttributes) => {
 };
 
 const fetchEpicCatalogItem = async (namespace, itemId, locale = "pt-BR") => {
-  const response = await fetch(epicStoreGraphqlEndpoint, {
+  const response = await fetchWithTimeout(epicStoreGraphqlEndpoint, {
     method: "POST",
     headers: {
       ...steamStoreFetchHeaders,
@@ -1066,7 +1105,7 @@ const postEpicGraphql = async (query, variables) => {
   };
   const body = JSON.stringify({ query, variables });
 
-  const response = await fetch(epicStoreGraphqlEndpoint, {
+  const response = await fetchWithTimeout(epicStoreGraphqlEndpoint, {
     method: "POST",
     headers,
     body,
@@ -1191,7 +1230,7 @@ const fetchSteamAchievementPercentages = async (appId) => {
   url.searchParams.set("format", "json");
 
   try {
-    const response = await fetch(url.toString());
+    const response = await fetchSteamWithTimeout(url.toString());
     if (!response.ok) return {};
     const payload = await response.json();
     const raw = payload?.achievementpercentages?.achievements;
@@ -1206,7 +1245,7 @@ const fetchSteamAchievementPercentages = async (appId) => {
       }
     }
 
-    achievementPercentagesCache.set(cacheKey, { data: map, timestamp: Date.now() });
+    setBoundedCacheEntry(achievementPercentagesCache, cacheKey, { data: map, timestamp: Date.now() });
     return map;
   } catch {
     return {};
@@ -1228,7 +1267,7 @@ const fetchSteamAchievementSchema = async (appId, language = "pt-BR") => {
   url.searchParams.set("appid", appId);
   url.searchParams.set("l", storeLocale.steam);
 
-  const response = await fetch(url.toString());
+  const response = await fetchSteamWithTimeout(url.toString());
   if (!response.ok) {
     throw new Error(`Falha ao consultar schema de conquistas (status ${response.status}).`);
   }
@@ -1248,7 +1287,7 @@ const fetchSteamAchievementSchema = async (appId, language = "pt-BR") => {
     }))
     : [];
 
-  achievementSchemaCache.set(cacheKey, {
+  setBoundedCacheEntry(achievementSchemaCache, cacheKey, {
     data: schema,
     timestamp: Date.now(),
   });
@@ -1295,17 +1334,8 @@ const parseDiskSizeGb = (text) => {
 const requireAuth = async (req, res, next) => {
   const header = String(req.headers.authorization ?? "");
   const match = header.match(/^Bearer\s+(.+)$/i);
-  let bodyToken = null;
-  if (typeof req.body === "string") {
-    try {
-      const parsed = JSON.parse(req.body);
-      bodyToken = typeof parsed?.token === "string" ? parsed.token.trim() : null;
-    } catch { }
-  } else if (req.body && typeof req.body.token === "string") {
-    bodyToken = req.body.token.trim();
-  }
-  const queryToken = typeof req.query?.token === "string" ? req.query.token.trim() : null;
-  const token = match ? match[1] : (bodyToken || queryToken || null);
+  // Apenas Authorization: Bearer — nunca query/body (vazam em logs, Referer e histórico).
+  const token = match ? match[1].trim() : null;
 
   if (!token) {
     res.status(401).json({ error: "Token de autenticacao ausente." });
@@ -1326,7 +1356,6 @@ const requireAuth = async (req, res, next) => {
 
     const user = data.user;
     req.user = user;
-    req.supabaseUser = user;
     req.supabaseUser = {
       uid: user.id,
       email: user.email || "",
@@ -1633,33 +1662,14 @@ const FALLBACK_STUN_SERVERS = [
   { urls: "stun:stun4.l.google.com:19302" },
   { urls: "stun:stun.cloudflare.com:3478" },
   { urls: "stun:global.stun.twilio.com:3478" },
-  {
-    urls: "turn:openrelay.metered.ca:80",
-    username: "openrelay",
-    credential: "openrelay",
-  },
-  {
-    urls: "turn:openrelay.metered.ca:443",
-    username: "openrelay",
-    credential: "openrelay",
-  },
-  {
-    urls: "turn:openrelay.metered.ca:443?transport=tcp",
-    username: "openrelay",
-    credential: "openrelay",
-  },
-  {
-    urls: "turns:openrelay.metered.ca:443?transport=tcp",
-    username: "openrelay",
-    credential: "openrelay",
-  },
 ];
 
-app.get("/api/voice/turn-credentials", steamPrivateLimiter, async (_req, res) => {
+app.get("/api/voice/turn-credentials", steamPrivateLimiter, requireAuth, async (_req, res) => {
   const meteredApiKey = (process.env.METERED_API_KEY || "").trim();
   const meteredAppName = (process.env.METERED_APP_NAME || "").trim();
 
   if (!meteredApiKey || !meteredAppName) {
+    // Sem Metered: apenas STUN público — nunca credenciais TURN abertas em produção.
     return res.json({ iceServers: FALLBACK_STUN_SERVERS });
   }
 
@@ -1687,7 +1697,21 @@ app.get("/api/voice/turn-credentials", steamPrivateLimiter, async (_req, res) =>
   }
 });
 
-app.post("/api/voice/livekit-token", steamPrivateLimiter, requireAuth, async (req, res) => {
+const VOICE_ROOM_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const LIVEKIT_TOKEN_TTL = "2h";
+
+const parseDirectCallRoomName = (roomName, uid) => {
+  const parts = String(roomName || "").split("_");
+  if (parts.length !== 2) return null;
+  if (!VOICE_ROOM_UUID_RE.test(parts[0]) || !VOICE_ROOM_UUID_RE.test(parts[1])) return null;
+  const sorted = [parts[0], parts[1]].slice().sort().join("_");
+  if (sorted !== roomName) return null;
+  if (uid !== parts[0] && uid !== parts[1]) return null;
+  return { peerA: parts[0], peerB: parts[1] };
+};
+
+app.post("/api/voice/livekit-token", steamPrivateLimiter, requireAuth, validateBody(livekitTokenSchema), async (req, res) => {
   try {
     const { roomName, name, metadata } = req.body || {};
     const effectiveRoom = String(roomName || "").trim();
@@ -1695,6 +1719,78 @@ app.post("/api/voice/livekit-token", steamPrivateLimiter, requireAuth, async (re
 
     if (!effectiveRoom) {
       return res.status(400).json({ error: "roomName é obrigatório." });
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: "Banco de dados não configurado no servidor." });
+    }
+
+    const isVoiceRoomId = VOICE_ROOM_UUID_RE.test(effectiveRoom);
+    const directCall = !isVoiceRoomId ? parseDirectCallRoomName(effectiveRoom, uid) : null;
+
+    if (!isVoiceRoomId && !directCall) {
+      return res.status(400).json({ error: "Identificador de sala inválido." });
+    }
+
+    if (isVoiceRoomId) {
+      const { data: room, error: roomError } = await supabaseAdmin
+        .from("voice_rooms")
+        .select("id, host_uid, status")
+        .eq("id", effectiveRoom)
+        .maybeSingle();
+
+      if (roomError) {
+        console.error("[LiveKit] Erro ao validar sala:", roomError);
+        return res.status(500).json({ error: "Falha ao validar sala de voz." });
+      }
+
+      if (!room || room.status !== "active") {
+        return res.status(404).json({ error: "Sala de voz não encontrada ou encerrada." });
+      }
+
+      const isHost = room.host_uid === uid;
+      if (!isHost) {
+        const { data: membership, error: membershipError } = await supabaseAdmin
+          .from("voice_room_members")
+          .select("user_id")
+          .eq("room_id", effectiveRoom)
+          .eq("user_id", uid)
+          .is("removed_at", null)
+          .maybeSingle();
+
+        if (membershipError) {
+          console.error("[LiveKit] Erro ao validar membership:", membershipError);
+          return res.status(500).json({ error: "Falha ao validar participação na sala." });
+        }
+
+        if (!membership) {
+          return res.status(403).json({
+            error: "Você precisa entrar na sala antes de obter um token LiveKit.",
+          });
+        }
+      }
+    } else {
+      // Chamada 1:1: roomName = uidA_uidB. Exige amizade aceita entre os dois.
+      const peerUid = directCall.peerA === uid ? directCall.peerB : directCall.peerA;
+      const { data: friendship, error: friendshipError } = await supabaseAdmin
+        .from("friendships")
+        .select("status")
+        .or(
+          `and(requester_id.eq.${uid},addressee_id.eq.${peerUid}),and(requester_id.eq.${peerUid},addressee_id.eq.${uid})`,
+        )
+        .eq("status", "accepted")
+        .maybeSingle();
+
+      if (friendshipError) {
+        console.error("[LiveKit] Erro ao validar amizade para chamada direta:", friendshipError);
+        return res.status(500).json({ error: "Falha ao validar permissão da chamada." });
+      }
+
+      if (!friendship) {
+        return res.status(403).json({
+          error: "Chamada direta permitida apenas entre amigos aceitos.",
+        });
+      }
     }
 
     const apiKey = (process.env.LIVEKIT_API_KEY || "").trim();
@@ -1709,7 +1805,7 @@ app.post("/api/voice/livekit-token", steamPrivateLimiter, requireAuth, async (re
       identity: uid,
       name: String(name || req.supabaseUser.name || uid),
       metadata: typeof metadata === "string" ? metadata : JSON.stringify(metadata || {}),
-      ttl: "24h",
+      ttl: LIVEKIT_TOKEN_TTL,
     });
 
     at.addGrant({
@@ -1730,16 +1826,32 @@ app.post("/api/voice/livekit-token", steamPrivateLimiter, requireAuth, async (re
 
 // ─── Voice Rooms Governance & State Endpoints ─────────────────────────────────
 
+const VOICE_ROOM_PASSWORD_ITERATIONS = 120_000;
+
 function hashVoiceRoomPassword(password) {
   const salt = crypto.randomBytes(16).toString("hex");
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, "sha512").toString("hex");
-  return `${salt}:${hash}`;
+  const hash = crypto.pbkdf2Sync(password, salt, VOICE_ROOM_PASSWORD_ITERATIONS, 64, "sha512").toString("hex");
+  return `${VOICE_ROOM_PASSWORD_ITERATIONS}:${salt}:${hash}`;
 }
 
 function verifyVoiceRoomPassword(password, storedHash) {
-  if (!storedHash || !storedHash.includes(":")) return false;
-  const [salt, originalHash] = storedHash.split(":");
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, "sha512").toString("hex");
+  if (!storedHash || typeof storedHash !== "string") return false;
+  const parts = storedHash.split(":");
+  // Formato novo: iterations:salt:hash — legado: salt:hash (1000 iterações).
+  let iterations = 1000;
+  let salt;
+  let originalHash;
+  if (parts.length === 3) {
+    iterations = Number(parts[0]) || 1000;
+    salt = parts[1];
+    originalHash = parts[2];
+  } else if (parts.length === 2) {
+    salt = parts[0];
+    originalHash = parts[1];
+  } else {
+    return false;
+  }
+  const hash = crypto.pbkdf2Sync(password, salt, iterations, 64, "sha512").toString("hex");
   try {
     return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(originalHash, "hex"));
   } catch {
@@ -1748,7 +1860,7 @@ function verifyVoiceRoomPassword(password, storedHash) {
 }
 
 // Criar sala de voz
-app.post("/api/voice/rooms", steamPrivateLimiter, requireAuth, async (req, res) => {
+app.post("/api/voice/rooms", steamPrivateLimiter, requireAuth, validateBody(voiceRoomSchema), async (req, res) => {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Banco de dados não configurado no servidor." });
   }
@@ -2105,14 +2217,14 @@ app.get("/api/voice/rooms/:roomId", steamPrivateLimiter, requireAuth, async (req
 });
 
 // Entrar em uma sala (Join com validação de senha server-side e trava de 4 pessoas)
-app.post("/api/voice/rooms/:roomId/join", steamPrivateLimiter, requireAuth, async (req, res) => {
+app.post("/api/voice/rooms/:roomId/join", steamPrivateLimiter, requireAuth, validateBody(voiceRoomJoinSchema), async (req, res) => {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Banco de dados não configurado no servidor." });
   }
 
   const { roomId } = req.params;
   const uid = req.supabaseUser.uid;
-  const { password, fromInvite = false, displayName, avatarUrl } = req.body || {};
+  const { password, displayName, avatarUrl } = req.body || {};
 
   try {
     const { data: room, error: roomError } = await supabaseAdmin
@@ -2140,19 +2252,19 @@ app.post("/api/voice/rooms/:roomId/join", steamPrivateLimiter, requireAuth, asyn
 
     const currentMembers = activeMembers || [];
     const isAlreadyMember = currentMembers.some((m) => m.user_id === uid);
+    const isHost = room.host_uid === uid;
 
     // Se não for membro ativo atual, checar limite estrito de participantes (4 no v1)
     if (!isAlreadyMember && currentMembers.length >= room.max_participants) {
       return res.status(409).json({ error: `Sala cheia (${currentMembers.length}/${room.max_participants}).` });
     }
 
-    // Validação de senha para salas privadas (bypass se for o host ou vier de convite direto aceito)
-    if (room.is_private && room.host_uid !== uid && !fromInvite) {
-      if (room.password_hash) {
-        const inputPassword = typeof password === "string" ? password.trim() : "";
-        if (!inputPassword || !verifyVoiceRoomPassword(inputPassword, room.password_hash)) {
-          return res.status(403).json({ error: "Senha incorreta para esta sala." });
-        }
+    // Senha obrigatória para salas privadas, exceto o host (já autenticado como dono).
+    // Nunca confiar em flags do cliente (ex.: fromInvite) para pular esta checagem.
+    if (room.is_private && !isHost && room.password_hash) {
+      const inputPassword = typeof password === "string" ? password.trim() : "";
+      if (!inputPassword || !verifyVoiceRoomPassword(inputPassword, room.password_hash)) {
+        return res.status(403).json({ error: "Senha incorreta para esta sala." });
       }
     }
 
@@ -2777,7 +2889,7 @@ const getServerPresenceChannel = () => {
   return serverPresenceChannel;
 };
 
-app.post("/api/presence", steamPrivateLimiter, requireAuth, async (req, res) => {
+app.post("/api/presence", steamPrivateLimiter, requireAuth, validateBody(presenceSchema), async (req, res) => {
   let bodyData = req.body;
   if (typeof bodyData === "string") {
     try {
@@ -2971,12 +3083,12 @@ app.get("/api/friends/:uid/profile", steamPrivateLimiter, requireAuth, async (re
     const publicRow = publicProfileResult.data;
 
     let games = userGames.map((row) => {
-      const dataObj = row.data || {};
+      const dataObj = (row.data && typeof row.data === "object") ? row.data : {};
       const calculatedHours = Number(
         dataObj.hoursPlayed ?? row.hours_played ?? (dataObj.minutesPlayed ? dataObj.minutesPlayed / 60 : 0),
       );
+      // Nunca espalhar o JSONB completo — só campos necessários ao perfil público.
       return {
-        ...dataObj,
         id: String(row.id),
         title: String(dataObj.title || row.title || "Jogo"),
         launcherType: dataObj.launcherType || row.launcher_type || "local",
@@ -2986,6 +3098,8 @@ app.get("/api/friends/:uid/profile", steamPrivateLimiter, requireAuth, async (re
         isFavorite: Boolean(dataObj.isFavorite ?? row.is_favorite),
         cardImage: dataObj.cardImage || dataObj.image || dataObj.imageUrl || "",
         image: dataObj.image || dataObj.cardImage || dataObj.imageUrl || "",
+        totalAchievements: Number(dataObj.totalAchievements) || 0,
+        completedAchievements: Number(dataObj.completedAchievements) || 0,
       };
     });
 
@@ -3101,7 +3215,7 @@ app.get("/api/friends/:uid/profile", steamPrivateLimiter, requireAuth, async (re
   }
 });
 
-app.post("/api/friends/request", steamPrivateLimiter, requireAuth, async (req, res) => {
+app.post("/api/friends/request", steamPrivateLimiter, requireAuth, validateBody(friendUidBodySchema), async (req, res) => {
   const friendUid = String(req.body?.uid ?? "").trim();
   if (!friendUid || friendUid === req.supabaseUser.uid) {
     res.status(400).json({ error: "Usuário inválido." });
@@ -3364,12 +3478,55 @@ const buildOAuthSuccessPage = (platform = "Conta", launcherCallbackUrl = "") =>
 const renderAuthSuccessScreen = (serviceName = "Conta", launcherCallbackUrl = "") =>
   buildAuthCallbackHtml({ platform: serviceName, launcherCallbackUrl });
 
+const timingSafeEqualString = (a, b) => {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  if (left.length !== right.length || left.length === 0) return false;
+  return crypto.timingSafeEqual(left, right);
+};
+
+app.post("/auth/desktop/google/start", steamAuthLimiter, (req, res) => {
+  cleanupPendingDesktopGoogleStates();
+
+  if (!supabaseAdmin) {
+    res.status(500).json({ error: "Supabase Admin nao configurado no backend." });
+    return;
+  }
+
+  const state = crypto.randomUUID();
+  const pollSecret = crypto.randomBytes(32).toString("hex");
+  pendingDesktopGoogleStates.set(state, {
+    createdAt: Date.now(),
+    pollSecret,
+  });
+
+  try {
+    const startUrl = new URL("/auth/google/start", backendPublicUrl);
+    startUrl.searchParams.set("state", state);
+    res.json({
+      state,
+      pollSecret,
+      url: startUrl.toString(),
+    });
+  } catch (error) {
+    pendingDesktopGoogleStates.delete(state);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Falha ao iniciar login Google.",
+    });
+  }
+});
+
 app.get("/auth/google/start", steamAuthLimiter, (req, res) => {
   cleanupPendingDesktopGoogleStates();
 
   const state = String(req.query.state ?? "").trim();
-  if (!state) {
-    res.status(400).send("state ausente.");
+  const pending = state ? pendingDesktopGoogleStates.get(state) : null;
+
+  // State deve ter sido emitido pelo POST /auth/desktop/google/start.
+  // Nunca aceite state arbitrário gerado pelo cliente.
+  if (!state || !pending?.pollSecret) {
+    res.status(400).send("Sessao de login invalida ou expirada. Volte ao app e tente novamente.");
     return;
   }
 
@@ -3377,10 +3534,6 @@ app.get("/auth/google/start", steamAuthLimiter, (req, res) => {
     res.status(500).send("Supabase Admin nao configurado no backend.");
     return;
   }
-
-  pendingDesktopGoogleStates.set(state, {
-    createdAt: Date.now(),
-  });
 
   try {
     res.redirect(buildGoogleAuthorizeUrl(state));
@@ -3400,36 +3553,42 @@ app.get("/auth/google/callback", steamAuthLimiter, async (req, res) => {
   const oauthError = String(req.query.error ?? "").trim();
   const pending = pendingDesktopGoogleStates.get(state);
 
-  if (!state || !pending) {
+  if (!state || !pending?.pollSecret) {
     res.status(400).send("Sessao de login invalida ou expirada. Volte ao app e tente novamente.");
     return;
   }
 
-  if (oauthError) {
+  const updatePending = (patch) => {
     pendingDesktopGoogleStates.set(state, {
+      ...pending,
+      ...patch,
+      pollSecret: pending.pollSecret,
+      createdAt: Date.now(),
+    });
+  };
+
+  if (oauthError) {
+    updatePending({
       status: "error",
       error: "Login Google cancelado ou negado.",
-      createdAt: Date.now(),
     });
     res.status(400).send("Login Google cancelado ou negado.");
     return;
   }
 
   if (!code) {
-    pendingDesktopGoogleStates.set(state, {
+    updatePending({
       status: "error",
       error: "Codigo Google ausente.",
-      createdAt: Date.now(),
     });
     res.status(400).send("Codigo Google ausente.");
     return;
   }
 
   if (!supabaseAdmin) {
-    pendingDesktopGoogleStates.set(state, {
+    updatePending({
       status: "error",
       error: "Supabase Admin nao configurado no backend.",
-      createdAt: Date.now(),
     });
     res.status(500).send("Supabase Admin nao configurado no backend.");
     return;
@@ -3596,21 +3755,19 @@ app.get("/auth/google/callback", steamAuthLimiter, async (req, res) => {
       });
     }
 
-    pendingDesktopGoogleStates.set(state, {
+    updatePending({
       status: "complete",
       email: userEmail,
       accessToken,
       refreshToken,
       uid: supaUid,
-      createdAt: Date.now(),
     });
 
     res.type("html").send(renderAuthSuccessScreen("Google"));
   } catch (error) {
-    pendingDesktopGoogleStates.set(state, {
+    updatePending({
       status: "error",
       error: error instanceof Error ? error.message : "Falha ao concluir login Google.",
-      createdAt: Date.now(),
     });
     res
       .status(500)
@@ -3627,14 +3784,21 @@ app.get("/auth/desktop/google/status", steamPublicLimiter, (req, res) => {
   res.setHeader("Cache-Control", "no-store");
 
   const state = String(req.query.state ?? "").trim();
-  if (!state) {
-    res.status(400).json({ error: "state ausente." });
+  const pollSecret = String(
+    req.query.pollSecret
+    ?? req.headers["x-google-poll-secret"]
+    ?? "",
+  ).trim();
+
+  if (!state || !pollSecret) {
+    res.status(400).json({ error: "state ou pollSecret ausente." });
     return;
   }
 
   const pending = pendingDesktopGoogleStates.get(state);
-  if (!pending) {
-    res.json({ status: "pending" });
+  if (!pending || !pending.pollSecret || !timingSafeEqualString(pending.pollSecret, pollSecret)) {
+    // Não distingue "state inexistente" de "secret errado" para evitar enumeração.
+    res.status(401).json({ error: "Sessao de login invalida." });
     return;
   }
 
@@ -3660,6 +3824,7 @@ app.get("/auth/desktop/google/status", steamPublicLimiter, (req, res) => {
    *
    * Nao retornamos hashed_token, email_otp ou action_link: sao credenciais
    * one-time e nao devem ter um segundo consumidor.
+   * O registro e apagado imediatamente (one-time claim).
    */
   pendingDesktopGoogleStates.delete(state);
   res.json({
@@ -3684,7 +3849,7 @@ app.get("/auth/steam/callback", steamAuthLimiter, async (req, res) => {
 
   try {
     const body = normalizeOpenIdBody(req.query);
-    const validation = await fetch(steamOpenIdEndpoint, {
+    const validation = await fetchSteamWithTimeout(steamOpenIdEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body,
@@ -3790,7 +3955,7 @@ app.get("/auth/discord/callback", steamAuthLimiter, async (req, res) => {
     }
 
     const tokenType = String(tokenPayload.token_type || "Bearer");
-    const userResponse = await fetch(discordCurrentUserEndpoint, {
+    const userResponse = await fetchWithTimeout(discordCurrentUserEndpoint, {
       headers: {
         Authorization: `${tokenType} ${tokenPayload.access_token}`,
       },
@@ -4097,7 +4262,7 @@ app.post("/api/steam/achievement-summary", steamPrivateLimiter, requireAuth, ste
     }
   };
 
-  await Promise.all(Array.from({ length: Math.min(12, allowedAppIds.length) }, () => loadNext()));
+  await Promise.all(Array.from({ length: Math.min(4, allowedAppIds.length) }, () => loadNext()));
   const failedAppIds = appIds.filter((appId) => !Object.hasOwn(stats, appId));
   res.json({
     stats,
@@ -4113,7 +4278,7 @@ const fetchSteamSearchItems = async (query, language = "pt-BR") => {
   url.searchParams.set("term", query);
   url.searchParams.set("l", storeLocale.steam);
   url.searchParams.set("cc", storeLocale.country);
-  const response = await fetch(url.toString(), { headers: steamStoreFetchHeaders });
+  const response = await fetchSteamWithTimeout(url.toString(), { headers: steamStoreFetchHeaders });
   if (!response.ok) {
     throw new Error(`Falha na busca Steam Store (status ${response.status}).`);
   }
@@ -4232,7 +4397,7 @@ app.get("/api/epic/app-details", steamPublicLimiter, async (req, res) => {
     }
 
     const result = buildEpicDetails(catalogId, namespace, catalogItem);
-    appDetailsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    setBoundedCacheEntry(appDetailsCache, cacheKey, { data: result, timestamp: Date.now() });
     res.json(result);
   } catch (error) {
     res.status(404).json({ error: "Detalhes não encontrados." });
@@ -4252,7 +4417,7 @@ app.get("/api/steam/app-size", steamPublicLimiter, async (req, res) => {
     url.searchParams.set("l", "brazilian");
     url.searchParams.set("cc", "BR");
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchSteamWithTimeout(url.toString(), {
       headers: steamStoreFetchHeaders,
     });
     if (!response.ok) {
@@ -4309,7 +4474,7 @@ app.get("/api/steam/achievements", steamPrivateLimiter, requireAuth, requireLink
     url.searchParams.set("l", storeLocale.steam);
 
     const [response, schema, percentages] = await Promise.all([
-      fetch(url.toString()),
+      fetchSteamWithTimeout(url.toString()),
       fetchSteamAchievementSchema(appId, storeLocale.locale).catch(() => []),
       fetchSteamAchievementPercentages(appId).catch(() => ({})),
     ]);
@@ -4430,12 +4595,41 @@ app.get("/api/steam/app-details", steamPublicLimiter, async (req, res) => {
   }
 
   try {
+    if (supabaseAdmin) {
+      try {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: cachedRow, error: cacheError } = await supabaseAdmin
+          .from("steam_store_cache")
+          .select("payload")
+          .eq("app_id", appId)
+          .eq("locale", storeLocale.locale)
+          .gt("fetched_at", sevenDaysAgo)
+          .maybeSingle();
+
+        if (cacheError) {
+          console.warn("[steam-store-cache] leitura falhou:", cacheError.message || cacheError);
+        } else if (cachedRow?.payload) {
+          setBoundedCacheEntry(appDetailsCache, cacheKey, {
+            data: cachedRow.payload,
+            timestamp: Date.now(),
+          });
+          res.json(cachedRow.payload);
+          return;
+        }
+      } catch (cacheReadError) {
+        console.warn(
+          "[steam-store-cache] leitura falhou:",
+          cacheReadError?.message || cacheReadError,
+        );
+      }
+    }
+
     const url = new URL("https://store.steampowered.com/api/appdetails");
     url.searchParams.set("appids", appId);
     url.searchParams.set("l", storeLocale.steam);
     url.searchParams.set("cc", storeLocale.country);
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchSteamWithTimeout(url.toString(), {
       headers: steamStoreFetchHeaders,
     });
     if (!response.ok) {
@@ -4497,7 +4691,35 @@ app.get("/api/steam/app-details", steamPublicLimiter, async (req, res) => {
       dlc: data?.dlc ?? [],
     };
 
-    appDetailsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    setBoundedCacheEntry(appDetailsCache, cacheKey, { data: result, timestamp: Date.now() });
+
+    if (supabaseAdmin) {
+      const dbPayload = {
+        ...result,
+        aboutTheGame: null,
+        screenshots: Array.isArray(result.screenshots) ? result.screenshots.slice(0, 8) : [],
+      };
+      void supabaseAdmin
+        .from("steam_store_cache")
+        .upsert(
+          {
+            app_id: appId,
+            locale: storeLocale.locale,
+            payload: dbPayload,
+            fetched_at: new Date().toISOString(),
+          },
+          { onConflict: "app_id,locale" },
+        )
+        .then(({ error }) => {
+          if (error) {
+            console.warn("[steam-store-cache] upsert falhou:", error.message || error);
+          }
+        })
+        .catch((error) => {
+          console.warn("[steam-store-cache] upsert falhou:", error?.message || error);
+        });
+    }
+
     res.json(result);
   } catch {
     res.status(500).json({ error: "Erro interno ao buscar detalhes do jogo." });
@@ -4507,6 +4729,8 @@ app.get("/api/steam/app-details", steamPublicLimiter, async (req, res) => {
 app.use((_req, res) => {
   res.status(404).json({ error: "Rota nao encontrada." });
 });
+
+app.use(errorHandler);
 
 export const startServer = ({ host = process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1" } = {}) => {
   const server = app.listen(port, host, () => {

@@ -27,8 +27,11 @@ const preferenceState = {
 const authState = {
   user: { uid: "current-user", email: "player@example.com", displayName: "Player" },
   userProfile: { uid: "current-user", displayName: "Player", profileVisibility: "public" as const },
+  authIssue: null,
+  sessionStatus: "ok" as const,
   signOutUser: vi.fn(),
   refreshProfile: vi.fn(),
+  clearAuthIssue: vi.fn(),
 };
 const { saveProfileVisibility } = vi.hoisted(() => ({
   saveProfileVisibility: vi.fn(),

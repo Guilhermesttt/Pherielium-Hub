@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import type { AuthUser } from "../auth/AuthProvider";
 import {
   type CallState,
@@ -48,6 +48,7 @@ import {
   Room as LiveKitRoom,
   RoomEvent as LiveKitRoomEvent,
   Track as LiveKitTrack,
+  AudioPresets as LiveKitAudioPresets,
   type LocalTrackPublication,
 } from "../services/livekitVoice";
 import sfxJoin from "../sounds/Phelierium Default/ui_call_enter.mp3";
@@ -153,7 +154,9 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
   const [roomConfig, setRoomConfig] = useState<CallRoomConfig | null>(null);
 
   // Multi-peer Mesh streams & remote state maps
+  // remoteStreams = camera + mic (primary); remoteScreenStreams = screen share video/audio per peer
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [remoteScreenStreams, setRemoteScreenStreams] = useState<Map<string, MediaStream>>(new Map());
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [remoteSpeakingStates, setRemoteSpeakingStates] = useState<Map<string, boolean>>(new Map());
   const [remoteStatesMap, setRemoteStatesMap] = useState<Map<string, CallStatePayload>>(new Map());
@@ -436,6 +439,10 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
       if (track && !isMutedRef.current && !isDeafenedRef.current) {
         track.enabled = true;
       }
+      const raw = rawStreamRef.current?.getAudioTracks()[0];
+      if (raw && raw !== track && !isMutedRef.current && !isDeafenedRef.current) {
+        raw.enabled = true;
+      }
     }
   }, []);
 
@@ -518,6 +525,9 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
   // Multi-peer Mesh & LiveKit SFU Refs
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const remoteStreamsRef = useRef<Map<string, MediaStream>>(new Map());
+  const remoteScreenStreamsRef = useRef<Map<string, MediaStream>>(new Map());
+  /** peerId → currently sharing screen (TrackSubscribed/Unsubscribed source of truth for LiveKit) */
+  const remoteScreenSharingPeersRef = useRef<Map<string, boolean>>(new Map());
   const remotePipelinesRef = useRef<Map<string, AudioPipeline>>(new Map());
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const livekitRoomRef = useRef<LiveKitRoom | null>(null);
@@ -614,7 +624,8 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
   /**
    * Wraps a raw getUserMedia stream in the real audio processing chain.
    * Stores rawStream, gainNode and cleanup in their respective refs.
-   * Returns the *processed* MediaStream (what goes to WebRTC and VAD).
+   * Returns the *processed* MediaStream for local metering / UI / P2P.
+   * LiveKit publishes the raw mic track separately (lower latency).
    */
   const applyAudioProcessingChain = useCallback(
     async (rawStream: MediaStream): Promise<MediaStream> => {
@@ -746,6 +757,10 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
               if (track && !track.enabled) {
                 track.enabled = true;
               }
+              const raw = rawStreamRef.current?.getAudioTracks()[0];
+              if (raw && raw !== track && !raw.enabled) {
+                raw.enabled = true;
+              }
             }
             if (!currentlySpeaking) {
               currentlySpeaking = true;
@@ -773,16 +788,23 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
               targetPipeline.holdTimer = null;
               if (isLocal) {
                 setIsSpeakingLocal(false);
-                // Se estiver em PTT ou com Noise Gate ativo, corta o áudio durante o silêncio
+                // Com LiveKit + DTX, o silencio e tratado pelo codec Opus — nao
+                // desabilitamos a trilha no VAD porque o re-enable corta a
+                // primeira silaba e e percebido como "atraso" pelo outro lado.
+                // O gate duro so se aplica ao Push-to-Talk (sem PTT pressionado).
                 const shouldMuteTrack =
                   inputModeRef.current === "push-to-talk"
                     ? !isPttPressedRef.current
-                    : noiseGateEnabledRef.current;
+                    : false;
 
                 if (shouldMuteTrack) {
                   const track = localStreamRef.current?.getAudioTracks()[0];
                   if (track) {
                     track.enabled = false;
+                  }
+                  const raw = rawStreamRef.current?.getAudioTracks()[0];
+                  if (raw && raw !== track) {
+                    raw.enabled = false;
                   }
                 }
                 if (sessionRef.current?.chatId && user?.uid) {
@@ -821,25 +843,51 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     }
   }, [localStream, setupVoiceAnalyzer]);
 
+  /** Sync mute/PTT enable on both processed (UI) and raw (LiveKit publish) mic tracks. */
+  const setOutgoingMicEnabled = useCallback((enabled: boolean) => {
+    const processed = localStreamRef.current?.getAudioTracks()[0];
+    const raw = rawStreamRef.current?.getAudioTracks()[0];
+    if (processed) processed.enabled = enabled;
+    if (raw && raw !== processed) raw.enabled = enabled;
+  }, []);
+
   const replaceActiveMicrophoneTrack = useCallback(
     async (processedStream: MediaStream) => {
-      const newTrack = processedStream.getAudioTracks()[0];
-      if (!newTrack) return;
+      const processedTrack = processedStream.getAudioTracks()[0];
+      if (!processedTrack) return;
+
+      const rawTrack = rawStreamRef.current?.getAudioTracks()[0] || processedTrack;
+      // LiveKit gets the raw mic for lower latency; P2P keeps the processed chain.
+      const livekitTrack =
+        useLiveKitPrimaryRef.current && livekitConnectedRef.current ? rawTrack : processedTrack;
 
       const shouldEnable =
         !isMutedRef.current &&
         !isDeafenedRef.current &&
         (inputModeRef.current !== "push-to-talk" || isPttPressedRef.current);
-      newTrack.enabled = shouldEnable;
+      processedTrack.enabled = shouldEnable;
+      if (rawTrack !== processedTrack) rawTrack.enabled = shouldEnable;
 
-      const previousTrack = localStreamRef.current?.getAudioTracks()[0] || null;
+      const previousProcessed = localStreamRef.current?.getAudioTracks()[0] || null;
       await replaceOutgoingAudioTrack({
         peerConnections: peerConnectionsRef.current.values(),
-        livekitPublication: livekitAudioPubRef.current as any,
-        previousTrack,
+        livekitPublication: null,
+        previousTrack: previousProcessed,
         excludedTracks: screenAudioTrackRef.current ? [screenAudioTrackRef.current] : [],
-        newTrack,
+        newTrack: processedTrack,
       });
+
+      const livekitLocalTrack = livekitAudioPubRef.current?.track as
+        | { replaceTrack?: (track: MediaStreamTrack) => Promise<unknown> | unknown }
+        | null
+        | undefined;
+      if (livekitLocalTrack?.replaceTrack) {
+        try {
+          await livekitLocalTrack.replaceTrack(livekitTrack);
+        } catch (err) {
+          console.warn("[useVoiceCall] LiveKit mic replaceTrack warning:", err);
+        }
+      }
 
       localStreamRef.current = processedStream;
       setLocalStream(processedStream);
@@ -903,7 +951,9 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     try {
       localStorage.setItem("checkpoint_voice_echo_cancellation", String(val));
     } catch { }
-    void applyAudioProcessingConstraints(val, noiseSuppressionRef.current, autoGainControlRef.current);
+    const browserNs = noiseSuppressionRef.current && !advancedNoiseSuppressionRef.current;
+    const browserAgc = autoGainControlRef.current && !advancedNoiseSuppressionRef.current;
+    void applyAudioProcessingConstraints(val, browserNs, browserAgc);
   }, [applyAudioProcessingConstraints]);
 
   const setNoiseSuppression = useCallback((val: boolean) => {
@@ -912,7 +962,9 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     try {
       localStorage.setItem("checkpoint_voice_noise_suppression", String(val));
     } catch { }
-    void applyAudioProcessingConstraints(echoCancellationRef.current, val, autoGainControlRef.current);
+    const browserNs = val && !advancedNoiseSuppressionRef.current;
+    const browserAgc = autoGainControlRef.current && !advancedNoiseSuppressionRef.current;
+    void applyAudioProcessingConstraints(echoCancellationRef.current, browserNs, browserAgc);
   }, [applyAudioProcessingConstraints]);
 
   const setAutoGainControl = useCallback((val: boolean) => {
@@ -921,7 +973,9 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     try {
       localStorage.setItem("checkpoint_voice_auto_gain", String(val));
     } catch { }
-    void applyAudioProcessingConstraints(echoCancellationRef.current, noiseSuppressionRef.current, val);
+    const browserNs = noiseSuppressionRef.current && !advancedNoiseSuppressionRef.current;
+    const browserAgc = val && !advancedNoiseSuppressionRef.current;
+    void applyAudioProcessingConstraints(echoCancellationRef.current, browserNs, browserAgc);
   }, [applyAudioProcessingConstraints]);
 
   const setAdvancedNoiseSuppression = useCallback(
@@ -931,6 +985,11 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
       try {
         localStorage.setItem("checkpoint_voice_advanced_ns", String(val));
       } catch { }
+
+      // Avoid double NS/AGC: browser DSP off when RNNoise is on
+      const browserNs = noiseSuppressionRef.current && !val;
+      const browserAgc = autoGainControlRef.current && !val;
+      void applyAudioProcessingConstraints(echoCancellationRef.current, browserNs, browserAgc);
 
       // Rebuild the processing chain if we have an active rawStream and call is not idle
       if (rawStreamRef.current && callState !== "idle") {
@@ -942,7 +1001,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
         }
       }
     },
-    [applyAudioProcessingChain, callState, replaceActiveMicrophoneTrack],
+    [applyAudioProcessingChain, applyAudioProcessingConstraints, callState, replaceActiveMicrophoneTrack],
   );
 
   // Audio acquisition helper com diagnóstico de erros específicos
@@ -952,12 +1011,16 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
       isAcquiringMediaRef.current = true;
       const targetDeviceId = deviceId || (selectedAudioInput !== "default" ? selectedAudioInput : undefined);
 
+      // When advanced RNNoise is on, disable browser NS/AGC to avoid double processing.
+      const useBrowserNs = noiseSuppression && !advancedNoiseSuppressionRef.current;
+      const useBrowserAgc = autoGainControl && !advancedNoiseSuppressionRef.current;
+
       const constraints: MediaStreamConstraints = {
         audio: {
           deviceId: targetDeviceId ? { exact: targetDeviceId } : undefined,
           echoCancellation: echoCancellation ? { ideal: true } : false,
-          noiseSuppression: noiseSuppression ? { ideal: true } : false,
-          autoGainControl: autoGainControl ? { ideal: true } : false,
+          noiseSuppression: useBrowserNs ? { ideal: true } : false,
+          autoGainControl: useBrowserAgc ? { ideal: true } : false,
           channelCount: { ideal: 1 },
           sampleRate: { ideal: 48000 },
           sampleSize: { ideal: 16 },
@@ -1030,8 +1093,12 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
 
         if (inputMode === "push-to-talk" && !isPttPressed) {
           newTrack.enabled = false;
+          const raw = rawStreamRef.current?.getAudioTracks()[0];
+          if (raw && raw !== newTrack) raw.enabled = false;
         } else if (isMuted || isDeafened) {
           newTrack.enabled = false;
+          const raw = rawStreamRef.current?.getAudioTracks()[0];
+          if (raw && raw !== newTrack) raw.enabled = false;
         }
 
         // Atomically replace the microphone in both P2P fallback and the active LiveKit
@@ -1194,8 +1261,13 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
       } catch { }
       if (localStreamRef.current) {
         const track = localStreamRef.current.getAudioTracks()[0];
+        const enabled = mode === "voice-activity" && !isMuted && !isDeafened;
         if (track) {
-          track.enabled = mode === "voice-activity" && !isMuted && !isDeafened;
+          track.enabled = enabled;
+        }
+        const raw = rawStreamRef.current?.getAudioTracks()[0];
+        if (raw && raw !== track) {
+          raw.enabled = enabled;
         }
       }
     },
@@ -1229,21 +1301,19 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     }
     setIsPttPressed(true);
     if (localStreamRef.current && !isMuted && !isDeafened) {
-      const track = localStreamRef.current.getAudioTracks()[0];
-      if (track) track.enabled = true;
+      setOutgoingMicEnabled(true);
     }
-  }, [isDeafened, isMuted]);
+  }, [isDeafened, isMuted, setOutgoingMicEnabled]);
 
   const handlePttUp = useCallback(() => {
     setIsPttPressed(false);
     if (pttReleaseTimeoutRef.current) window.clearTimeout(pttReleaseTimeoutRef.current);
     pttReleaseTimeoutRef.current = window.setTimeout(() => {
-      if (inputMode === "push-to-talk" && localStreamRef.current) {
-        const track = localStreamRef.current.getAudioTracks()[0];
-        if (track) track.enabled = false;
+      if (inputMode === "push-to-talk") {
+        setOutgoingMicEnabled(false);
       }
     }, 150);
-  }, [inputMode]);
+  }, [inputMode, setOutgoingMicEnabled]);
 
   // Global IPC PTT events
   useEffect(() => {
@@ -1485,6 +1555,8 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     });
     peerConnectionsRef.current.clear();
     remoteStreamsRef.current.clear();
+    remoteScreenStreamsRef.current.clear();
+    remoteScreenSharingPeersRef.current.clear();
     pendingCandidatesRef.current.clear();
 
     if (unsubscribeSessionRef.current) {
@@ -1499,6 +1571,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
 
     setLocalStream(null);
     setRemoteStreams(new Map());
+    setRemoteScreenStreams(new Map());
     setRemoteStream(null);
     setLocalCameraStream(null);
     setLocalScreenStream(null);
@@ -1550,13 +1623,97 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
         const getLiveKitTrackKey = (track: any, publication: any, peerId: string) =>
           String(track?.sid || track?.mediaStreamTrack?.id || publication?.trackSid || `${peerId}:${publication?.source || track?.source || "audio"}`);
 
+        const syncRemoteScreenSharingFlag = () => {
+          const anySharing = Array.from(remoteScreenSharingPeersRef.current.values()).some(Boolean);
+          setIsRemoteSharingScreen(anySharing);
+        };
+
+        const getOrCreatePeerStream = (
+          mapRef: MutableRefObject<Map<string, MediaStream>>,
+          peerId: string,
+        ) => {
+          let stream = mapRef.current.get(peerId);
+          if (!stream) {
+            stream = new MediaStream();
+            mapRef.current.set(peerId, stream);
+          }
+          return stream;
+        };
+
+        const addTrackToPeerStream = (
+          mapRef: MutableRefObject<Map<string, MediaStream>>,
+          setMap: Dispatch<SetStateAction<Map<string, MediaStream>>>,
+          peerId: string,
+          mediaTrack: MediaStreamTrack,
+        ) => {
+          const stream = getOrCreatePeerStream(mapRef, peerId);
+          if (!stream.getTracks().includes(mediaTrack)) {
+            stream.addTrack(mediaTrack);
+          }
+          mapRef.current.set(peerId, stream);
+          setMap(new Map(mapRef.current));
+          return stream;
+        };
+
+        const removeTrackFromPeerStream = (
+          mapRef: MutableRefObject<Map<string, MediaStream>>,
+          setMap: Dispatch<SetStateAction<Map<string, MediaStream>>>,
+          peerId: string,
+          mediaTrack: MediaStreamTrack,
+        ) => {
+          const stream = mapRef.current.get(peerId);
+          if (!stream) return;
+          stream.removeTrack(mediaTrack);
+          if (stream.getTracks().length === 0) {
+            mapRef.current.delete(peerId);
+          }
+          setMap(new Map(mapRef.current));
+        };
+
+        const isScreenShareSource = (source: unknown) =>
+          source === LiveKitTrack.Source.ScreenShare || source === LiveKitTrack.Source.ScreenShareAudio;
+
+        const ingestRemoteLiveKitTrack = (track: any, publication: any, peerId: string) => {
+          const mediaTrack = track.mediaStreamTrack as MediaStreamTrack | undefined;
+          if (!mediaTrack) return;
+
+          const screenShare = isScreenShareSource(track.source ?? publication?.source);
+          if (screenShare) {
+            const stream = addTrackToPeerStream(
+              remoteScreenStreamsRef,
+              setRemoteScreenStreams,
+              peerId,
+              mediaTrack,
+            );
+            if (track.kind === LiveKitTrack.Kind.Video || track.source === LiveKitTrack.Source.ScreenShare) {
+              remoteScreenSharingPeersRef.current.set(peerId, true);
+              syncRemoteScreenSharingFlag();
+            }
+            setRemoteStream(stream);
+          } else {
+            const stream = addTrackToPeerStream(remoteStreamsRef, setRemoteStreams, peerId, mediaTrack);
+            setRemoteStream(stream);
+            if (track.kind === LiveKitTrack.Kind.Video) {
+              setIsRemoteCameraOn(true);
+            }
+          }
+        };
+
         const attachLiveKitAudioOnce = (track: any, publication: any, peerId: string) => {
           const trackKey = getLiveKitTrackKey(track, publication, peerId);
           if (livekitAttachedTrackKeysRef.current.has(trackKey)) return;
 
-          const el = track.attach();
+          const el = track.attach() as HTMLMediaElement;
           livekitAttachedTrackKeysRef.current.add(trackKey);
           livekitAttachedElementsRef.current.add(el);
+
+          // Playback de baixa latencia: garante autoplay imediato no primeiro
+          // frame de audio em vez de esperar buffering do elemento.
+          try {
+            (el as HTMLAudioElement).autoplay = true;
+            (el as any).playsInline = true;
+            (el as HTMLAudioElement).preload = "auto";
+          } catch { }
 
           const isScreenAudio = publication?.source === LiveKitTrack.Source.ScreenShareAudio;
           const peerVol = isDeafenedRef.current
@@ -1573,17 +1730,13 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
 
         room.on(LiveKitRoomEvent.TrackSubscribed, (track, publication, participant) => {
           const peerId = participant.identity;
-          let stream = remoteStreamsRef.current.get(peerId);
-          if (!stream) {
-            stream = new MediaStream();
-            remoteStreamsRef.current.set(peerId, stream);
+          // Prevent local tracks (especially screenshare audio) from being attached and echoing locally
+          if (peerId === userProfile?.uid || peerId === user?.uid) {
+            console.warn("[LiveKit] Ignorando TrackSubscribed de track local para evitar eco.");
+            return;
           }
-          if (track.mediaStreamTrack && !stream.getTracks().includes(track.mediaStreamTrack)) {
-            stream.addTrack(track.mediaStreamTrack);
-          }
-          remoteStreamsRef.current.set(peerId, stream);
-          setRemoteStreams(new Map(remoteStreamsRef.current));
-          setRemoteStream(stream);
+
+          ingestRemoteLiveKitTrack(track, publication, peerId);
 
           if (track.kind === LiveKitTrack.Kind.Audio) {
             // LiveKit already exposes ActiveSpeakersChanged. Avoid a second Web Audio
@@ -1593,22 +1746,27 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
             } catch (attachErr) {
               console.warn("[LiveKit] TrackSubscribed attach error:", attachErr);
             }
-          } else if (track.kind === LiveKitTrack.Kind.Video) {
-            if (track.source === LiveKitTrack.Source.ScreenShare) {
-              setIsRemoteSharingScreen(true);
-            } else {
-              setIsRemoteCameraOn(true);
-            }
           }
         });
 
         room.on(LiveKitRoomEvent.TrackUnsubscribed, (track, _pub, participant) => {
           const peerId = participant.identity;
-          const stream = remoteStreamsRef.current.get(peerId);
-          if (stream && track.mediaStreamTrack) {
-            stream.removeTrack(track.mediaStreamTrack);
-            setRemoteStreams(new Map(remoteStreamsRef.current));
+          const mediaTrack = track.mediaStreamTrack as MediaStreamTrack | undefined;
+          const screenShare = isScreenShareSource(track.source ?? _pub?.source);
+
+          if (mediaTrack) {
+            if (screenShare) {
+              removeTrackFromPeerStream(
+                remoteScreenStreamsRef,
+                setRemoteScreenStreams,
+                peerId,
+                mediaTrack,
+              );
+            } else {
+              removeTrackFromPeerStream(remoteStreamsRef, setRemoteStreams, peerId, mediaTrack);
+            }
           }
+
           try {
             livekitAttachedTrackKeysRef.current.delete(getLiveKitTrackKey(track, _pub, peerId));
             const detached = track.detach();
@@ -1620,9 +1778,13 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
 
           if (track.kind === LiveKitTrack.Kind.Video) {
             if (track.source === LiveKitTrack.Source.ScreenShare) {
-              setIsRemoteSharingScreen(false);
+              remoteScreenSharingPeersRef.current.set(peerId, false);
+              syncRemoteScreenSharingFlag();
             } else {
-              setIsRemoteCameraOn(false);
+              // Keep camera-on if peer still has another camera video track
+              const camStream = remoteStreamsRef.current.get(peerId);
+              const stillHasCamera = Boolean(camStream?.getVideoTracks().some((t) => t.readyState !== "ended"));
+              setIsRemoteCameraOn(stillHasCamera);
             }
           }
         });
@@ -1659,7 +1821,11 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
         room.on(LiveKitRoomEvent.ParticipantDisconnected, (participant) => {
           const peerId = participant.identity;
           remoteStreamsRef.current.delete(peerId);
+          remoteScreenStreamsRef.current.delete(peerId);
+          remoteScreenSharingPeersRef.current.delete(peerId);
           setRemoteStreams(new Map(remoteStreamsRef.current));
+          setRemoteScreenStreams(new Map(remoteScreenStreamsRef.current));
+          syncRemoteScreenSharingFlag();
           setSession((prev) => {
             if (!prev) return prev;
             return {
@@ -1679,17 +1845,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
             if (publication.isSubscribed && publication.track) {
               const track = publication.track;
               const peerId = participant.identity;
-              let stream = remoteStreamsRef.current.get(peerId);
-              if (!stream) {
-                stream = new MediaStream();
-                remoteStreamsRef.current.set(peerId, stream);
-              }
-              if (track.mediaStreamTrack && !stream.getTracks().includes(track.mediaStreamTrack)) {
-                stream.addTrack(track.mediaStreamTrack);
-              }
-              remoteStreamsRef.current.set(peerId, stream);
-              setRemoteStreams(new Map(remoteStreamsRef.current));
-              setRemoteStream(stream);
+              ingestRemoteLiveKitTrack(track, publication, peerId);
 
               if (track.kind === LiveKitTrack.Kind.Audio) {
                 // ActiveSpeakersChanged is the authoritative VAD path for LiveKit.
@@ -1701,16 +1857,27 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
           });
         });
 
-        // Publish local audio track (with RNNoise / custom micGain)
-        if (localStreamRef.current) {
-          const audioTrack = localStreamRef.current.getAudioTracks()[0];
-          if (audioTrack) {
-            const pub = await room.localParticipant.publishTrack(audioTrack, {
-              name: "microphone",
-              source: LiveKitTrack.Source.Microphone,
-            });
-            livekitAudioPubRef.current = pub;
-          }
+        // Publish raw mic to LiveKit (processed stream stays for local metering/UI).
+        // Opcoes de baixa latencia: preset de voz Opus, DTX (nao transmite
+        // silencio, reduz jitter), RED (recuperacao contra perda de pacote
+        // sem retransmissao = menos gap) e mono forcado (metade do bitrate).
+        const rawMicTrack = rawStreamRef.current?.getAudioTracks()[0];
+        const fallbackMicTrack = localStreamRef.current?.getAudioTracks()[0];
+        const audioTrack = rawMicTrack || fallbackMicTrack;
+        if (audioTrack) {
+          try {
+            (audioTrack as MediaStreamTrack & { contentHint?: string }).contentHint = "speech";
+          } catch { }
+          const pub = await room.localParticipant.publishTrack(audioTrack, {
+            name: "microphone",
+            source: LiveKitTrack.Source.Microphone,
+            audioPreset: LiveKitAudioPresets.speech,
+            dtx: true,
+            red: true,
+            forceStereo: false,
+            stopMicTrackOnMute: false,
+          });
+          livekitAudioPubRef.current = pub;
         }
 
         return room;
@@ -1948,7 +2115,11 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
           }
         } else if (pc.connectionState === "closed" || pc.connectionState === "disconnected") {
           remoteStreamsRef.current.delete(targetPeerUid);
+          remoteScreenStreamsRef.current.delete(targetPeerUid);
+          remoteScreenSharingPeersRef.current.delete(targetPeerUid);
           setRemoteStreams(new Map(remoteStreamsRef.current));
+          setRemoteScreenStreams(new Map(remoteScreenStreamsRef.current));
+          setIsRemoteSharingScreen(Array.from(remoteScreenSharingPeersRef.current.values()).some(Boolean));
           if (sessionRef.current?.friendUid === targetPeerUid || peerConnectionsRef.current.size <= 1) {
             setRemoteStream(null);
           }
@@ -2110,7 +2281,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
       onState: (remoteState: CallStatePayload) => {
         setRemoteStatesMap((prev) => {
           const updated = new Map(prev);
-          updated.set(remoteState.senderId, remoteState);
+          updated.set(remoteState.senderId, { ...(updated.get(remoteState.senderId) || {}), ...remoteState });
           return updated;
         });
 
@@ -2131,11 +2302,15 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
           setIsRemoteCameraOn(remoteState.isCameraOn);
         }
         if (typeof remoteState.isSharingScreen === "boolean") {
+          // Prefer LiveKit per-peer map when available; still merge signal into remoteStatesMap above.
+          // For P2P / signal-only, update global flag carefully so one peer ending does not clear others.
+          remoteScreenSharingPeersRef.current.set(remoteState.senderId, remoteState.isSharingScreen);
+          const anySharing = Array.from(remoteScreenSharingPeersRef.current.values()).some(Boolean);
           setIsRemoteSharingScreen((prev) => {
-            if (prev !== remoteState.isSharingScreen) {
-              playSfx(remoteState.isSharingScreen ? sfxStreamStart : sfxStreamEnd);
+            if (prev !== anySharing) {
+              playSfx(anySharing ? sfxStreamStart : sfxStreamEnd);
             }
-            return Boolean(remoteState.isSharingScreen);
+            return anySharing;
           });
         }
       },
@@ -2164,6 +2339,14 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
             accepted: true,
             chatId,
           });
+          void sendCallState(chatId, {
+            senderId: user.uid,
+            chatId,
+            isMuted: isMutedRef.current,
+            isDeafened: isDeafenedRef.current,
+            isSharingScreen: screenStreamRef.current !== null,
+            isCameraOn: cameraStreamRef.current !== null,
+          });
         }
 
         // Only create P2P mesh peer connection if NOT using LiveKit SFU as primary
@@ -2190,7 +2373,11 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
           peerConnectionsRef.current.delete(left.uid);
         }
         remoteStreamsRef.current.delete(left.uid);
+        remoteScreenStreamsRef.current.delete(left.uid);
+        remoteScreenSharingPeersRef.current.delete(left.uid);
         setRemoteStreams(new Map(remoteStreamsRef.current));
+        setRemoteScreenStreams(new Map(remoteScreenStreamsRef.current));
+        setIsRemoteSharingScreen(Array.from(remoteScreenSharingPeersRef.current.values()).some(Boolean));
         if (sessionRef.current?.friendUid === left.uid || peerConnectionsRef.current.size === 0) {
           setRemoteStream(null);
         }
@@ -2386,6 +2573,8 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
           if (inputMode === "push-to-talk") {
             const track = processedStream.getAudioTracks()[0];
             if (track) track.enabled = false;
+            const raw = rawStreamRef.current?.getAudioTracks()[0];
+            if (raw && raw !== track) raw.enabled = false;
           }
         } else {
           setIsMuted(true);
@@ -2562,6 +2751,8 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
         if (inputMode === "push-to-talk") {
           const track = processedStream.getAudioTracks()[0];
           if (track) track.enabled = false;
+          const raw = rawStreamRef.current?.getAudioTracks()[0];
+          if (raw && raw !== track) raw.enabled = false;
         }
       } else {
         setIsMuted(true);
@@ -2653,7 +2844,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
 
   // JOIN ROOM (Persistente / Multi-Participante)
   const joinRoom = useCallback(
-    async (roomId: string, password?: string, fromInvite = false) => {
+    async (roomId: string, password?: string) => {
       if (!user?.uid || callState !== "idle") return;
 
       try {
@@ -2663,7 +2854,6 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
 
         const joinResult = await joinVoiceRoom(roomId, {
           password,
-          fromInvite,
           displayName,
           avatarUrl,
         });
@@ -2703,6 +2893,8 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
           if (inputMode === "push-to-talk") {
             const track = processedStream.getAudioTracks()[0];
             if (track) track.enabled = false;
+            const raw = rawStreamRef.current?.getAudioTracks()[0];
+            if (raw && raw !== track) raw.enabled = false;
           }
         } else {
           setIsMuted(true);
@@ -2783,7 +2975,8 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     async (config: CallRoomConfig | { name?: string; roomName?: string; category?: RoomCategory; isPrivate?: boolean; password?: string; icon?: string; avatarUrl?: string; themeColor?: string }) => {
       try {
         const newRoom = await createVoiceRoom(config);
-        await joinRoom(newRoom.id, config.password, true);
+        // Host já é isento da senha no servidor; não enviar flags de confiança do cliente.
+        await joinRoom(newRoom.id, config.password);
       } catch (err: any) {
         console.error("[useVoiceCall] createAndJoinRoom failed:", err);
         notify(err?.message || "Erro ao criar canal de voz.", "error");
@@ -2894,8 +3087,9 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     if (!localStreamRef.current) return;
     const audioTrack = localStreamRef.current.getAudioTracks()[0];
     if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
-      const nextMuted = !audioTrack.enabled;
+      const nextEnabled = !audioTrack.enabled;
+      setOutgoingMicEnabled(nextEnabled);
+      const nextMuted = !nextEnabled;
       setIsMuted(nextMuted);
       playSfx(nextMuted ? sfxMute : sfxUnmute);
 
@@ -2908,7 +3102,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
         });
       }
     }
-  }, [isDeafened, session?.chatId, user?.uid, playSfx, sfxMute, sfxUnmute, sendCallState]);
+  }, [isDeafened, session?.chatId, user?.uid, playSfx, sfxMute, sfxUnmute, sendCallState, setOutgoingMicEnabled]);
 
   // DEAFEN / UNDEAFEN (MUTE ALL / SOM & MIC)
   const toggleDeafen = useCallback(() => {
@@ -2917,10 +3111,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
       playSfx(nextDeafened ? sfxFullMute : sfxUndeafen);
       if (nextDeafened) {
         setIsMuted(true);
-        if (localStreamRef.current) {
-          const audioTrack = localStreamRef.current.getAudioTracks()[0];
-          if (audioTrack) audioTrack.enabled = false;
-        }
+        setOutgoingMicEnabled(false);
       }
 
       if (session?.chatId && user?.uid) {
@@ -2934,7 +3125,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
 
       return nextDeafened;
     });
-  }, [session?.chatId, user?.uid]);
+  }, [session?.chatId, setOutgoingMicEnabled, user?.uid]);
 
   // TOGGLE CAMERA
   const toggleCamera = useCallback(async () => {
@@ -3059,48 +3250,81 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
         let screenStream: MediaStream;
 
         if (sourceId && typeof navigator !== "undefined") {
-          screenStream = await (navigator.mediaDevices as any).getUserMedia({
-            audio: includeAudio
-              ? {
-                mandatory: {
-                  chromeMediaSource: "desktop",
-                },
-                optional: [
-                  { echoCancellation: true },
-                  { googEchoCancellation: true },
-                  { googAutoGainControl: false },
-                  { googNoiseSuppression: false },
-                ],
-              }
-              : false,
-            video: {
-              mandatory: {
-                chromeMediaSource: "desktop",
-                chromeMediaSourceId: sourceId,
-                maxWidth: maxW,
-                maxHeight: maxH,
-                maxFrameRate: fps,
-              },
+          const videoMandatory = {
+            chromeMediaSource: "desktop",
+            chromeMediaSourceId: sourceId,
+            maxWidth: maxW,
+            maxHeight: maxH,
+            maxFrameRate: fps,
+          };
+          const audioWithId = {
+            mandatory: {
+              chromeMediaSource: "desktop",
+              chromeMediaSourceId: sourceId,
             },
-          });
+            optional: [
+              { echoCancellation: true },
+              { googEchoCancellation: true },
+              { googAutoGainControl: false },
+              { googNoiseSuppression: false },
+            ],
+          };
+
+          if (includeAudio) {
+            try {
+              screenStream = await (navigator.mediaDevices as any).getUserMedia({
+                audio: audioWithId,
+                video: { mandatory: videoMandatory },
+              });
+            } catch (audioCaptureErr) {
+              console.warn("[useVoiceCall] Screen audio capture failed; retrying video-only:", audioCaptureErr);
+              screenStream = await (navigator.mediaDevices as any).getUserMedia({
+                audio: false,
+                video: { mandatory: videoMandatory },
+              });
+              notify("Áudio do sistema indisponível; compartilhando apenas o vídeo.", "info");
+            }
+          } else {
+            screenStream = await (navigator.mediaDevices as any).getUserMedia({
+              audio: false,
+              video: { mandatory: videoMandatory },
+            });
+          }
         } else {
-          screenStream = await navigator.mediaDevices.getDisplayMedia({
-            video: {
-              width: { ideal: maxW },
-              height: { ideal: maxH },
-              frameRate: { ideal: fps, max: fps, exact: fps },
-            },
-            audio: includeAudio
-              ? ({
-                echoCancellation: false,
-                noiseSuppression: false,
-                autoGainControl: false,
-                // Chromium/Electron 43.4+ can exclude audio produced by this app from
-                // display capture. Older Electron versions ignore this constraint.
-                restrictOwnAudio: true,
-              } as MediaTrackConstraints)
-              : false,
-          });
+          try {
+            screenStream = await navigator.mediaDevices.getDisplayMedia({
+              video: {
+                width: { ideal: maxW },
+                height: { ideal: maxH },
+                frameRate: { ideal: fps, max: fps, exact: fps },
+              },
+              audio: includeAudio
+                ? ({
+                  echoCancellation: false,
+                  noiseSuppression: false,
+                  autoGainControl: false,
+                  // Chromium/Electron 43.4+ can exclude audio produced by this app from
+                  // display capture. Older Electron versions ignore this constraint.
+                  restrictOwnAudio: true,
+                } as MediaTrackConstraints)
+                : false,
+            });
+          } catch (displayErr) {
+            if (includeAudio) {
+              console.warn("[useVoiceCall] getDisplayMedia with audio failed; retrying video-only:", displayErr);
+              screenStream = await navigator.mediaDevices.getDisplayMedia({
+                video: {
+                  width: { ideal: maxW },
+                  height: { ideal: maxH },
+                  frameRate: { ideal: fps, max: fps, exact: fps },
+                },
+                audio: false,
+              });
+              notify("Áudio do sistema indisponível; compartilhando apenas o vídeo.", "info");
+            } else {
+              throw displayErr;
+            }
+          }
         }
 
         screenStreamRef.current = screenStream;
@@ -3110,6 +3334,10 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
         screenVideoTrackRef.current = videoTrack || null;
         screenAudioTrackRef.current = screenAudioTrack || null;
         screenShareStoppingRef.current = false;
+
+        if (!videoTrack) {
+          throw new Error("Screen capture returned no video track");
+        }
 
         // Barreira ativa para isolar o áudio da chamada da transmissão de tela
         if (includeAudio && screenAudioTrack && options.callAudioBarrier !== false) {
@@ -3125,6 +3353,11 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
                   if (st && st.getAudioTracks().length > 0) streams.push(st);
                 });
               }
+              if (remoteScreenStreamsRef.current) {
+                remoteScreenStreamsRef.current.forEach((st) => {
+                  if (st && st.getAudioTracks().length > 0) streams.push(st);
+                });
+              }
               return streams;
             });
             screenAudioTrack = barrier.processedTrack;
@@ -3135,9 +3368,9 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
           }
         }
 
-        // contentHint: "motion" para jogos/vídeo, "detail" para texto/UI
+        // contentHint "detail" preserves text/UI clarity for screen share
         if (videoTrack && "contentHint" in videoTrack) {
-          (videoTrack as any).contentHint = "motion";
+          (videoTrack as MediaStreamTrack & { contentHint?: string }).contentHint = "detail";
         }
 
         if (session.friendUid === "echo-bot") {
@@ -3159,28 +3392,48 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
 
         // If using LiveKit as primary, publish there ONLY (not P2P mesh)
         if (useLiveKitPrimary) {
-          if (videoTrack && livekitRoomRef.current?.localParticipant) {
-            try {
-              // Configure video encoding for screen share: preserve FPS, high bitrate
-              const encodings = [
-                { maxBitrate: res === "720p" ? 2_500_000 : fps === 60 ? 6_000_000 : 4_500_000, maxFramerate: fps, scaleResolutionDownBy: 1 },
-              ];
-              const pub = await livekitRoomRef.current.localParticipant.publishTrack(videoTrack, {
-                name: "screen",
-                source: LiveKitTrack.Source.ScreenShare,
-                simulcast: false, // Single layer for screen share - preserves FPS
-                videoEncoding: { maxBitrate: encodings[0].maxBitrate, maxFramerate: fps },
-              });
-              livekitScreenPubRef.current = pub;
-              if (screenAudioTrack) {
+          if (!livekitRoomRef.current?.localParticipant) {
+            throw new Error("LiveKit room not connected");
+          }
+          try {
+            // Configure video encoding for screen share: preserve FPS, high bitrate
+            const encodings = [
+              { maxBitrate: res === "720p" ? 2_500_000 : fps === 60 ? 6_000_000 : 4_500_000, maxFramerate: fps, scaleResolutionDownBy: 1 },
+            ];
+            const pub = await livekitRoomRef.current.localParticipant.publishTrack(videoTrack, {
+              name: "screen",
+              source: LiveKitTrack.Source.ScreenShare,
+              simulcast: false, // Single layer for screen share - preserves FPS
+              videoEncoding: { maxBitrate: encodings[0].maxBitrate, maxFramerate: fps },
+            });
+            livekitScreenPubRef.current = pub;
+            if (screenAudioTrack) {
+              try {
                 livekitScreenAudioPubRef.current = await livekitRoomRef.current.localParticipant.publishTrack(screenAudioTrack, {
                   name: "screen-audio",
                   source: LiveKitTrack.Source.ScreenShareAudio,
                 });
+              } catch (screenAudioErr) {
+                console.warn("[LiveKit] Screen audio publish failed; continuing video-only:", screenAudioErr);
+                notify("Não foi possível publicar o áudio da tela; vídeo ok.", "info");
               }
-            } catch (lkErr) {
-              console.warn("[LiveKit] Screen share track publish note:", lkErr);
             }
+          } catch (lkErr) {
+            console.error("[LiveKit] Screen share publish failed:", lkErr);
+            // Tear down local capture — never mark sharing active without a published track
+            if (screenBarrierRef.current) {
+              try { screenBarrierRef.current.destroy(); } catch { }
+              screenBarrierRef.current = null;
+            }
+            screenStream.getTracks().forEach((t) => {
+              try { t.stop(); } catch { }
+            });
+            screenStreamRef.current = null;
+            screenVideoTrackRef.current = null;
+            screenAudioTrackRef.current = null;
+            setLocalScreenStream(null);
+            notify("Não foi possível publicar o compartilhamento de tela.", "error");
+            return;
           }
         } else {
           // Fallback: P2P mesh only
@@ -3238,6 +3491,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
           }
         }
 
+        // Only mark sharing after LiveKit publish / P2P attach succeeded
         setIsSharingScreen(true);
         setIsScreenPickerOpen(false);
         playSfx(sfxStreamStart);
@@ -3388,6 +3642,8 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
         if (inputMode === "push-to-talk") {
           const track = processedStream.getAudioTracks()[0];
           if (track) track.enabled = false;
+          const raw = rawStreamRef.current?.getAudioTracks()[0];
+          if (raw && raw !== track) raw.enabled = false;
         }
 
         // Echo loopback setup so the user hears themselves and tests volume
@@ -3655,6 +3911,7 @@ export const useVoiceCall = ({ user, userProfile, notify }: UseVoiceCallProps) =
     localStream,
     remoteStream,
     remoteStreams,
+    remoteScreenStreams,
     localCameraStream,
     localScreenStream,
     remoteVolume,

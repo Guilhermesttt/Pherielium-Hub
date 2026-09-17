@@ -15,7 +15,6 @@ import {
   projectSearchProfile,
   resolveChatRetentionDays,
   resolveLinkedSteamId,
-  revokeActivityAudience,
 } from "../server/index.mjs";
 
 describe("API publica", () => {
@@ -75,17 +74,23 @@ describe("API publica", () => {
   });
 
   it("consulta e separa os detalhes da Steam pelo idioma selecionado", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({
-        "987654": {
-          success: true,
-          data: {
-            name: "Jeu localisé",
-            short_description: "Description française",
-            genres: [{ description: "Aventure" }],
-          },
+    const steamPayload = {
+      "987654": {
+        success: true,
+        data: {
+          name: "Jeu localisé",
+          short_description: "Description française",
+          genres: [{ description: "Aventure" }],
         },
-      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+      },
+    };
+    // Fresh Response per call — mockResolvedValue(shared Response) breaks when
+    // supabaseAdmin steam_store_cache runs first and consumes the body.
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      new Response(JSON.stringify(steamPayload), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
     );
 
     try {
@@ -95,8 +100,11 @@ describe("API publica", () => {
 
       expect(response.body.description).toBe("Description française");
       expect(response.body.tags).toContain("Aventure");
-      expect(String(fetchMock.mock.calls[0]?.[0])).toContain("l=french");
-      expect(String(fetchMock.mock.calls[0]?.[0])).toContain("cc=FR");
+      const steamCall = fetchMock.mock.calls.find((call) =>
+        String(call[0]).includes("store.steampowered.com/api/appdetails"),
+      );
+      expect(String(steamCall?.[0])).toContain("l=french");
+      expect(String(steamCall?.[0])).toContain("cc=FR");
     } finally {
       fetchMock.mockRestore();
     }
@@ -264,10 +272,43 @@ describe("API publica", () => {
     expect(discordUri).toContain("/auth/discord/callback");
   });
 
-  it("responde com erro ou pending para status de autenticacao Google desktop", async () => {
+  it("responde com erro para status de autenticacao Google desktop sem credenciais", async () => {
     await request(app).get("/auth/desktop/google/status").expect(400);
-    const res = await request(app).get("/auth/desktop/google/status?state=fake-state").expect(200);
-    expect(res.body).toEqual({ status: "pending" });
+    await request(app).get("/auth/desktop/google/status?state=fake-state").expect(400);
+    const res = await request(app)
+      .get("/auth/desktop/google/status?state=fake-state&pollSecret=fake-secret")
+      .expect(401);
+    expect(res.body).toEqual({ error: "Sessao de login invalida." });
+  });
+
+  it("emite state e pollSecret server-side no start do Google desktop", async () => {
+    const start = await request(app).post("/auth/desktop/google/start");
+    // Sem Supabase Admin o endpoint pode falhar com 500; com ele, retorna 200.
+    if (start.status === 500) {
+      expect(start.body.error).toMatch(/Supabase|configurado/i);
+      return;
+    }
+    expect(start.status).toBe(200);
+    expect(start.body.state).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    expect(typeof start.body.pollSecret).toBe("string");
+    expect(start.body.pollSecret.length).toBeGreaterThanOrEqual(32);
+    expect(String(start.body.url)).toContain("/auth/google/start");
+    expect(String(start.body.url)).toContain(`state=${start.body.state}`);
+
+    const pending = await request(app)
+      .get(
+        `/auth/desktop/google/status?state=${encodeURIComponent(start.body.state)}&pollSecret=${encodeURIComponent(start.body.pollSecret)}`,
+      )
+      .expect(200);
+    expect(pending.body).toEqual({ status: "pending" });
+
+    const wrongSecret = await request(app)
+      .get(
+        `/auth/desktop/google/status?state=${encodeURIComponent(start.body.state)}&pollSecret=wrong-secret-value-xxxxxxxx`,
+      )
+      .expect(401);
+    expect(wrongSecret.body.error).toBe("Sessao de login invalida.");
   });
 });
-

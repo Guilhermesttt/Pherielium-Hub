@@ -1,6 +1,7 @@
 import React from "react";
 import { MessageSquare, Phone, RadioReceiver, Users, UserPlus } from "lucide-react";
 import type { SoundEffectType } from "../../hooks/useSoundEffects";
+import { HorizontalTabs } from "../ui/HorizontalTabs";
 
 export type SocialSubTab = "AMIGOS" | "CHAT" | "SALAS" | "SOLICITAÇÕES";
 
@@ -42,45 +43,40 @@ export const FriendsSubTabs: React.FC<FriendsSubTabsProps> = ({
         }}
       >
         {/* Abas de Navegação */}
-        <nav className="flex items-center gap-1">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
+        <HorizontalTabs
+          activeId={activeTab}
+          onChange={(id) => {
+            if (activeTab !== id) {
+              onTabChange(id as SocialSubTab);
+              playSound?.("select");
+            }
+          }}
+          className="!bg-transparent !p-0 gap-1 border-0"
+          tabClassName="flex items-center gap-2 px-5 py-2 !h-auto text-[13px] font-semibold tracking-wide"
+          tabs={tabs.map(tab => {
             const Icon = tab.icon;
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  if (!isActive) {
-                    onTabChange(tab.id);
-                    playSound?.("select");
-                  }
-                }}
-                onMouseEnter={() => playSound?.("hover")}
-                className={`relative flex items-center gap-2 px-5 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 cursor-pointer ${isActive
-                    ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.15)]"
-                    : "text-white/50 hover:text-white/90 hover:bg-white/[0.04]"
-                  }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? "text-black" : "text-white/40"}`} />
-                <span className="tracking-wide">{tab.label}</span>
-
-                {/* Badge numérico para abas inativas (Ex: Solicitações, Chats) */}
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span
-                    className={`ml-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${isActive
-                        ? "bg-black/10 text-black"
-                        : "bg-white/10 text-white"
-                      }`}
-                  >
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
+            const isActive = activeTab === tab.id;
+            return {
+              id: tab.id,
+              label: (
+                <div className="flex items-center gap-2" onMouseEnter={() => playSound?.("hover")}>
+                  <Icon className="w-4 h-4 opacity-70" />
+                  <span>{tab.label}</span>
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span
+                      className={`ml-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-white/10 text-white/70"
+                        }`}
+                    >
+                      {tab.badge}
+                    </span>
+                  )}
+                </div>
+              )
+            };
           })}
-        </nav>
+        />
 
         {/* Status Badge "ONLINE X" à direita */}
         <div className="pl-4 pr-2">

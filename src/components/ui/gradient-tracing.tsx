@@ -60,6 +60,7 @@ export const GradientTracing: React.FC<GradientTracingProps> = ({
       >
         <defs>
           <motion.linearGradient
+            initial={{ x1: "0", y1: "0", x2: "0", y2: "0" }}
             animate={{
               x1: ["0", String(viewBoxWidth * 2)],
               x2: ["0", String(viewBoxWidth)],

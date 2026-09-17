@@ -1,11 +1,12 @@
 /**
  * audioProcessing.ts
  *
- * Builds a real Web Audio processing chain between the raw getUserMedia stream
- * and the MediaStream that is sent via WebRTC (pc.addTrack / sender.replaceTrack).
+ * Builds a Web Audio processing chain for *local* metering / UI / optional P2P.
+ * LiveKit publishes the raw getUserMedia mic track for lower latency; this chain
+ * still drives gain, compressor, and optional RNNoise for local monitoring.
  *
- * Chain:
- *   source -> gainNode -> compressorNode -> [RnnoiseWorkletNode?] -> makeupGain -> MediaStreamDestination
+ * Chain (mono, baixa latencia para voz):
+ *   source -> gainNode -> compressorNode -> [RnnoiseWorkletNode?] -> makeupGain -> destination(mono)
  *
  * The GainNode is returned as a live ref so callers can update gain in real time
  * without rebuilding the entire AudioContext.
@@ -17,7 +18,7 @@ import rnnoiseWasmPath from "@sapphi-red/web-noise-suppressor/rnnoise.wasm?url";
 import rnnoiseWasmSimdPath from "@sapphi-red/web-noise-suppressor/rnnoise_simd.wasm?url";
 
 export interface ProcessedAudioResult {
-  /** The processed MediaStream - plug this into pc.addTrack / sender.replaceTrack */
+  /** Processed MediaStream for local metering/UI (and P2P); LiveKit uses the raw mic track */
   processedStream: MediaStream;
   /** AudioContext that drives the processing chain — must stay resumed during calls */
   audioContext: AudioContext;
@@ -81,19 +82,17 @@ export async function buildProcessedAudioTrack(
   const makeupGain = ctx.createGain();
   makeupGain.gain.value = 1.45;
 
-  // -- Dual-Channel (Stereo Center) Merger ------------------------------------
-  // Duplica o fluxo de áudio para os canais Esquerdo (0) e Direito (1) da saída,
-  // garantindo que fones de ouvido e placas de som recebam som balanceado em ambos os lados,
-  // corrigindo o problema de supressão de ruído WASM tocar apenas em um lado.
-  const merger = ctx.createChannelMerger(2);
+  // -- Mono (baixa latencia) ---------------------------------------------------
+  // Voz e mono por natureza. Forcar STEREO aqui dobra o bitrate do Opus,
+  // aumenta o jitter buffer do SFU e adiciona latencia fim-a-fim perceptivel.
+  // O destino e mono (1 canal); o proprio WebRTC/LiveKit duplica para L/R
+  // nos fones sem custo de rede.
   const destination = ctx.createMediaStreamDestination();
-  destination.channelCount = 2;
+  destination.channelCount = 1;
   destination.channelCountMode = "explicit";
   destination.channelInterpretation = "speakers";
 
-  makeupGain.connect(merger, 0, 0);
-  makeupGain.connect(merger, 0, 1);
-  merger.connect(destination);
+  makeupGain.connect(destination);
 
   // Keep track of the RNNoise node so we can disconnect it on cleanup.
   let rnnoiseNode: (AudioNode & { destroy?: () => void }) | null = null;
@@ -114,7 +113,7 @@ export async function buildProcessedAudioTrack(
         maxChannels: 1, // mono processing
       });
 
-      // Chain: source -> gain -> compressor -> rnnoise -> makeupGain -> merger -> destination
+      // Chain: source -> gain -> compressor -> rnnoise -> makeupGain -> destination
       source.connect(gainNode);
       gainNode.connect(compressor);
       compressor.connect(rnnoiseNode);
@@ -149,10 +148,20 @@ export async function buildProcessedAudioTrack(
       compressor.connect(makeupGain);
     }
   } else {
-    // No RNNoise - simple chain: source -> gain -> compressor -> makeupGain -> merger -> destination
+    // No RNNoise - simple chain: source -> gain -> compressor -> makeupGain -> destination
     source.connect(gainNode);
     gainNode.connect(compressor);
     compressor.connect(makeupGain);
+  }
+
+  // Marca a trilha como voz: permite ao WebRTC/LiveKit escolher Opus speech
+  // (narrower bandwidth, menor latencia) em vez de perfil generico de audio.
+  for (const track of destination.stream.getAudioTracks()) {
+    try {
+      (track as MediaStreamTrack & { contentHint?: string }).contentHint = "speech";
+    } catch {
+      /* ignore */
+    }
   }
 
   // -- Cleanup ---------------------------------------------------------------
@@ -174,11 +183,6 @@ export async function buildProcessedAudioTrack(
     }
     try {
       makeupGain.disconnect();
-    } catch {
-      /* ignore */
-    }
-    try {
-      merger.disconnect();
     } catch {
       /* ignore */
     }

@@ -16,7 +16,7 @@ describe("modal completo de novidades", () => {
     render(<WhatsNewModal release={LATEST_RELEASE} onClose={vi.fn()} />);
 
     expect(screen.getByText(LATEST_RELEASE.title)).toBeInTheDocument();
-    expect(screen.getByText(`VERSÃO ${LATEST_RELEASE.version}`)).toBeInTheDocument();
+    expect(screen.getByText(`Versão ${LATEST_RELEASE.version}`)).toBeInTheDocument();
     expect(screen.getAllByTestId("release-highlight")).toHaveLength(3);
     expect(screen.getByText(LATEST_RELEASE.highlights[0].title)).toBeInTheDocument();
     expect(screen.getByText(LATEST_RELEASE.highlights[1].title)).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe("modal completo de novidades", () => {
     const onClose = vi.fn();
     render(<WhatsNewModal release={LATEST_RELEASE} onClose={onClose} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Começar" }));
+    await userEvent.click(screen.getByRole("button", { name: "Fechar" }));
 
     expect(onClose).toHaveBeenCalledOnce();
   });

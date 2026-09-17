@@ -69,7 +69,6 @@ import { PlatformRemovalTransition } from "../components/PlatformRemovalTransiti
 import type { SettingsTab } from "../services/launcherNavigation";
 import type { ProfileVisibility } from "../types/domain";
 import { ElasticSlider } from "../components/ReactBits/ElasticSlider";
-import InputHints from "../components/ui/InputHints";
 import { LinearProgress } from "../components/ui/LinearProgress";
 
 type TranslationFn = ReturnType<typeof usePreferences>["t"];
@@ -958,8 +957,6 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
     setMinimizeToTrayOnClose,
     restoreLastScreen,
     setRestoreLastScreen,
-    confirmBeforeExit,
-    setConfirmBeforeExit,
     achievementNotificationsEnabled,
     setAchievementNotificationsEnabled,
     customAchievementNotifications,
@@ -1329,12 +1326,6 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
       checked: restoreLastScreen,
       onChange: setRestoreLastScreen,
     },
-    {
-      label: t("confirmBeforeExit"),
-      hint: t("confirmBeforeExitHint"),
-      checked: confirmBeforeExit,
-      onChange: setConfirmBeforeExit,
-    },
   ];
 
   const isThemeSelected = (opt: ThemeOptionItem) => {
@@ -1562,7 +1553,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   </SettingsRow>
                   <SettingsRow title={t("achievementSound")}>
                     <div className="flex items-center gap-4">
-                      <button onClick={() => achievementNotificationsEnabled && onTestOverlayAchievement()} className="text-[10px] bg-white/10 px-2.5 py-1 rounded hover:bg-white/20 text-white font-medium transition-colors cursor-pointer shrink-0">{t("test")}</button>
+                      <button onClick={() => achievementNotificationsEnabled && onTestOverlayAchievement()} className="text-[10px] bg-white/10 px-2.5 py-1 rounded-xl hover:bg-white/20 text-white font-medium transition-colors cursor-pointer shrink-0">{t("test")}</button>
                       <ElasticSlider
                         value={achievementVolume}
                         onChange={onAchievementVolumeChange}
@@ -1574,7 +1565,7 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
                   </SettingsRow>
                   <SettingsRow title={t("notificationSound")}>
                     <div className="flex items-center gap-4">
-                      <button onClick={onTestNotificationSound} className="text-[10px] bg-white/10 px-2.5 py-1 rounded hover:bg-white/20 text-white font-medium transition-colors cursor-pointer shrink-0">{t("test")}</button>
+                      <button onClick={onTestNotificationSound} className="text-[10px] bg-white/10 px-2.5 py-1 rounded hover:bg-white/20 text-white rounded-xl font-medium transition-colors cursor-pointer shrink-0">{t("test")}</button>
                       <ElasticSlider
                         value={notificationVolume}
                         onChange={onNotificationVolumeChange}
@@ -2054,19 +2045,6 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
         </main>
       </div>
 
-      {/* InputHints oficial do sistema (Imagem 2) */}
-      <div className="w-full max-w-[960px] flex justify-end pt-3 px-2">
-        <InputHints
-          hints={[
-            { button: "L1_R1", label: language === "pt-BR" ? "Trocar Aba" : "Switch Tab" },
-            { button: "DPAD", label: language === "pt-BR" ? "Navegar" : "Navigate" },
-            { button: "X", label: language === "pt-BR" ? "Selecionar" : "Select" },
-            { button: "SCROLL", label: language === "pt-BR" ? "Rolar" : "Scroll" },
-            { button: "O", label: language === "pt-BR" ? "Voltar" : "Back" },
-          ]}
-        />
-      </div>
-
       {/* Modal Sobreposto para Controller Status */}
       <AnimatePresence>
         {showControllerStatusModal && (
@@ -2108,10 +2086,10 @@ export const SettingsPageV2: React.FC<SettingsPageV2Props> = React.memo(({
 
       <ConfirmationModal
         isOpen={isLogoutModalOpen}
+        variant="logout"
         title="Sair da Conta"
         description="Você será desconectado e voltará para a tela de login."
-        confirmLabel="SAIR"
-        cancelLabel="CANCELAR"
+        confirmLabel="Sim, sair"
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={async () => {
           setIsLogoutModalOpen(false);

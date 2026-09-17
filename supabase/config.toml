@@ -26,3 +26,8 @@ additional_redirect_urls = [
   "http://localhost:5173",
   "https://checkpointlauncher.com"
 ]
+
+# Cron / service-role only. Function also validates Bearer against
+# SUPABASE_SERVICE_ROLE_KEY or CRON_SECRET in code.
+[functions.notify-trophy-unlock]
+verify_jwt = true

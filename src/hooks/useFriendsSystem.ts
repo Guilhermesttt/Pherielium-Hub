@@ -11,6 +11,7 @@ import type { NotificationType, NotificationOptions } from '../components/Notifi
 import { subscribeToUnreadMessages } from '../services/chat';
 import {
   subscribeToGlobalEventBus,
+  setPresenceAudience,
   sendFastFriendRequestNotification,
   sendFastFriendAcceptedNotification,
   sendFastFriendRemovedNotification,
@@ -509,6 +510,14 @@ export function useFriendsSystem({
 
     previousIncomingRequestsRef.current = currentIncomingIds;
   }, [notify, playSound, userProfile?.checkpointFriendRequestsIncoming]);
+
+  // Keep presence bus audience scoped to raw Checkpoint friend UIDs (not composite social ids).
+  useEffect(() => {
+    const friendUids = (userProfile?.checkpointFriends ?? [])
+      .map((friend) => String(friend?.uid || "").trim())
+      .filter(Boolean);
+    setPresenceAudience(friendUids);
+  }, [userProfile?.checkpointFriends]);
 
   useEffect(() => {
     const currentFriends = new Set((userProfile?.checkpointFriends ?? []).map((friend) => friend.uid));

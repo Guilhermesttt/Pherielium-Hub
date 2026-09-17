@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import GameBootIntro from "./components/GameBootIntro";
 import AsyncLoader from "./components/AsyncLoader";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import { AuthSessionAlert } from "./components/AuthSessionAlert";
 import { NotificationProvider } from "./components/NotificationCenter";
 import MainVideoBackground from "./components/MainVideoBackground";
 import { PreferencesProvider, usePreferences } from "./context/PreferencesContext";
@@ -371,6 +372,7 @@ const AppContent: React.FC = () => {
   return (
     <MotionConfig reducedMotion={reducedMotionProp}>
       <div className="fixed inset-0 h-dvh w-full select-none overflow-hidden overscroll-none">
+        <AuthSessionAlert />
         <React.Suspense fallback={null}>
           <TrophyUnlockToast userId={user?.uid ?? null} />
         </React.Suspense>

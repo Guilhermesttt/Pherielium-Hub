@@ -125,7 +125,7 @@ export const ensureChatSession = async (
 
   const sessionPromise = (async () => {
     try {
-      const session = (await supabase.auth.getSession()).data.session;
+      const session = await getUsableSession();
       if (!session?.access_token || session.user.id !== currentUid) {
         throw new Error("Sessao expirada. Entre novamente.");
       }
@@ -180,7 +180,7 @@ export const ensureChatSession = async (
 };
 
 export const establishChatConnection = async () => {
-  const session = (await supabase.auth.getSession()).data.session;
+  const session = await getUsableSession();
   if (!session?.user) return;
   const uid = session.user.id;
   subscribeToActiveChats(uid);
@@ -463,7 +463,7 @@ export const cleanupExpiredChatMessages = async (friendUid: string) => {
 };
 
 export const markMessagesAsRead = async (friendUid: string) => {
-  const session = (await supabase.auth.getSession()).data.session;
+  const session = await getUsableSession();
   if (!session?.user) return;
   const uid = session.user.id;
   const chatId = await ensureChatSession(uid, friendUid);
@@ -491,7 +491,7 @@ export const subscribeToChatMessages = (
   let latestMessages: ChatMessage[] = [];
   let activeKey = "";
 
-  supabase.auth.getSession().then(async ({ data: { session } }) => {
+  void getUsableSession().then(async (session) => {
     if (!session?.user || cancelled) return;
     const uid = session.user.id;
     const chatId = await ensureChatSession(uid, friendUid);
@@ -652,7 +652,7 @@ export const subscribeToFriendTyping = (
     }
   };
 
-  supabase.auth.getSession().then(async ({ data: { session } }) => {
+  void getUsableSession().then(async (session) => {
     if (!session?.user || cancelled) return;
     const uid = session.user.id;
     const chatId = await ensureChatSession(uid, friendUid);

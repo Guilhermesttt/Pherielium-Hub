@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import type { SocialActivity, UserProfile } from "../types/domain";
-import { apiUrl } from "./api";
+import { apiUrl, getUsableSession } from "./api";
 
 type ActivityInput = Omit<SocialActivity, "id" | "userId" | "userName" | "userAvatar" | "audienceIds" | "createdAt"> & {
   dedupeKey?: string;
@@ -11,7 +11,7 @@ export const publishSocialActivity = async (
   _profile: UserProfile | null | undefined,
   input: ActivityInput,
 ) => {
-  const session = (await supabase.auth.getSession()).data.session;
+  const session = await getUsableSession();
   if (!session?.access_token || session.user.id !== uid) {
     throw new Error("Sessão expirada. Entre novamente para publicar no feed.");
   }

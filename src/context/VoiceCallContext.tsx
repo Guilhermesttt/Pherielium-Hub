@@ -369,6 +369,7 @@ export const VoiceCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         notify={notify}
         remoteSpeakingStates={voiceCall.remoteSpeakingStates}
         remoteStreams={voiceCall.remoteStreams}
+        remoteScreenStreams={voiceCall.remoteScreenStreams}
         remoteStatesMap={voiceCall.remoteStatesMap}
         micGain={voiceCall.micGain}
         onChangeMicGain={voiceCall.setMicGain}
@@ -397,7 +398,7 @@ export const VoiceCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-[9999] flex max-w-md items-center gap-3.5 rounded-2xl border border-emerald-500/30 bg-[#0d1117]/95 p-3.5 pr-4 shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl"
+            className="fixed bottom-6 right-6 z-9999 flex max-w-md items-center gap-3.5 rounded-2xl border border-emerald-500/30 bg-[#0d1117]/95 p-3.5 pr-4 shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
               <PhoneCall className="h-5 w-5 animate-pulse" />
@@ -476,6 +477,7 @@ const safeFallbackVoiceCallContext: Partial<VoiceCallContextType> = {
   localCameraStream: null,
   localScreenStream: null,
   remoteStreams: new Map(),
+  remoteScreenStreams: new Map(),
   remoteStatesMap: new Map(),
   roomConfig: null,
   activeCallsByFriend: new Map(),

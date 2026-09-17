@@ -12,8 +12,6 @@ import { useGamepadNavigation } from "../../hooks/useGamepadNavigation";
 import { activateElementWithController } from "../../utils/controllerTextInput";
 import { sanitizeStoreHtml } from "../../utils/sanitizeStoreHtml";
 import ModalShell from "../ui/ModalShell";
-import InputHints from "../ui/InputHints";
-
 import { useGameDetailState } from "../../hooks/useGameDetailState";
 import { useGameDetailAsync } from "../../hooks/useGameDetailAsync";
 import { useGameDetailActions } from "../../hooks/useGameDetailActions";
@@ -295,38 +293,15 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
   if (!game) return null;
 
   return (
-    <AnimatePresence mode="wait">
-      {isOpen && (
-        <motion.div
-          key="detail-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: 0.3 } }}
-          className="fixed inset-0 z-100 bg-black  overflow-y-auto detail-panel-scrollbar"
-          ref={scrollRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Detalhes de ${game.title}`}
-        >
-          {/* Dicas de Controle */}
-          <div className="fixed bottom-6 right-8 z-[120] pointer-events-none">
-            <InputHints
-              hints={
-                state.galleryModalOpen
-                  ? [
-                    { button: "DPAD", label: "Navegar" },
-                    { button: "O", label: "Fechar" },
-                  ]
-                  : [
-                    { button: "X", label: "Jogar" },
-                    { button: "SQUARE", label: "Fotos" },
-                    { button: "O", label: "Voltar" },
-                    { button: "L1_R1", label: "Abas" },
-                  ]
-              }
-            />
-          </div>
-
+    <div className="fixed inset-0 z-100 overflow-hidden pointer-events-none">
+      <div
+        className="t-panel-slide w-full h-full bg-black overflow-y-auto detail-panel-scrollbar"
+        data-open={isOpen ? "true" : "false"}
+        ref={scrollRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Detalhes de ${game.title}`}
+      >
           {/* Botão Fechar fixo */}
           <button
             onClick={onClose}
@@ -711,9 +686,8 @@ export const GameDetailPanel: React.FC<GameDetailPanelProps> = ({
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </div>
+    </div>
   );
 };
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import LoadingState from "./ui/loading-state";
 import { ThinkingOrbLoader } from "./ThinkingOrbLoader";
+import bgVideo from "../assets/karavanbraam_pindown.io.webm";
 
 const loadingMsgs = [
   "Iniciando sistemas...",
@@ -10,17 +11,6 @@ const loadingMsgs = [
   "Preparando interface...",
   "Quase pronto...",
 ];
-
-// Partículas aleatórias geradas fora do componente para não recriarem a cada render
-const randomStars = Array.from({ length: 24 }).map((_, i) => ({
-  id: i,
-  size: Math.random() * 3 + 1,
-  top: `${Math.random() * 100}%`,
-  left: `${Math.random() * 100}%`,
-  delay: Math.random() * 3,
-  duration: Math.random() * 3 + 2,
-  opacity: Math.random() * 0.5 + 0.1,
-}));
 
 interface AsyncLoaderProps {
   onFinish?: () => void;
@@ -137,51 +127,47 @@ const AsyncLoader: React.FC<AsyncLoaderProps> = ({
       onClick={() => onFinish?.()}
       className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center overflow-hidden select-none cursor-default"
     >
-      {/* 1. Deep Space Radial Glow (paleta Orbloom) */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(circle 800px at 50% 50%, rgba(210,210,210,0.05) 0%, transparent 80%)",
-        }}
-      />
-
-      {/* 2. Dynamic Starfield (Partículas) */}
-      {randomStars.map((star) => (
-        <motion.div
-          key={star.id}
-          className="absolute rounded-full bg-white pointer-events-none"
+      {/* Fundo via Mainbackground.mp4 — um único layer de vídeo em vez de N partículas */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            disablePictureInPicture
+            className="absolute left-1/2 top-1/2 h-[100vw] w-[100vh] max-w-none object-cover opacity-55 pointer-events-none"
+            style={{ transform: "translate(-50%, -50%) rotate(90deg)" }}
+          >
+            <source src={bgVideo} type="video/mp4" />
+          </video>
+        </div>
+        <div
+          className="absolute inset-0 pointer-events-none"
           style={{
-            width: star.size,
-            height: star.size,
-            top: star.top,
-            left: star.left,
-            opacity: star.opacity,
+            background:
+              "radial-gradient(circle 800px at 50% 50%, rgba(210,210,210,0.04) 0%, rgba(0,0,0,0.72) 80%)",
           }}
-          animate={{ opacity: [star.opacity, star.opacity * 3, star.opacity] }}
-          transition={{ duration: star.duration, repeat: Infinity, delay: star.delay, ease: "easeInOut" }}
         />
-      ))}
+      </div>
 
       <div className="relative z-10 flex flex-col items-center gap-14">
-
-        {/* 3. Thinking orb central (único loader do boot) */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1, y: [-8, 8, -8] }}
           transition={{
             opacity: { duration: 0.8, ease: "easeOut" },
             scale: { duration: 0.8, ease: "easeOut" },
-            y: { duration: 6, repeat: Infinity, ease: "easeInOut" } // Levitação suave
+            y: { duration: 6, repeat: Infinity, ease: "easeInOut" },
           }}
           className="relative flex items-center justify-center"
         >
-          {/* Aura Central de Desfoque */}
           <div className="absolute rounded-full w-[220%] h-[220%] bg-white/[0.04] blur-3xl animate-pulse pointer-events-none" />
 
           <ThinkingOrbLoader preset="ai" size={64} label="Carregando Pherielium" />
         </motion.div>
 
-        {/* 4. Textos de Carregamento com Transição Blur (Mac OS Style) */}
         <div className="flex flex-col items-center h-12 justify-center">
           <AnimatePresence mode="wait">
             <motion.div

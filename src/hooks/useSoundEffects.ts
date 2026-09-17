@@ -362,6 +362,44 @@ const alwaysAllowedSoundTypes = new Set<SoundEffectType>([
 const isAlwaysAllowedSoundType = (type: SoundEffectType) =>
   alwaysAllowedSoundTypes.has(type);
 
+// ─── Anti-cacofonia: clique genérico vs. som de transição (abrir/fechar) ───────
+// Vários componentes tocam seu próprio som ao abrir/fechar (modal, detalhe do
+// jogo, contexto, etc.). Se o clique que disparou essa transição também tocar
+// seu próprio "tec" genérico, os dois sons se sobrepõem e ficam poluídos.
+// Regra: sons de transição sempre têm prioridade; um som de clique genérico é
+// adiado por um instante e cancelado se uma transição disparar logo em
+// seguida (ex: abrir um modal), e também é ignorado se uma transição acabou
+// de tocar há pouco (ex: fechar algo e o foco mudar para o próximo item).
+// "hover" fica de fora de propósito: é um som ambiente de passagem do mouse,
+// não uma ação que costuma abrir/fechar algo, então toca sempre na hora.
+const genericClickSoundTypes = new Set<SoundEffectType>([
+  "navigate",
+  "select",
+  "favoriteOn",
+  "favoriteOff",
+  "switchOn",
+  "switchOff",
+]);
+
+const transitionSoundTypes = new Set<SoundEffectType>([
+  "showModal",
+  "detailOpen",
+  "modalClose",
+  "back",
+  "search",
+  "delete",
+  "edit",
+]);
+
+const isGenericClickSoundType = (type: SoundEffectType) => genericClickSoundTypes.has(type);
+const isTransitionSoundType = (type: SoundEffectType) => transitionSoundTypes.has(type);
+
+const TRANSITION_SUPPRESSION_WINDOW_MS = 220;
+const GENERIC_CLICK_HOLD_MS = 40;
+
+let lastTransitionSoundAt = 0;
+let pendingGenericClickToken = 0;
+
 // ─── Motor de Áudio Web Audio API (Latência Zero & Zero Bugs de Promise) ──────
 let globalAudioCtx: AudioContext | null = null;
 
@@ -487,8 +525,8 @@ export const useSoundEffects = (
     };
   }, []);
 
-  const playSound = useCallback(
-    (type: SoundEffectType) => {
+  const playSoundNow = useCallback(
+    (type: SoundEffectType, volumeMultiplier = 1) => {
       const path = soundPaths[type];
       if (!path) return;
 
@@ -502,7 +540,8 @@ export const useSoundEffects = (
         return;
       }
 
-      const targetVolume = Math.max(0, Math.min(1, isNotification ? notificationVolume : volume));
+      const baseVolume = isNotification ? notificationVolume : volume;
+      const targetVolume = Math.max(0, Math.min(1, baseVolume * Math.max(0, Math.min(1, volumeMultiplier))));
       if (targetVolume <= 0) return;
 
       // Rate-limit para navegações ultra-rápidas
@@ -514,6 +553,13 @@ export const useSoundEffects = (
       if (type === "hover") {
         if (lastHoverAtRef.current > 0 && now - lastHoverAtRef.current < 40) return;
         lastHoverAtRef.current = now;
+      }
+
+      if (isTransitionSoundType(type)) {
+        lastTransitionSoundAt = now;
+        // Uma transição (abrir/fechar) sempre vence: invalida qualquer
+        // clique genérico que ainda esteja esperando para tocar.
+        pendingGenericClickToken += 1;
       }
 
       const ctx = getAudioContext();
@@ -565,6 +611,34 @@ export const useSoundEffects = (
       }
     },
     [notificationVolume, soundPaths, volume],
+  );
+
+  const playSound = useCallback(
+    (type: SoundEffectType, volumeMultiplier = 1) => {
+      // Sons de transição (abrir/fechar modal, detalhe, etc.) sempre tocam
+      // na hora — eles já carregam a identidade sonora da ação.
+      if (!isGenericClickSoundType(type)) {
+        playSoundNow(type, volumeMultiplier);
+        return;
+      }
+
+      // Uma transição acabou de tocar (ex: fechou um modal e o foco pulou
+      // para o próximo item) — o "tec" genérico ficaria redundante em cima
+      // dela, então é descartado.
+      if (performance.now() - lastTransitionSoundAt < TRANSITION_SUPPRESSION_WINDOW_MS) {
+        return;
+      }
+
+      // Adia o clique genérico por um instante: se o mesmo gesto disparar
+      // uma transição (ex: abrir um modal) antes desse prazo, o clique é
+      // cancelado e só o som de abertura toca.
+      const token = ++pendingGenericClickToken;
+      window.setTimeout(() => {
+        if (pendingGenericClickToken !== token) return;
+        playSoundNow(type, volumeMultiplier);
+      }, GENERIC_CLICK_HOLD_MS);
+    },
+    [playSoundNow],
   );
 
   return { playSound };

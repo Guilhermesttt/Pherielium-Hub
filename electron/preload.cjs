@@ -128,7 +128,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   isExecutableRunning: (executablePath) => ipcRenderer.invoke("launcher:is-executable-running", executablePath),
   detectRunningGames: (executablePaths) => ipcRenderer.invoke("launcher:detect-running-games", executablePaths),
   startGoogleBrowserAuth: () => ipcRenderer.invoke("auth:start-google-browser"),
-  pollGoogleBrowserAuth: (state) => ipcRenderer.invoke("auth:poll-google-status", state),
+  pollGoogleBrowserAuth: (state, pollSecret) =>
+    ipcRenderer.invoke("auth:poll-google-status", state, pollSecret),
 
   // Steam/Discord OAuth starts in main.cjs so packaged Electron does not depend on
   // renderer-origin CORS (file:// -> remote backend). The access token is only

@@ -6,6 +6,7 @@ import {
   Room,
   RoomEvent,
   Track,
+  AudioPresets,
   LocalTrackPublication,
   RemoteTrackPublication,
   Participant,
@@ -17,8 +18,7 @@ import {
   createLocalScreenTracks,
   type VideoCaptureOptions,
 } from "livekit-client";
-import { apiUrl } from "./api";
-import { supabase } from "./supabase";
+import { apiUrl, getUsableSession } from "./api";
 
 export interface LiveKitTokenResponse {
   token: string;
@@ -34,7 +34,7 @@ export const fetchLiveKitToken = async (
   name?: string,
   metadata?: any,
 ): Promise<LiveKitTokenResponse> => {
-  const session = (await supabase.auth.getSession()).data.session;
+  const session = await getUsableSession();
   const token = session?.access_token;
 
   const headers: Record<string, string> = {
@@ -80,6 +80,7 @@ export {
   Room,
   RoomEvent,
   Track,
+  AudioPresets,
   LocalTrackPublication,
   RemoteTrackPublication,
   Participant,

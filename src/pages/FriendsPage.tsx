@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Gamepad2,
   UserPlus,
+  UserMinus,
   RadioReceiver,
   Loader2,
 } from "lucide-react";
@@ -38,6 +39,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { useNotification } from "../components/NotificationCenter";
 import { DiscordBrandIcon, SteamBrandIcon } from "../components/Sidebar";
 import { useGamepadButton } from "../context/GamepadContext";
+import { FriendsSubTabs } from "@/components/social/FriendsSubTabs";
 
 type TranslationFn = ReturnType<typeof usePreferences>["t"];
 type BrandIcon = React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
@@ -78,24 +80,174 @@ const FriendOnlineCard = React.memo<{
   unreadCount: number;
   isCallActive: boolean;
   isLoadingProfile: boolean;
+  variant?: "grid" | "list";
   onOpenChat: (friend: SocialFriend) => void;
   onStartVoiceCall?: (friend: SocialFriend, withVideo?: boolean) => void;
   onViewFriendProfile: (friend: SocialFriend) => void;
+  onRemoveFriend?: (friend: SocialFriend) => void;
   playSound?: (type: SoundEffectType) => void;
 }>(({
   friend,
   unreadCount,
   isCallActive,
   isLoadingProfile,
+  variant = "grid",
   onOpenChat,
   onStartVoiceCall,
   onViewFriendProfile,
+  onRemoveFriend,
   playSound,
 }) => {
   const handleChat = useCallback(() => onOpenChat(friend), [friend, onOpenChat]);
   const handleCall = useCallback(() => onStartVoiceCall?.(friend, false), [friend, onStartVoiceCall]);
   const handleProfile = useCallback(() => onViewFriendProfile(friend), [friend, onViewFriendProfile]);
+  const handleRemove = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRemoveFriend?.(friend);
+  }, [friend, onRemoveFriend]);
   const handleMouseEnter = useCallback(() => playSound?.("hover"), [playSound]);
+
+  const avatar = (
+    <div
+      onClick={handleProfile}
+      className="relative cursor-pointer group/avatar shrink-0"
+      title="Ver perfil"
+    >
+      <div className="w-10 h-10 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/15 group-hover/avatar:border-white/40 transition-colors">
+        {friend.avatar ? (
+          <img src={friend.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-white/50">
+            <User className="w-5 h-5" />
+          </div>
+        )}
+      </div>
+      {isLoadingProfile && (
+        <div className="absolute inset-0 rounded-xl bg-black/60 flex items-center justify-center z-10">
+          <Loader2 className="w-4 h-4 text-white animate-spin" />
+        </div>
+      )}
+      <span
+        className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-black/80 z-20 ${friend.status === "playing"
+          ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]"
+          : "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]"
+          }`}
+      />
+    </div>
+  );
+
+  const nameBlock = (
+    <div
+      onClick={handleProfile}
+      className="min-w-0 flex-1 cursor-pointer group/name"
+      title="Ver perfil"
+    >
+      <h3 className="text-sm font-display font-semibold text-white truncate group-hover/name:text-white/80 transition-colors">
+        {friend.name}
+      </h3>
+      <p className={`text-xs font-body font-medium truncate ${friend.status === "playing" ? "text-emerald-400 flex items-center gap-1 font-semibold" : "text-white/70"
+        }`}>
+        {friend.status === "playing" ? (
+          <>
+            <Gamepad2 className="w-3 h-3 text-emerald-400 shrink-0 inline" />
+            <span>Jogando {friend.playing || "um jogo"}</span>
+          </>
+        ) : (
+          "Online"
+        )}
+      </p>
+    </div>
+  );
+
+  const chatButton = (
+    <button
+      type="button"
+      onMouseEnter={handleMouseEnter}
+      onClick={handleChat}
+      title="Chat"
+      className={`min-w-0 h-9 px-3 rounded-xl bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] hover:border-white/20 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-160 cursor-pointer active:scale-[0.97] outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${variant === "grid" ? "flex-1 max-w-[150px]" : "shrink-0"
+        }`}
+    >
+      <MessageSquare className="w-3.5 h-3.5 text-white/80 shrink-0" />
+      <span className="truncate">Chat</span>
+      {unreadCount > 0 && (
+        <span className="px-1.5 py-0.2 rounded-full bg-white text-black text-[10px] font-bold shrink-0">
+          {unreadCount}
+        </span>
+      )}
+    </button>
+  );
+
+  const actionButtons = (
+    <div className="flex items-center gap-1.5 shrink-0">
+      {onStartVoiceCall && (
+        <button
+          type="button"
+          onMouseEnter={handleMouseEnter}
+          onClick={handleCall}
+          title="Ligar"
+          aria-label={`Ligar para ${friend.name}`}
+          className={`h-9 w-9 rounded-xl border transition-all duration-160 cursor-pointer flex items-center justify-center shrink-0 active:scale-[0.96] outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${isCallActive
+            ? "bg-white text-black border-white shadow-md animate-pulse"
+            : "bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] hover:border-white/20 text-white/70 hover:text-white"
+            }`}
+        >
+          <Phone className="w-3.5 h-3.5" />
+        </button>
+      )}
+
+      <button
+        type="button"
+        onMouseEnter={handleMouseEnter}
+        onClick={handleProfile}
+        disabled={isLoadingProfile}
+        title="Ver Perfil"
+        aria-label={`Ver perfil de ${friend.name}`}
+        className={`h-9 w-9 rounded-xl border transition-all duration-160 cursor-pointer flex items-center justify-center shrink-0 active:scale-[0.96] outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${isLoadingProfile
+            ? "bg-white/20 border-white/30 text-white shadow-[0_0_12px_rgba(255,255,255,0.2)] cursor-wait"
+            : "bg-[var(--color-surface)] hover:bg-[#222222] border-[var(--color-ui-detail)] hover:border-white/20 text-white/70 hover:text-white"
+          }`}
+      >
+        {isLoadingProfile ? (
+          <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+        ) : (
+          <User className="w-3.5 h-3.5" />
+        )}
+      </button>
+
+      {onRemoveFriend && (
+        <button
+          type="button"
+          onMouseEnter={handleMouseEnter}
+          onClick={handleRemove}
+          title="Desfazer amizade"
+          aria-label={`Desfazer amizade com ${friend.name}`}
+          className="h-9 w-9 rounded-xl border border-[var(--color-ui-detail)] hover:border-rose-500/40 bg-[var(--color-surface)] hover:bg-rose-500/15 text-white/40 hover:text-rose-400 transition-all duration-160 cursor-pointer flex items-center justify-center shrink-0 active:scale-[0.96] outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+        >
+          <UserMinus className="w-3.5 h-3.5" aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
+
+  // Modo lista: uma linha compacta (avatar · nome · Steam · ações), ideal
+  // para varrer muitos amigos de uma vez sem o card vertical ocupar tanto espaço.
+  if (variant === "list") {
+    return (
+      <div
+        data-friend-id={friend.id}
+        className="group relative flex items-center gap-3 rounded-xl bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] hover:border-white/20 px-3.5 py-2.5 transition-[background-color,border-color] duration-160 shadow-[0_2px_12px_rgba(0,0,0,0.25)]"
+        onMouseEnter={handleMouseEnter}
+      >
+        {avatar}
+        {nameBlock}
+        <SteamBrandIcon className="w-4 h-4 text-white/40 shrink-0" />
+        <div className="w-px h-6 bg-[var(--color-ui-detail)] shrink-0" />
+        {chatButton}
+        {actionButtons}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -105,114 +257,15 @@ const FriendOnlineCard = React.memo<{
     >
       <div>
         <div className="flex items-center gap-3 mb-2.5">
-          <div
-            onClick={handleProfile}
-            className="relative cursor-pointer group/avatar"
-            title="Ver perfil"
-          >
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/15 group-hover/avatar:border-white/40 transition-colors">
-              {friend.avatar ? (
-                <img src={friend.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white/50">
-                  <User className="w-5 h-5" />
-                </div>
-              )}
-            </div>
-            {isLoadingProfile && (
-              <div className="absolute inset-0 rounded-xl bg-black/60  flex items-center justify-center z-10">
-                <Loader2 className="w-4 h-4 text-white animate-spin" />
-              </div>
-            )}
-            <span
-              className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-black/80 z-20 ${friend.status === "playing"
-                ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]"
-                : "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]"
-                }`}
-            />
-          </div>
-
-          <div
-            onClick={handleProfile}
-            className="min-w-0 flex-1 cursor-pointer group/name"
-            title="Ver perfil"
-          >
-            <h3 className="text-sm font-display font-semibold text-white truncate group-hover/name:text-white/80 transition-colors">
-              {friend.name}
-            </h3>
-            <p className={`text-xs font-body font-medium truncate ${friend.status === "playing" ? "text-emerald-400 flex items-center gap-1 font-semibold" : "text-white/70"
-              }`}>
-              {friend.status === "playing" ? (
-                <>
-                  <Gamepad2 className="w-3 h-3 text-emerald-400 shrink-0 inline" />
-                  <span>Jogando {friend.playing || "um jogo"}</span>
-                </>
-              ) : (
-                "Online"
-              )}
-            </p>
-          </div>
-
+          {avatar}
+          {nameBlock}
           <SteamBrandIcon className="w-4 h-4 text-white/40 shrink-0" />
         </div>
       </div>
 
-      <div className="flex items-center gap-2 pt-2.5 border-t border-[var(--color-ui-detail)] mt-1.5">
-        <button
-          type="button"
-          onMouseEnter={handleMouseEnter}
-          onClick={handleChat}
-          title="Chat"
-          className="flex-1 h-9 px-3 rounded-lg bg-[var(--color-surface)] hover:bg-[#222222] border border-[var(--color-ui-detail)] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors duration-160 cursor-pointer"
-        >
-          <MessageSquare className="w-3.5 h-3.5 text-white/80" />
-          <span>Chat</span>
-          {unreadCount > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full bg-white text-black text-[10px] font-bold">
-              {unreadCount}
-            </span>
-          )}
-        </button>
-
-        {onStartVoiceCall && (
-          <button
-            type="button"
-            onMouseEnter={handleMouseEnter}
-            onClick={handleCall}
-            title="Ligar"
-            className={`h-9 w-9 rounded-lg border transition-colors duration-160 cursor-pointer flex items-center justify-center ${isCallActive
-              ? "bg-white text-black border-white shadow-md animate-pulse"
-              : "bg-[var(--color-surface)] hover:bg-white/10 border border-[var(--color-ui-detail)] text-white/70 hover:text-white"
-              }`}
-          >
-            <Phone className="w-3.5 h-3.5" />
-          </button>
-        )}
-
-        <button
-          type="button"
-          onMouseEnter={handleMouseEnter}
-          onClick={handleProfile}
-          disabled={isLoadingProfile}
-          title="Ver Perfil"
-          className={`py-1.5 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-            isLoadingProfile
-              ? "bg-white/20 border-white/30 text-white shadow-[0_0_12px_rgba(255,255,255,0.2)] cursor-wait"
-              : "bg-[var(--color-surface)] hover:bg-white/10 border-[var(--color-ui-detail)] text-white cursor-pointer"
-          }`}
-        >
-          {isLoadingProfile ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-              <span>Abrindo...</span>
-            </>
-          ) : (
-            <>
-              <User className="w-3.5 h-3.5 text-white/70" />
-              <span>Perfil</span>
-            </>
-          )}
-        </button>
+      <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-[var(--color-ui-detail)] mt-1.5">
+        {chatButton}
+        {actionButtons}
       </div>
     </div>
   );
@@ -225,23 +278,31 @@ const FriendOnlineCard = React.memo<{
   prev.unreadCount === next.unreadCount &&
   prev.isCallActive === next.isCallActive &&
   prev.isLoadingProfile === next.isLoadingProfile &&
+  prev.variant === next.variant &&
   prev.onOpenChat === next.onOpenChat &&
   prev.onStartVoiceCall === next.onStartVoiceCall &&
   prev.onViewFriendProfile === next.onViewFriendProfile &&
+  prev.onRemoveFriend === next.onRemoveFriend &&
   prev.playSound === next.playSound
 ));
 
 const FriendOfflineCard = React.memo<{
   friend: SocialFriend;
   onViewFriendProfile: (friend: SocialFriend) => void;
+  onRemoveFriend?: (friend: SocialFriend) => void;
   isLoadingProfile?: boolean;
   playSound?: (type: SoundEffectType) => void;
-}>(({ friend, onViewFriendProfile, isLoadingProfile = false, playSound }) => {
+}>(({ friend, onViewFriendProfile, onRemoveFriend, isLoadingProfile = false, playSound }) => {
   const handleClick = useCallback(() => {
     if (isLoadingProfile) return;
     playSound?.("select");
     onViewFriendProfile(friend);
   }, [friend, onViewFriendProfile, isLoadingProfile, playSound]);
+
+  const handleRemove = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRemoveFriend?.(friend);
+  }, [friend, onRemoveFriend]);
 
   return (
     <div
@@ -256,12 +317,11 @@ const FriendOfflineCard = React.memo<{
         }
       }}
       onMouseEnter={() => playSound?.("hover")}
-      className={`shrink-0 snap-start relative flex items-center gap-3 p-3 rounded-xl border transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out  shadow-md data-[gamepad-focused='true']:border-white data-[gamepad-focused='true']:ring-2 data-[gamepad-focused='true']:ring-white/40 ${
-        isLoadingProfile
+      className={`group shrink-0 snap-start relative flex items-center gap-3 p-3 rounded-xl border transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out shadow-md data-[gamepad-focused='true']:border-white data-[gamepad-focused='true']:ring-2 data-[gamepad-focused='true']:ring-white/40 ${isLoadingProfile
           ? "bg-[var(--color-surface)] border-white/40 ring-1 ring-white/25 shadow-[0_0_24px_rgba(255,255,255,0.18)] cursor-wait scale-[0.99]"
           : "bg-[var(--color-surface)] hover:bg-[#222222] border-[var(--color-ui-detail)] hover:border-white/15 cursor-pointer hover:scale-[1.02]"
-      }`}
-      style={{ minWidth: 190 }}
+        }`}
+      style={{ minWidth: 200 }}
     >
       <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/10 shrink-0">
         {friend.avatar ? (
@@ -270,9 +330,8 @@ const FriendOfflineCard = React.memo<{
             alt=""
             loading="lazy"
             decoding="async"
-            className={`w-full h-full object-cover transition-all duration-300 ${
-              isLoadingProfile ? "grayscale-0 opacity-100 scale-105" : "grayscale-[0.6] opacity-75 hover:opacity-100"
-            }`}
+            className={`w-full h-full object-cover transition-all duration-300 ${isLoadingProfile ? "grayscale-0 opacity-100 scale-105" : "grayscale-[0.6] opacity-75 hover:opacity-100"
+              }`}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white/30">
@@ -280,7 +339,7 @@ const FriendOfflineCard = React.memo<{
           </div>
         )}
         {isLoadingProfile && (
-          <div className="absolute inset-0 bg-black/60  flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
             <Loader2 className="w-4 h-4 text-white animate-spin" />
           </div>
         )}
@@ -296,6 +355,19 @@ const FriendOfflineCard = React.memo<{
           <p className="text-[10px] font-body text-white/30">Offline</p>
         )}
       </div>
+
+      {onRemoveFriend && (
+        <button
+          type="button"
+          tabIndex={0}
+          onClick={handleRemove}
+          title="Desfazer amizade"
+          aria-label={`Desfazer amizade com ${friend.name}`}
+          className="opacity-0 group-hover:opacity-100 focus:opacity-100 h-7 w-7 rounded-lg border border-[var(--color-ui-detail)] hover:border-rose-500/40 bg-[var(--color-surface)] hover:bg-rose-500/15 text-white/40 hover:text-rose-400 transition-all duration-160 cursor-pointer flex items-center justify-center shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+        >
+          <UserMinus className="w-3.5 h-3.5" aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }, (prev, next) => (
@@ -304,6 +376,7 @@ const FriendOfflineCard = React.memo<{
   prev.friend.avatar === next.friend.avatar &&
   prev.isLoadingProfile === next.isLoadingProfile &&
   prev.onViewFriendProfile === next.onViewFriendProfile &&
+  prev.onRemoveFriend === next.onRemoveFriend &&
   prev.playSound === next.playSound
 ));
 
@@ -432,7 +505,7 @@ const FriendRequestCard = React.memo<{
   const handleReject = useCallback(() => onReject(request.uid), [request.uid, onReject]);
 
   return (
-      <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)]">
+    <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)]">
       <div className="flex items-center gap-3">
         <div className="w-11 h-11 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/10">
           {request.photoURL ? (
@@ -484,6 +557,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
   incomingRequests,
   currentPresenceGame,
   onConnectDiscord,
+  onRemoveFriend,
   onViewFriendProfile,
   friendProfileLoadingId,
   onAcceptRequest,
@@ -555,6 +629,11 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
     [friends],
   );
 
+  const playingNowCount = useMemo(
+    () => friends.filter((f) => f.status === "playing").length,
+    [friends],
+  );
+
   // Controller: Tab switching
   const switchTab = useCallback(
     (direction: 1 | -1) => {
@@ -607,70 +686,33 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
         </button>
       }
     >
+      <FriendsSubTabs
+        activeTab={activeSubTab}
+        onTabChange={(id) => setActiveSubTab(id)}
+        incomingRequestsCount={incomingRequests.length}
+        totalFriendsCount={onlineFriends.length + offlineFriends.length}
+        onlineCount={onlineFriends.length}
+        unreadCount={totalUnreadCount}
+        playSound={playSound}
+      />
 
-      {/* Top Sub-Tabs Navigation - largura cheia alinhada ao conteúdo (max-w-5xl do shell) */}
-      <div className="w-full flex justify-center mb-7 z-10 relative">
-        <div
-          className="flex items-center justify-between p-1.5 rounded-2xl border border-[var(--color-ui-detail)] shadow-2xl  w-full max-w-5xl"
-          style={{
-            background: "rgba(255, 255, 255, 0.02)",
-            backdropFilter: "blur(20px) saturate(180%)",
-            WebkitBackdropFilter: "blur(20px) saturate(180%)",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)",
-          }}
-        >
-          <nav className="flex items-center gap-1.5">
-            {[
-              { id: "AMIGOS" as SocialSubTab, label: "Amigos", icon: AnimateUIUsers },
-              { id: "CHAT" as SocialSubTab, label: "Chats", icon: AnimateUIMessageSquare, badge: totalUnreadCount },
-              { id: "SALAS" as SocialSubTab, label: "Canais de Voz", icon: AnimateUIRadio },
-              { id: "SOLICITAÇÕES" as SocialSubTab, label: "Solicitações", icon: AnimateUIUserPlus, badge: incomingRequests.length },
-            ].map((tab) => {
-              const isActive = activeSubTab === tab.id;
-              const Icon = tab.icon;
-
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => {
-                    if (!isActive) {
-                      setActiveSubTab(tab.id);
-                      playSound?.("select");
-                    }
-                  }}
-                  onMouseEnter={() => playSound?.("hover")}
-                  className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer outline-none ${isActive
-                    ? "bg-[var(--color-surface)] text-white shadow-sm border border-white/10"
-                    : "text-white/50 hover:text-white hover:bg-[#222222]"
-                    }`}
-                >
-                  <Icon size={16} animateOnHover className={isActive ? "text-white" : "text-white/40"} />
-                  <span className="tracking-wide">{tab.label}</span>
-                  {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className={`ml-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${isActive ? "bg-white/20 text-white" : "bg-white/10 text-white"}`}>
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Badge ONLINE */}
-          <div className="pr-1.5">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-ui-detail)] shadow-inner">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-              <span className="text-[11px] font-bold text-white/80 tracking-widest uppercase">
-                Online {onlineFriends.length}
-              </span>
-            </div>
-          </div>
+      {/* Estado vazio de página inteira: sem nenhum amigo ainda, evita mostrar
+          o layout de 2 colunas totalmente vazio (identidade + busca + grade). */}
+      {activeSubTab === "AMIGOS" && friends.length === 0 && (
+        <div className="rounded-2xl border border-[var(--color-ui-detail)] shadow-2xl glass-panel">
+          <StandardEmptyState
+            icon={Users}
+            illustrated="friends"
+            title="Sua lista de amigos está vazia"
+            description="Adicione amigos para ver o status deles, conversar e jogar junto por aqui."
+            actionLabel="Adicionar amigo"
+            onAction={onAddFriendClick}
+          />
         </div>
-      </div>
+      )}
 
       {/* Main 2-Column Social Layout */}
-      {activeSubTab === "AMIGOS" && (
+      {activeSubTab === "AMIGOS" && friends.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Left Column: User Profile Identity & Recent Social Activity (4 Cols) */}
           <div className="lg:col-span-4 flex flex-col gap-5">
@@ -751,9 +793,9 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[9.5px] font-body font-semibold uppercase tracking-wider text-white/40">
-                    CONQUISTAS
+                    JOGANDO
                   </span>
-                  <p className="text-base font-display font-bold text-white">342</p>
+                  <p className="text-base font-display font-bold text-white">{playingNowCount}</p>
                 </div>
               </div>
             </div>
@@ -784,11 +826,10 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                         playSound?.("select");
                         onViewFriendProfile(friend);
                       }}
-                      className={`flex items-start gap-3 p-2.5 rounded-2xl transition-all cursor-pointer ${
-                        friendProfileLoadingId === friend.id
+                      className={`flex items-start gap-3 p-2.5 rounded-2xl transition-all cursor-pointer ${friendProfileLoadingId === friend.id
                           ? "bg-[var(--color-surface)] border border-white/30 ring-1 ring-white/20"
                           : "bg-[var(--color-surface)] border border-[var(--color-ui-detail)] hover:border-[var(--color-ui-detail)] hover:bg-[#222222]"
-                      }`}
+                        }`}
                     >
                       <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-[var(--color-surface)] border border-white/10 shrink-0">
                         {friend.avatar ? (
@@ -885,6 +926,16 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                     <ListFilter className="w-4 h-4" />
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={onAddFriendClick}
+                  onMouseEnter={() => playSound?.("hover")}
+                  className="ml-2 flex items-center gap-1.5 h-9 px-4 rounded-xl bg-white text-black font-semibold text-xs transition-all hover:bg-white/90 active:scale-95 cursor-pointer shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Adicionar Amigo</span>
+                </button>
               </div>
             </div>
 
@@ -907,17 +958,19 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                   onAction={onAddFriendClick}
                 />
               ) : (
-                <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" : "grid grid-cols-1 gap-3"}>
+                <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" : "flex flex-col gap-2"}>
                   {onlineFriends.map((friend) => (
                     <FriendOnlineCard
                       key={friend.id}
                       friend={friend}
+                      variant={viewMode}
                       unreadCount={unreadMessagesByFriend[friend.id.split(":")[1]] || 0}
                       isCallActive={voiceCall.isCallActiveWithFriend(friend.id)}
                       isLoadingProfile={friendProfileLoadingId === friend.id}
                       onOpenChat={onOpenChat}
                       onStartVoiceCall={onStartVoiceCall}
                       onViewFriendProfile={onViewFriendProfile}
+                      onRemoveFriend={onRemoveFriend}
                       playSound={playSound}
                     />
                   ))}
@@ -970,6 +1023,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = React.memo(({
                       friend={friend}
                       isLoadingProfile={friendProfileLoadingId === friend.id}
                       onViewFriendProfile={onViewFriendProfile}
+                      onRemoveFriend={onRemoveFriend}
                       playSound={playSound}
                     />
                   ))}

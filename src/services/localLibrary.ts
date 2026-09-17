@@ -7,6 +7,63 @@ const CLOUD_PAGE_SIZE = 100;
 const CLOUD_GAME_LIMIT = 500;
 const PUBLIC_LIBRARY_SYNC_VERSION = 2;
 
+/**
+ * Payload enxuto para user_games.data.
+ * Nunca incluir aboutTheGame (HTML), screenshots, description longa,
+ * executablePath, launchProfile ou outros blobs — são a principal fonte de egress.
+ */
+const toSlimCloudGameData = (game: Game, hoursPlayed: number) => ({
+  id: game.id,
+  title: game.title,
+  launcherType: game.launcherType || "local",
+  hoursPlayed,
+  steamAppId: game.steamAppId || undefined,
+  epicCatalogId: game.epicCatalogId || undefined,
+  isFavorite: Boolean(game.isFavorite),
+  cardImage: game.cardImage || game.image || "",
+  image: game.image || game.cardImage || "",
+  lastPlayedAt: game.lastPlayedAt || undefined,
+  steamLastPlayedAt: game.steamLastPlayedAt || undefined,
+  totalAchievements: Number(game.totalAchievements) || 0,
+  completedAchievements: Number(game.completedAchievements) || 0,
+  achievementsUpdatedAt: game.achievementsUpdatedAt || undefined,
+  source: game.source || undefined,
+  developer: game.developer || undefined,
+  publisher: game.publisher || undefined,
+  releaseDate: game.releaseDate || undefined,
+  // tags curtas no máximo; evita arrays enormes
+  tags: Array.isArray(game.tags) ? game.tags.slice(0, 12) : undefined,
+});
+
+const hashCloudGameRow = (row: {
+  id: string;
+  title: string;
+  launcher_type: string;
+  hours_played: number;
+  steam_app_id: string | null;
+  epic_catalog_id: string | null;
+  is_favorite: boolean;
+  data: ReturnType<typeof toSlimCloudGameData>;
+}): string => {
+  // Hash estável e barato para diff de sync (não criptográfico).
+  const payload = JSON.stringify({
+    id: row.id,
+    title: row.title,
+    launcher_type: row.launcher_type,
+    hours_played: row.hours_played,
+    steam_app_id: row.steam_app_id,
+    epic_catalog_id: row.epic_catalog_id,
+    is_favorite: row.is_favorite,
+    data: row.data,
+  });
+  let hash = 2166136261;
+  for (let i = 0; i < payload.length; i += 1) {
+    hash ^= payload.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+};
+
 const sorted = (games: Game[]) =>
   [...games].sort((a, b) => a.title.localeCompare(b.title));
 
@@ -16,6 +73,101 @@ const chunked = <T,>(items: T[], size = CLOUD_PAGE_SIZE): T[][] => {
     chunks.push(items.slice(index, index + size));
   }
   return chunks;
+};
+
+/** Detecta o erro 42P10 (ON CONFLICT sem constraint unica correspondente). */
+const isMissingConstraintError = (error: unknown): boolean => {
+  const code = (error as { code?: string } | null)?.code;
+  const message = error instanceof Error
+    ? error.message
+    : String((error as { message?: string } | null)?.message || "");
+  return code === "42P10"
+    || message.includes("no unique or exclusion constraint matching the ON CONFLICT");
+};
+
+// Evita inundar o console: o sync roda a cada mudanca na biblioteca.
+let missingConstraintWarned = false;
+const warnMissingConstraintOnce = (context: string, error: unknown) => {
+  if (missingConstraintWarned) return;
+  missingConstraintWarned = true;
+  console.warn(
+    `[LocalLibrary] ${context}: banco sem UNIQUE(user_id,id) — aplique as migrations (supabase db push). Usando fallback linha a linha.`,
+    error,
+  );
+};
+
+/**
+ * Upsert resiliente de linhas de user_games.
+ * 1) Tenta o caminho rapido: upsert em lote com onConflict "user_id,id".
+ * 2) Se o banco nao tiver a constraint (erro 42P10), cai para upsert por "id"
+ *    e, em ultimo caso, insert por linha com update em caso de conflito 23505.
+ * Nunca faz upsert de array vazio (o PostgREST responde 400 nesses casos).
+ * Remove _contentHash antes de enviar (campo apenas local).
+ */
+const upsertGameRowsResilient = async (
+  rows: Array<ReturnType<typeof toCloudGameRow>>,
+) => {
+  if (rows.length === 0) return;
+
+  const stripHash = (row: ReturnType<typeof toCloudGameRow>) => {
+    const { _contentHash: _ignored, ...rest } = row;
+    return rest;
+  };
+
+  for (const chunk of chunked(rows)) {
+    if (chunk.length === 0) continue;
+    const payload = chunk.map(stripHash);
+    const { error: batchError } = await supabase
+      .from("user_games")
+      .upsert(payload, { onConflict: "user_id,id" });
+
+    if (!batchError) continue;
+
+    // Banco sem a constraint composta: tenta o caminho alternativo.
+    if (isMissingConstraintError(batchError)) {
+      warnMissingConstraintOnce("Constraint ausente em user_games", batchError);
+
+      const { error: idConflictError } = await supabase
+        .from("user_games")
+        .upsert(payload, { onConflict: "id" });
+
+      if (!idConflictError) continue;
+      if (!isMissingConstraintError(idConflictError)) {
+        console.error("[LocalLibrary] Erro ao upsert jogos:", idConflictError);
+        throw idConflictError;
+      }
+      warnMissingConstraintOnce("Constraint ausente (fallback id)", idConflictError);
+    } else {
+      console.error("[LocalLibrary] Erro ao upsert jogos:", batchError);
+      throw batchError;
+    }
+
+    // Ultimo recurso: linha a linha (insert -> update em 23505).
+    for (const row of payload) {
+      const { error: insertError } = await supabase
+        .from("user_games")
+        .insert(row);
+      if (!insertError) continue;
+      const insertCode = (insertError as { code?: string }).code;
+      if (insertCode === "23505") {
+        const { error: updateError } = await supabase
+          .from("user_games")
+          .update(row)
+          .eq("user_id", row.user_id)
+          .eq("id", row.id);
+        if (updateError) {
+          console.error("[LocalLibrary] Erro ao atualizar jogo:", updateError);
+          throw updateError;
+        }
+      } else if (isMissingConstraintError(insertError)) {
+        // Sem constraint alguma utilizavel: propaga como warn, nao como throw fatal.
+        warnMissingConstraintOnce("Insert sem constraint", insertError);
+      } else {
+        console.error("[LocalLibrary] Erro ao inserir jogo:", insertError);
+        throw insertError;
+      }
+    }
+  }
 };
 
 const toCloudGameRow = (uid: string, game: Game) => {
@@ -29,6 +181,8 @@ const toCloudGameRow = (uid: string, game: Game) => {
     ? Number((calculatedMinutes / 60).toFixed(1))
     : (Number(game.hoursPlayed) || 0);
 
+  const data = toSlimCloudGameData(game, hoursPlayed);
+
   return {
     id: game.id,
     user_id: uid,
@@ -38,13 +192,18 @@ const toCloudGameRow = (uid: string, game: Game) => {
     steam_app_id: game.steamAppId || null,
     epic_catalog_id: game.epicCatalogId || null,
     is_favorite: Boolean(game.isFavorite),
-    data: {
-      ...game,
-      hoursPlayed,
-      cardImage: game.cardImage || game.image || "",
-      image: game.image || game.cardImage || "",
-    },
+    data,
     updated_at: new Date().toISOString(),
+    _contentHash: hashCloudGameRow({
+      id: game.id,
+      title: game.title,
+      launcher_type: game.launcherType || "local",
+      hours_played: hoursPlayed,
+      steam_app_id: game.steamAppId || null,
+      epic_catalog_id: game.epicCatalogId || null,
+      is_favorite: Boolean(game.isFavorite),
+      data,
+    }),
   };
 };
 
@@ -75,15 +234,61 @@ const syncLocalGamesToCloud = async (uid: string) => {
     : [];
   const rows = normalizedGames.map((game) => toCloudGameRow(uid, game));
 
-  for (const chunk of chunked(rows)) {
-    const { error: upsertError } = await supabase
-      .from("user_games")
-      .upsert(chunk, { onConflict: "user_id,id" });
-
-    if (upsertError) {
-      console.error("[LocalLibrary] Erro ao upsert jogos:", upsertError);
-      throw upsertError;
+  // Diff: só envia linhas cujo hash mudou vs o que já está na nuvem (payload slim).
+  const existingById = new Map<string, string>();
+  {
+    let from = 0;
+    while (from < CLOUD_GAME_LIMIT) {
+      const { data: existingPage, error: existingPageError } = await supabase
+        .from("user_games")
+        .select("id,title,launcher_type,hours_played,steam_app_id,epic_catalog_id,is_favorite,data")
+        .eq("user_id", uid)
+        .range(from, from + CLOUD_PAGE_SIZE - 1);
+      if (existingPageError) {
+        console.warn("[LocalLibrary] Diff de sync indisponível; fazendo upsert completo:", existingPageError.message);
+        existingById.clear();
+        break;
+      }
+      if (!existingPage || existingPage.length === 0) break;
+      for (const row of existingPage) {
+        const slimData = toSlimCloudGameData(
+          {
+            id: String(row.id),
+            title: String(row.title || ""),
+            launcherType: row.launcher_type || "local",
+            hoursPlayed: Number(row.hours_played) || 0,
+            steamAppId: row.steam_app_id || undefined,
+            epicCatalogId: row.epic_catalog_id || undefined,
+            isFavorite: Boolean(row.is_favorite),
+            ...(row.data && typeof row.data === "object" ? row.data : {}),
+          } as Game,
+          Number(row.hours_played) || 0,
+        );
+        existingById.set(
+          String(row.id),
+          hashCloudGameRow({
+            id: String(row.id),
+            title: String(row.title || slimData.title || ""),
+            launcher_type: String(row.launcher_type || slimData.launcherType || "local"),
+            hours_played: Number(row.hours_played) || 0,
+            steam_app_id: row.steam_app_id || null,
+            epic_catalog_id: row.epic_catalog_id || null,
+            is_favorite: Boolean(row.is_favorite),
+            data: slimData,
+          }),
+        );
+      }
+      if (existingPage.length < CLOUD_PAGE_SIZE) break;
+      from += CLOUD_PAGE_SIZE;
     }
+  }
+
+  const dirtyRows = existingById.size === 0
+    ? rows
+    : rows.filter((row) => existingById.get(String(row.id)) !== row._contentHash);
+
+  if (dirtyRows.length > 0) {
+    await upsertGameRowsResilient(dirtyRows);
   }
 
   // Remove da cópia pública jogos que já não existem na biblioteca local.
@@ -237,10 +442,8 @@ export const bulkUpsertLibraryGames = async (uid: string, games: Game[]) => {
     return window.electronAPI.bulkUpsertLocalGames(uid, games);
   }
   const items = games.map((game) => toCloudGameRow(uid, game));
-  const { error } = await supabase.from("user_games").upsert(items, {
-    onConflict: "user_id,id",
-  });
-  if (error) throw error;
+  if (items.length === 0) return games;
+  await upsertGameRowsResilient(items);
   invalidate(`games:list:${uid}`);
   return games;
 };
@@ -306,35 +509,72 @@ export const syncPublicLibrarySummary = async (
     ) return false;
 
     // 1) Primeiro garante que a biblioteca pública real esteja coerente.
-    // Se isso falhar, NÃO marcamos o resumo local como sincronizado.
-    await syncLocalGamesToCloud(uid);
+    // Se isso falhar por erro de schema (42P10), ainda tentamos publicar o
+    // resumo — ele vem do SQLite local e nao depende de user_games terminar.
+    // Outras falhas continuam bloqueando a marcacao de "sincronizado".
+    let gamesSyncOk = true;
+    try {
+      await syncLocalGamesToCloud(uid);
+    } catch (gamesError) {
+      if (isMissingConstraintError(gamesError)) {
+        warnMissingConstraintOnce("syncLocalGamesToCloud", gamesError);
+        gamesSyncOk = false;
+      } else {
+        throw gamesError;
+      }
+    }
 
     // 2) Depois publica apenas as colunas que realmente existem em public_profiles.
     // Steam/Discord continuam vindo de profiles; não duplicamos isso em "platforms".
+    const profileRow = {
+      uid,
+      display_name: profile?.displayName || "Jogador",
+      photo_url: photoURL,
+      bio: profile?.bio || "",
+      website: profile?.website || "",
+      favorite_genres: profile?.favoriteGenres || [],
+      stats: summary.stats,
+      achievements: summary.achievements,
+      top_games: summary.topGames,
+      favorite_games: summary.favoriteGames,
+      profile_visibility: profileVisibility,
+      revision: summary.revision,
+      updated_at: new Date().toISOString(),
+    };
     const { error: publicProfileError } = await supabase
       .from("public_profiles")
-      .upsert({
-        uid,
-        display_name: profile?.displayName || "Jogador",
-        photo_url: photoURL,
-        bio: profile?.bio || "",
-        website: profile?.website || "",
-        favorite_genres: profile?.favoriteGenres || [],
-        stats: summary.stats,
-        achievements: summary.achievements,
-        top_games: summary.topGames,
-        favorite_games: summary.favoriteGames,
-        profile_visibility: profileVisibility,
-        revision: summary.revision,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "uid" });
+      .upsert(profileRow, { onConflict: "uid" });
 
     if (publicProfileError) {
-      console.error("[LocalLibrary] Erro ao upsert perfil público:", publicProfileError);
-      throw publicProfileError;
+      // Banco sem PK em public_profiles(uid): fallback insert -> update.
+      if (isMissingConstraintError(publicProfileError)) {
+        warnMissingConstraintOnce("Constraint ausente em public_profiles", publicProfileError);
+        const { error: insertError } = await supabase
+          .from("public_profiles")
+          .insert(profileRow);
+        if (insertError && (insertError as { code?: string }).code === "23505") {
+          const { error: updateError } = await supabase
+            .from("public_profiles")
+            .update(profileRow)
+            .eq("uid", uid);
+          if (updateError) {
+            console.error("[LocalLibrary] Erro ao atualizar perfil público:", updateError);
+            throw updateError;
+          }
+        } else if (insertError) {
+          console.error("[LocalLibrary] Erro ao inserir perfil público:", insertError);
+          throw insertError;
+        }
+      } else {
+        console.error("[LocalLibrary] Erro ao upsert perfil público:", publicProfileError);
+        throw publicProfileError;
+      }
     }
 
-    // 3) Só agora podemos considerar a revisão realmente sincronizada.
+    // 3) Só marcamos a revisão como sincronizada quando AMBOS os lados foram.
+    // Com fallback de schema, o resumo foi publicado mas user_games pode estar
+    // pendente — mantem dirty para tentar de novo sem spammar erro.
+    if (!gamesSyncOk) return false;
     await window.electronAPI.markLocalLibrarySummarySynced(
       uid,
       summary.revision,

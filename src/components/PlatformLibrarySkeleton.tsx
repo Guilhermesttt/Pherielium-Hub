@@ -39,7 +39,7 @@ export const PlatformLibrarySkeleton: React.FC<PlatformLibrarySkeletonProps> = (
     >
       {/* Top Sync Status Floating Pill */}
       <div className="px-10 pt-2 shrink-0 flex items-center">
-        <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/[0.06] border border-white/10 backdrop-blur-md shadow-xl animate-pulse">
+        <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/6 border border-white/10 backdrop-blur-md shadow-xl animate-pulse">
           <Loader2 className="w-4 h-4 text-white/80 animate-spin" />
           <span className="text-xs font-semibold text-white/90 tracking-wide">
             Sincronizando {platformName}: {phaseLabel}
@@ -52,17 +52,17 @@ export const PlatformLibrarySkeleton: React.FC<PlatformLibrarySkeletonProps> = (
       <div className="px-10 pb-4 shrink-0 flex items-end justify-between gap-8 mt-auto">
         <div className="space-y-3 min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <div className="h-3 w-28 rounded-full bg-white/[0.06] animate-pulse" />
+            <div className="h-3 w-28 rounded-full bg-white/6 animate-pulse" />
           </div>
-          <div className="h-10 md:h-12 w-72 md:w-96 rounded-2xl bg-white/[0.08] animate-pulse shadow-sm" />
+          <div className="h-10 md:h-12 w-72 md:w-96 rounded-2xl bg-white/8 animate-pulse shadow-sm" />
           <div className="flex items-center gap-2.5 pt-1">
-            <div className="h-6 w-20 rounded-full bg-[#16171c]/90 border border-white/[0.08] animate-pulse" />
-            <div className="h-6 w-24 rounded-full bg-[#16171c]/70 border border-white/[0.06] animate-pulse" />
-            <div className="h-6 w-16 rounded-full bg-[#16171c]/90 border border-white/[0.08] animate-pulse" />
+            <div className="h-6 w-20 rounded-full bg-[#16171c]/90 border border-white/8 animate-pulse" />
+            <div className="h-6 w-24 rounded-full bg-[#16171c]/70 border border-white/6 animate-pulse" />
+            <div className="h-6 w-16 rounded-full bg-[#16171c]/90 border border-white/8 animate-pulse" />
           </div>
         </div>
         <div className="shrink-0">
-          <div className="h-12 w-36 rounded-full bg-white/[0.08] border border-white/[0.12] animate-pulse flex items-center justify-center shadow-lg" />
+          <div className="h-12 w-36 rounded-full bg-white/8 border border-white/12 animate-pulse flex items-center justify-center shadow-lg" />
         </div>
       </div>
 
@@ -101,18 +101,18 @@ export const PlatformLibrarySkeleton: React.FC<PlatformLibrarySkeletonProps> = (
                       }}
                     >
                       {/* Image area */}
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.06] to-white/[0.02]" />
+                      <div className="absolute inset-0 rounded-2xl bg-linear-to-b from-white/6 to-white/2" />
                       {/* Top Badges */}
                       <div className="flex items-center justify-between relative z-10">
-                        <div className="h-5 w-14 rounded-full bg-white/[0.08] animate-pulse" />
-                        {isCenter && <div className="h-5 w-5 rounded-full bg-white/[0.08] animate-pulse" />}
+                        <div className="h-5 w-14 rounded-full bg-white/8 animate-pulse" />
+                        {isCenter && <div className="h-5 w-5 rounded-full bg-white/8 animate-pulse" />}
                       </div>
                       {/* Shimmer overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent bg-[length:200%_100%] animate-[shimmer_1.8s_linear_infinite] pointer-events-none" />
+                      <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/4 to-transparent bg-size-[200%_100%] animate-shimmer pointer-events-none" />
                       {/* Bottom Title Skeleton */}
                       <div className="space-y-1.5 z-10 mt-auto relative">
-                        <div className="h-3.5 w-3/4 rounded-md bg-white/[0.12] animate-pulse" />
-                        <div className="h-2.5 w-1/2 rounded-md bg-white/[0.06] animate-pulse" />
+                        <div className="h-3.5 w-3/4 rounded-md bg-white/12 animate-pulse" />
+                        <div className="h-2.5 w-1/2 rounded-md bg-white/6 animate-pulse" />
                       </div>
                     </div>
                   </div>
@@ -123,11 +123,11 @@ export const PlatformLibrarySkeleton: React.FC<PlatformLibrarySkeletonProps> = (
 
           {/* Pagination dots */}
           <div className="flex justify-center mt-6 gap-1.5">
-            <div className="h-[3px] w-7 rounded-full bg-white/60 animate-pulse" />
-            <div className="h-[3px] w-1.5 rounded-full bg-white/20" />
-            <div className="h-[3px] w-1.5 rounded-full bg-white/20" />
-            <div className="h-[3px] w-1.5 rounded-full bg-white/20" />
-            <div className="h-[3px] w-1.5 rounded-full bg-white/20" />
+            <div className="h-0.75 w-7 rounded-full bg-white/60 animate-pulse" />
+            <div className="h-0.75 w-1.5 rounded-full bg-white/20" />
+            <div className="h-0.75 w-1.5 rounded-full bg-white/20" />
+            <div className="h-0.75 w-1.5 rounded-full bg-white/20" />
+            <div className="h-0.75 w-1.5 rounded-full bg-white/20" />
           </div>
         </div>
       </div>

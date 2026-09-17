@@ -4549,11 +4549,35 @@ registerSecureIpcHandler("launcher:detect-running-games", async (_event, executa
 });
 
 registerSecureIpcHandler("auth:start-google-browser", async () => {
-  const state = crypto.randomUUID();
-  const authUrl = new URL("/auth/google/start", APP_URL);
-  authUrl.searchParams.set("state", state);
-  await shell.openExternal(authUrl.toString());
-  return { state };
+  const { payload, requestId } = await fetchJsonFromBackend("/auth/desktop/google/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+
+  const state = String(payload?.state || "").trim();
+  const pollSecret = String(payload?.pollSecret || "").trim();
+  const authUrl = String(payload?.url || "").trim();
+
+  if (!state || !pollSecret || !authUrl) {
+    appendStartupLog(`[auth-network] ${requestId} backend returned incomplete Google desktop start payload.`);
+    throw new Error("O backend nao retornou uma sessao Google valida.");
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(authUrl);
+  } catch {
+    throw new Error("URL de autenticacao Google invalida.");
+  }
+
+  const expectedOrigin = new URL(APP_URL).origin;
+  if (parsedUrl.origin !== expectedOrigin || !parsedUrl.pathname.endsWith("/auth/google/start")) {
+    throw new Error("URL de autenticacao Google fora do backend confiavel.");
+  }
+
+  await shell.openExternal(parsedUrl.toString());
+  return { state, pollSecret };
 });
 
 registerSecureIpcHandler("auth:start-linked-account-browser", async (_event, request) => {
@@ -4619,13 +4643,13 @@ registerSecureIpcHandler("auth:ack-account-callback", (_event, callbackId) => {
   return true;
 });
 
-registerSecureIpcHandler("auth:poll-google-status", async (_event, state) => {
-  if (!state || typeof state !== "string") {
-    return { status: "error", error: "State invalido." };
+registerSecureIpcHandler("auth:poll-google-status", async (_event, state, pollSecret) => {
+  if (!state || typeof state !== "string" || !pollSecret || typeof pollSecret !== "string") {
+    return { status: "error", error: "State ou pollSecret invalido." };
   }
   try {
     const { payload } = await fetchJsonFromBackend(
-      `/auth/desktop/google/status?state=${encodeURIComponent(state)}`,
+      `/auth/desktop/google/status?state=${encodeURIComponent(state)}&pollSecret=${encodeURIComponent(pollSecret)}`,
       { method: "GET" },
       12_000,
     );

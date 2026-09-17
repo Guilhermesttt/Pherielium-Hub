@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import type { Game } from "../../types/domain";
 import type { GameDetailCopy } from "../../types/gameDetail";
 import type { SoundEffectType } from "../../hooks/useSoundEffects";
+import { HorizontalTabs } from "../ui/HorizontalTabs";
 
 interface GameDetailHeaderProps {
   game: Game;
@@ -18,35 +19,6 @@ interface GameDetailHeaderProps {
   playSound: (type: SoundEffectType) => void;
 }
 
-const NavTab: React.FC<{
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  id: string;
-  controls: string;
-}> = React.memo(({ label, active, onClick, id, controls }) => (
-  <button
-    role="tab"
-    id={id}
-    aria-controls={controls}
-    aria-selected={active}
-    tabIndex={active ? 0 : -1}
-    onClick={onClick}
-    className={`relative pb-3.5 text-[11px] font-black tracking-[0.18em] uppercase transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 cursor-pointer ${
-      active ? "text-white" : "text-white/35 hover:text-white/70"
-    }`}
-    style={active ? { textShadow: "0 0 12px rgba(255,255,255,0.4)" } : undefined}
-  >
-    {label}
-    {active && (
-      <motion.div
-        className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-white"
-      />
-    )}
-  </button>
-));
-
-NavTab.displayName = "NavTab";
 
 export const GameDetailHeader: React.FC<GameDetailHeaderProps> = React.memo(({
   game,
@@ -108,23 +80,23 @@ export const GameDetailHeader: React.FC<GameDetailHeaderProps> = React.memo(({
       </div>
 
       {/* Abas de Navegação */}
-      <div
-        className="flex items-center gap-4 sm:gap-8 border-b border-white/10 mb-10 overflow-x-auto hide-scrollbar"
-        role="tablist"
-      >
-        {tabs.map((tabKey) => (
-          <NavTab
-            key={tabKey}
-            label={tabKey}
-            active={activeTab === tabKey}
-            onClick={() => {
-              onTabChange(tabKey);
-              playSound("navigate");
-            }}
-            id={`tab-${tabKey.toLowerCase()}`}
-            controls={`panel-${tabKey.toLowerCase()}`}
-          />
-        ))}
+      <div className="mb-10 overflow-x-auto hide-scrollbar">
+        <HorizontalTabs
+          activeId={activeTab}
+          onChange={(id) => {
+            onTabChange(id);
+            playSound("navigate");
+          }}
+          className="!bg-transparent !p-0 gap-1 sm:gap-2 mb-2"
+          tabClassName="relative px-4 py-2 rounded-full text-[11px] font-black tracking-[0.18em] uppercase transition-all shrink-0 !h-auto"
+          tabs={tabs.map(tabKey => {
+            const isActive = activeTab === tabKey;
+            return {
+              id: tabKey,
+              label: <div>{tabKey}</div>
+            };
+          })}
+        />
       </div>
     </>
   );

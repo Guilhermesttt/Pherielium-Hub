@@ -4,8 +4,7 @@
  * Keeps a client-side memory cache for 10 minutes.
  * Falls back to public Google STUN servers if the backend is unreachable or offline.
  */
-import { apiUrl } from "./api";
-import { supabase } from "./supabase";
+import { apiUrl, getUsableSession } from "./api";
 
 const FALLBACK_STUN_ONLY: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -48,7 +47,7 @@ export const getTurnServers = async (): Promise<RTCIceServer[]> => {
   }
 
   try {
-    const session = (await supabase.auth.getSession()).data.session;
+    const session = await getUsableSession();
     const token = session?.access_token;
 
     const headers: Record<string, string> = {

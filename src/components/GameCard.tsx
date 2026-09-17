@@ -186,15 +186,11 @@ const GameCard: React.FC<GameCardProps> = ({
       }}
     >
       <motion.div
-        layout
         whileHover={{ scale: isActive ? 1.05 : 0.98, y: isActive ? -8 : -2 }}
         whileTap={{ scale: 0.95 }}
         animate={{
           scale: isActive ? 1.05 : 0.95,
           y: isActive ? -8 : 0,
-          boxShadow: isActive
-            ? "0 25px 60px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.25)"
-            : "0 10px 28px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12)",
           borderColor: isActive ? "var(--color-ui-detail)" : "rgba(255,255,255,0.08)"
         }}
         transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
@@ -202,6 +198,14 @@ const GameCard: React.FC<GameCardProps> = ({
           width: CARD_WIDTH,
           height: CARD_HEIGHT,
           borderRadius: 24, /* Squircle outer approximation */
+          // boxShadow deixado fora do objeto `animate`: animar essa propriedade via
+          // spring do Framer força um recálculo de paint em CADA frame (não é
+          // compositável como transform/opacity). Com uma transição CSS comum o
+          // navegador cuida da interpolação sem re-executar JS a cada tick.
+          boxShadow: isActive
+            ? "0 25px 60px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.25)"
+            : "0 10px 28px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12)",
+          transition: "box-shadow 0.3s ease",
         }}
         className={`relative isolate bg-[var(--color-surface)] border transform-gpu will-change-transform flex flex-col justify-between ${isActive ? "ring-2 ring-[var(--color-ui-detail)] z-20" : "z-10"
           }`}

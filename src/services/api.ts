@@ -252,8 +252,9 @@ export interface ApiFetchOptions extends RequestInit {
 
 /**
  * Wrapper central para requests ao backend.
- * Ainda NAO faz retry automatico de 401: primeiro queremos distinguir com
- * clareza erro HTTP de erro de rede/CORS/timeout durante o diagnostico do OAuth.
+ * Em requests autenticados, um 401 dispara um unico refresh compartilhado e
+ * retenta a chamada uma vez com headers atualizados. Um segundo 401 nao
+ * tenta de novo (flag de retry evita loop infinito).
  */
 export const apiFetch = async (
   path: string,
@@ -266,19 +267,22 @@ export const apiFetch = async (
     ...requestInit
   } = options;
 
-  const headers = new Headers(suppliedHeaders);
-
-  if (authenticated) {
-    const authHeaders = await getRequiredAuthHeaders();
-    for (const [key, value] of Object.entries(authHeaders)) {
-      headers.set(key, value);
-    }
-  }
-
   const requestUrl = apiUrl(path);
 
-  try {
-    return await fetchWithTimeout(
+  const buildHeaders = async () => {
+    const headers = new Headers(suppliedHeaders);
+    if (authenticated) {
+      const authHeaders = await getRequiredAuthHeaders();
+      for (const [key, value] of Object.entries(authHeaders)) {
+        headers.set(key, value);
+      }
+    }
+    return headers;
+  };
+
+  const execute = async (hasRetried: boolean): Promise<Response> => {
+    const headers = await buildHeaders();
+    const response = await fetchWithTimeout(
       requestUrl,
       {
         ...requestInit,
@@ -286,6 +290,23 @@ export const apiFetch = async (
       },
       timeoutMs,
     );
+
+    if (
+      authenticated &&
+      response.status === 401 &&
+      !hasRetried
+    ) {
+      const refreshed = await refreshSupabaseSessionOnce();
+      if (refreshed) {
+        return execute(true);
+      }
+    }
+
+    return response;
+  };
+
+  try {
+    return await execute(false);
   } catch (error) {
     // Nunca logar Authorization, access token ou refresh token.
     console.error("[API] Network request failed", {

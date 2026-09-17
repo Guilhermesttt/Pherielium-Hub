@@ -65,7 +65,7 @@ export const ChatAvatar: React.FC<{
 
   return (
     <div
-      className={`${sizeClassName} rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/40 shrink-0 ${className}`}
+      className={`${sizeClassName} rounded-full bg-white/6 border border-white/10 flex items-center justify-center text-white/40 shrink-0 ${className}`}
       title={name}
       aria-label={name ? `Avatar de ${name}` : "Avatar padrão"}
     >
@@ -232,7 +232,7 @@ const ChatHeaderBar: React.FC<{
   };
 
   return (
-    <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-[#080808] px-5 py-3.5 md:px-7">
+    <div className="flex shrink-0 items-center justify-between border-b border-white/8 bg-[#080808] px-5 py-3.5 md:px-7">
       <div className="flex items-center gap-3">
         <div className="relative">
           <ChatAvatar
@@ -279,7 +279,7 @@ const ChatHeaderBar: React.FC<{
               className={`flex h-8 w-8 items-center justify-center rounded-full border transition-colors cursor-pointer ${
                 isCallActiveWithFriend
                   ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                  : "border-white/[0.08] bg-white/[0.04] text-white/60 hover:bg-white/[0.1] hover:text-white"
+                  : "border-white/8 bg-white/8 text-white/60 hover:bg-white/10 hover:text-white"
               }`}
             >
               <Phone className="h-3.5 w-3.5" />
@@ -291,7 +291,7 @@ const ChatHeaderBar: React.FC<{
               onClick={onVideoCall}
               aria-label="Compartilhar tela / Vídeo"
               title="Compartilhar tela / Vídeo"
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/60 transition-colors hover:bg-white/[0.1] hover:text-white cursor-pointer"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/8 bg-white/8 text-white/60 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
             >
               <Video className="h-3.5 w-3.5" />
             </motion.button>
@@ -303,7 +303,7 @@ const ChatHeaderBar: React.FC<{
           whileTap={{ scale: 0.92 }}
           onClick={onClose}
           aria-label="Fechar conversa"
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/8 text-white/60 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
         >
           <X className="h-4 w-4" />
         </motion.button>
@@ -340,7 +340,7 @@ const ChatIdentityHero: React.FC<{ friend: SocialFriend }> = ({ friend }) => (
         className="border-2 border-[#050507]"
         iconClassName="h-4 w-4"
       />
-      <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#050507] bg-white/[0.08] text-[10px] font-black text-white/60">
+      <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#050507] bg-white/8 text-[10px] font-black text-white/60">
         CP
       </span>
     </div>
@@ -351,9 +351,9 @@ const ChatIdentityHero: React.FC<{ friend: SocialFriend }> = ({ friend }) => (
 
 const DaySeparator: React.FC<{ label: string }> = ({ label }) => (
   <div className="flex items-center gap-3 py-2" role="separator" aria-label={label}>
-    <span className="h-px flex-1 bg-white/[0.06]" />
+    <span className="h-px flex-1 bg-white/6" />
     <span className="text-[9px] font-semibold uppercase tracking-[0.24em] text-white/30">{label}</span>
-    <span className="h-px flex-1 bg-white/[0.06]" />
+    <span className="h-px flex-1 bg-white/6" />
   </div>
 );
 
@@ -412,7 +412,7 @@ const ChatMessageRow: React.FC<{
       transition={{ duration: 0.18, ease: "easeOut" }}
     >
       <Message align={isMe ? "end" : "start"} className="gap-2.5">
-        <MessageAvatar className="h-7 w-7 min-w-7 border border-white/10 !translate-y-0">
+        <MessageAvatar className="h-7 w-7 min-w-7 border border-white/10 translate-y-0!">
           <ChatAvatar
             avatarUrl={isMe ? selfAvatarUrl : friend.avatar}
             name={isMe ? "Você" : friend.name}
@@ -431,13 +431,13 @@ const ChatMessageRow: React.FC<{
             variant={isMe ? "default" : "outline"}
             className={
               isMe
-                ? "rounded-[8px] rounded-br-none bg-white text-black border border-transparent"
-                : "rounded-[8px] rounded-tl-none border border-[#292d30] bg-black text-white"
+                ? "rounded-lg rounded-br-none bg-white text-black border border-transparent"
+                : "rounded-lg rounded-tl-none border border-[#292d30] bg-black text-white"
             }
           >
             <BubbleContent className="p-3 text-sm">
               {msg.text && (
-                <p className="leading-relaxed select-text cursor-text selection:bg-black/20 break-words font-sans">
+                <p className="leading-relaxed select-text cursor-text selection:bg-black/20 wrap-break-words font-sans">
                   {renderMessageText(msg.text)}
                 </p>
               )}
@@ -529,7 +529,7 @@ const ChatMessageList: React.FC<{
 }) => (
   <div className="chat-scrollbar flex-1 space-y-2 overflow-y-auto px-7 py-6 pr-4 md:px-9">
     {isLoading ? (
-      <div className="flex flex-1 min-h-[260px] flex-col items-center justify-center space-y-3 py-16 text-center">
+      <div className="flex flex-1 min-h-65 flex-col items-center justify-center space-y-3 py-16 text-center">
         <LoadingState label="Carregando conversa..." variant="searching" size="md" showTimer={false} />
       </div>
     ) : messages.length === 0 ? (
@@ -603,7 +603,7 @@ const ChatComposer: React.FC<{
     const isSpamLocked = Boolean(spamLockedUntil && spamLockedUntil > Date.now());
 
     return (
-      <form onSubmit={onSubmit} className="shrink-0 border-t border-white/[0.08] bg-[#080808] px-5 py-4 md:px-7">
+      <form onSubmit={onSubmit} className="shrink-0 border-t border-white/8 bg-[#080808] px-5 py-4 md:px-7">
         <div className="mb-2 flex min-h-4 items-center justify-between px-1">
           <span className="text-[10px] uppercase tracking-[0.24em] text-white/30 font-body">
             Chat em tempo real
@@ -645,7 +645,7 @@ const ChatComposer: React.FC<{
             disabled={isSendingImage}
             aria-label="Anexar imagem"
             title="Anexar imagem"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/8 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
           >
             <ImagePlus className="h-4 w-4" />
           </motion.button>
@@ -690,13 +690,13 @@ const ImageLightbox: React.FC<{
     gamepadPriority={220}
   >
     {image ? (
-      <div className="relative overflow-hidden rounded-[16px] border border-[#292d30] bg-black">
+      <div className="relative overflow-hidden rounded-2xl border border-[#292d30] bg-black">
         <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
           <span className="text-xs font-semibold uppercase tracking-wider text-white/70">Imagem do chat</span>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/8 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
           >
             <X className="h-4 w-4" />
           </button>
@@ -705,7 +705,7 @@ const ImageLightbox: React.FC<{
           <img src={image.url} alt="Imagem expandida" className="max-h-[68dvh] max-w-full rounded-md object-contain" />
         </div>
         {image.text ? (
-          <div className="border-t border-white/5 bg-white/[0.02] px-6 py-4 text-xs text-white/80">{image.text}</div>
+          <div className="border-t border-white/5 bg-white/2 px-6 py-4 text-xs text-white/80">{image.text}</div>
         ) : null}
       </div>
     ) : null}
@@ -1058,13 +1058,14 @@ export const ChatModal: React.FC<ChatModalProps> = React.memo(
         onClose={handleCloseModal}
         maxWidthClassName={controllerKeyboardOpen ? "max-w-[min(880px,68vw)]" : "max-w-4xl"}
         zIndexClassName="z-[180]"
+        closeDurationMs={320}
         containerClassName={
           controllerKeyboardOpen ? "items-start justify-center p-2 md:items-center md:justify-start md:p-3" : undefined
         }
-        className="overflow-hidden rounded-[16px] border border-[#292d30] bg-black p-0"
+        className="t-modal-panel overflow-hidden rounded-2xl border border-[#292d30] bg-black p-0"
         ariaLabel={`Conversa com ${friend.name}`}
       >
-        <div className="flex h-[calc(100dvh-2rem)] max-h-[760px] min-h-[560px] w-full flex-col bg-[#050505] md:h-[calc(100dvh-4rem)]">
+        <div className="flex h-[calc(100dvh-2rem)] max-h-200 min-h-140 w-full flex-col bg-[#050505] md:h-[calc(100dvh-4rem)]">
           <ChatHeaderBar
             friend={friend}
             onStartVoiceCall={onStartVoiceCall}

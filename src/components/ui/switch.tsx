@@ -16,7 +16,10 @@ function Switch({
   const { effectsVolume, soundTheme } = usePreferences();
   const { playSound } = useSoundEffects(effectsVolume / 100, soundTheme);
 
+  const [isInit, setIsInit] = React.useState(false);
+
   const handleCheckedChange = (nextChecked: boolean) => {
+    setIsInit(true);
     playSound(nextChecked ? "switchOn" : "switchOff");
     onCheckedChange?.(nextChecked);
   };
@@ -27,14 +30,15 @@ function Switch({
       checked={checked}
       onCheckedChange={handleCheckedChange}
       className={cn(
-        'peer inline-flex h-5 w-9 shrink-0 cursor-pointer transform-gpu items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--launcher-accent))] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-[rgb(var(--launcher-accent))] data-[state=unchecked]:bg-white/20',
+        't-toggle peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--launcher-accent))] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-[rgb(var(--launcher-accent))] data-[state=unchecked]:bg-white/20',
+        isInit ? 'is-init' : '',
         className,
       )}
       {...props}
     >
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
-        className="pointer-events-none block h-4 w-4 transform-gpu rounded-full shadow-lg ring-0 transition-[transform,background-color] duration-150 ease-out will-change-transform data-[state=checked]:translate-x-4 data-[state=checked]:bg-black data-[state=unchecked]:translate-x-0 data-[state=unchecked]:bg-white"
+        className="t-toggle-thumb pointer-events-none block h-4 w-4 rounded-full shadow-lg data-[state=checked]:bg-black data-[state=unchecked]:bg-white"
       />
     </SwitchPrimitive.Root>
   )
